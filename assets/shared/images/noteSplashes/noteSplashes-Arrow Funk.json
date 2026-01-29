@@ -1,0 +1,120 @@
+{
+	"animations": {
+		"purple": {
+			"offsets": [
+				-28,
+				-11
+			],
+			"noteData": 0,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "note splash purple 1",
+			"indices": [],
+			"name": "purple"
+		},
+		"blue2": {
+			"offsets": [
+				-14,
+				-23
+			],
+			"noteData": 5,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "note splash blue 2",
+			"indices": [],
+			"name": "blue2"
+		},
+		"red": {
+			"offsets": [
+				-33,
+				-12
+			],
+			"noteData": 3,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "note splash red 1",
+			"indices": [],
+			"name": "red"
+		},
+		"red2": {
+			"offsets": [
+				-16,
+				-18
+			],
+			"noteData": 7,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "note splash red 2",
+			"indices": [],
+			"name": "red2"
+		},
+		"blue": {
+			"offsets": [
+				-28,
+				-11
+			],
+			"noteData": 1,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "note splash blue 1",
+			"indices": [],
+			"name": "blue"
+		},
+		"purple2": {
+			"offsets": [
+				-12,
+				-18
+			],
+			"noteData": 4,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "note splash purple 2",
+			"indices": [],
+			"name": "purple2"
+		},
+		"green": {
+			"offsets": [
+				-31,
+				-12
+			],
+			"noteData": 2,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "note splash green 1",
+			"indices": [],
+			"name": "green"
+		},
+		"green2": {
+			"offsets": [
+				-16,
+				-18
+			],
+			"noteData": 6,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "note splash green 2",
+			"indices": [],
+			"name": "green2"
+		}
+	},
+	"allowRGB": false,
+	"allowPixel": false,
+	"rgb": null,
+	"scale": 0.7
+}

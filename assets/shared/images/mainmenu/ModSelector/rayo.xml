@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TextureAtlas imagePath="rayo.png">
+<SubTexture name="idle0000" x="261" y="0" width="254" height="301" frameX="-1026" frameY="-419" frameWidth="1280" frameHeight="720" />
+<SubTexture name="idle0001" x="515" y="0" width="259" height="297" frameX="-1021" frameY="-423" frameWidth="1280" frameHeight="720" />
+<SubTexture name="idle0002" x="0" y="302" width="255" height="290" frameX="-1025" frameY="-430" frameWidth="1280" frameHeight="720" />
+<SubTexture name="idle0003" x="255" y="302" width="240" height="283" frameX="-1040" frameY="-437" frameWidth="1280" frameHeight="720" />
+<SubTexture name="idle0004" x="495" y="302" width="250" height="275" frameX="-1030" frameY="-445" frameWidth="1280" frameHeight="720" />
+<SubTexture name="idle0005" x="0" y="0" width="261" height="302" frameX="-1019" frameY="-418" frameWidth="1280" frameHeight="720" />
+</TextureAtlas>

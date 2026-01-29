@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TextureAtlas imagePath="frank.png">
+<SubTexture name="idle0000" x="0" y="0" width="294" height="752" frameX="-246" frameY="-5" frameWidth="768" frameHeight="768" />
+<SubTexture name="idle0001" x="294" y="0" width="294" height="743" frameX="-247" frameY="-13" frameWidth="768" frameHeight="768" />
+<SubTexture name="idle0002" x="588" y="0" width="303" height="742" frameX="-238" frameY="-14" frameWidth="768" frameHeight="768" />
+<SubTexture name="idle0003" x="891" y="0" width="306" height="742" frameX="-240" frameY="-14" frameWidth="768" frameHeight="768" />
+<SubTexture name="idle0004" x="1197" y="0" width="303" height="742" frameX="-241" frameY="-14" frameWidth="768" frameHeight="768" />
+<SubTexture name="idle0005" x="0" y="752" width="311" height="742" frameX="-240" frameY="-14" frameWidth="768" frameHeight="768" />
+<SubTexture name="right0000" x="0" y="1494" width="444" height="607" frameX="-252" frameY="-138" frameWidth="768" frameHeight="768" />
+<SubTexture name="right0001" x="1835" y="0" width="413" height="629" frameX="-258" frameY="-127" frameWidth="768" frameHeight="768" />
+<SubTexture name="up0000" x="311" y="752" width="312" height="722" frameX="-192" frameY="-15" frameWidth="768" frameHeight="768" />
+<SubTexture name="up0001" x="1500" y="0" width="335" height="716" frameX="-187" frameY="-19" frameWidth="768" frameHeight="768" />
+<SubTexture name="down0000" x="1500" y="716" width="250" height="449" frameX="-280" frameY="-283" frameWidth="768" frameHeight="768" />
+<SubTexture name="down0001" x="1835" y="629" width="213" height="475" frameX="-292" frameY="-254" frameWidth="768" frameHeight="768" />
+<SubTexture name="left0000" x="623" y="752" width="454" height="722" frameX="-140" frameY="-32" frameWidth="768" frameHeight="768" />
+<SubTexture name="left0001" x="1077" y="752" width="376" height="719" frameX="-215" frameY="-27" frameWidth="768" frameHeight="768" />
+</TextureAtlas>

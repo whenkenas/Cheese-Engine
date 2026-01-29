@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TextureAtlas imagePath="bfSigma.png">
+<SubTexture name="idle0000" x="322" y="577" width="264" height="467" frameX="-224" frameY="-261" frameWidth="768" frameHeight="768" />
+<SubTexture name="idle0001" x="586" y="577" width="282" height="440" frameX="-191" frameY="-288" frameWidth="768" frameHeight="768" />
+<SubTexture name="idle0002" x="1292" y="0" width="325" height="407" frameX="-173" frameY="-321" frameWidth="768" frameHeight="768" />
+<SubTexture name="idle0003" x="478" y="0" width="206" height="514" frameX="-288" frameY="-214" frameWidth="768" frameHeight="768" />
+<SubTexture name="left0000" x="868" y="577" width="346" height="409" frameX="-95" frameY="-323" frameWidth="768" frameHeight="768" />
+<SubTexture name="left0001" x="0" y="1051" width="330" height="396" frameX="-106" frameY="-334" frameWidth="768" frameHeight="768" />
+<SubTexture name="up0000" x="0" y="0" width="243" height="577" frameX="-268" frameY="-140" frameWidth="768" frameHeight="768" />
+<SubTexture name="up0001" x="243" y="0" width="235" height="532" frameX="-281" frameY="-189" frameWidth="768" frameHeight="768" />
+<SubTexture name="down0000" x="1292" y="653" width="312" height="205" frameX="-203" frameY="-527" frameWidth="768" frameHeight="768" />
+<SubTexture name="down0001" x="1292" y="407" width="315" height="246" frameX="-194" frameY="-494" frameWidth="768" frameHeight="768" />
+<SubTexture name="right0000" x="990" y="0" width="302" height="477" frameX="-310" frameY="-268" frameWidth="768" frameHeight="768" />
+<SubTexture name="right0001" x="0" y="577" width="322" height="474" frameX="-265" frameY="-267" frameWidth="768" frameHeight="768" />
+<SubTexture name="miss0000" x="684" y="0" width="306" height="483" frameX="-205" frameY="-244" frameWidth="768" frameHeight="768" />
+</TextureAtlas>

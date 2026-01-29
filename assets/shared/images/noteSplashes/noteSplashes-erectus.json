@@ -1,0 +1,64 @@
+{
+	"animations": {
+		"purple": {
+			"offsets": [
+				-56,
+				-64
+			],
+			"noteData": 0,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "erectus splash purple 10",
+			"indices": [],
+			"name": "purple"
+		},
+		"blue": {
+			"offsets": [
+				-56,
+				-64
+			],
+			"noteData": 1,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "erectus splash blue 10",
+			"indices": [],
+			"name": "blue"
+		},
+		"green": {
+			"offsets": [
+				-56,
+				-64
+			],
+			"noteData": 2,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "erectus splash green 10",
+			"indices": [],
+			"name": "green"
+		},
+		"red": {
+			"offsets": [
+				-56,
+				-64
+			],
+			"noteData": 3,
+			"fps": [
+				22,
+				26
+			],
+			"prefix": "erectus splash red 10",
+			"indices": [],
+			"name": "red"
+		}
+	},
+	"allowRGB": true,
+	"allowPixel": true,
+	"rgb": null,
+	"scale": 1
+}

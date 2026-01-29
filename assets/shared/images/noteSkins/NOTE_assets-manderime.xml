@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="NOTE_assets-manderime.png">
+	<!-- Made using Maru Aseprite JSON to XML converter -->
+	<SubTexture name="arrowLEFT00000" x="0" y="0" width="200" height="200"/>
+	<SubTexture name="left press00000" x="200" y="0" width="200" height="200"/>
+	<SubTexture name="left press00001" x="400" y="0" width="200" height="200"/>
+	<SubTexture name="arrowUP00000" x="600" y="0" width="200" height="200"/>
+	<SubTexture name="up press00000" x="800" y="0" width="200" height="200"/>
+	<SubTexture name="up press00001" x="1000" y="0" width="200" height="200"/>
+	<SubTexture name="arrowRIGHT00000" x="0" y="200" width="200" height="200"/>
+	<SubTexture name="right press00000" x="200" y="200" width="200" height="200"/>
+	<SubTexture name="right press00001" x="400" y="200" width="200" height="200"/>
+	<SubTexture name="arrowDOWN00000" x="600" y="200" width="200" height="200"/>
+	<SubTexture name="down press00000" x="800" y="200" width="200" height="200"/>
+	<SubTexture name="down press00001" x="1000" y="200" width="200" height="200"/>
+	<SubTexture name="left confirm00000" x="0" y="400" width="200" height="200"/>
+	<SubTexture name="left confirm00001" x="200" y="400" width="200" height="200"/>
+	<SubTexture name="purple00000" x="400" y="400" width="200" height="200"/>
+	<SubTexture name="up confirm00000" x="600" y="400" width="200" height="200"/>
+	<SubTexture name="up confirm00001" x="800" y="400" width="200" height="200"/>
+	<SubTexture name="green00000" x="1000" y="400" width="200" height="200"/>
+	<SubTexture name="red confirm00000" x="0" y="600" width="200" height="200"/>
+	<SubTexture name="red confirm00001" x="200" y="600" width="200" height="200"/>
+	<SubTexture name="red00000" x="400" y="600" width="200" height="200"/>
+	<SubTexture name="down confirm00000" x="600" y="600" width="200" height="200"/>
+	<SubTexture name="down confirm00001" x="800" y="600" width="200" height="200"/>
+	<SubTexture name="blue00000" x="1000" y="600" width="200" height="200"/>
+	<SubTexture name="purple hold piece00000" x="62" y="864" width="83" height="75"/>
+	<SubTexture name="purple hold end00000" x="262" y="864" width="83" height="88"/>
+	<SubTexture name="green hold piece00000" x="462" y="864" width="83" height="75"/>
+	<SubTexture name="green hold end00000" x="662" y="864" width="83" height="88"/>
+	<SubTexture name="blue hold piece00000" x="862" y="864" width="83" height="75"/>
+	<SubTexture name="blue hold end00000" x="1062" y="864" width="83" height="88"/>
+	<SubTexture name="red hold piece00000" x="62" y="1064" width="83" height="75"/>
+	<SubTexture name="red hold end00000" x="262" y="1064" width="83" height="88"/>
+</TextureAtlas>

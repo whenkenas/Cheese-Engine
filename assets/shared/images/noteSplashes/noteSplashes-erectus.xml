@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="noteSplashes-erectus.png">
+	<!-- Created with Adobe Animate version 23.0.2.103 -->
+	<!-- http://www.adobe.com/products/animate.html -->
+	<SubTexture name="erectus splash blue 10000" x="0" y="0" width="195" height="191" frameX="-18" frameY="-14" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10001" x="199" y="0" width="205" height="200" frameX="-13" frameY="-9" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10002" x="408" y="0" width="211" height="206" frameX="-10" frameY="-6" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10003" x="623" y="0" width="217" height="212" frameX="-7" frameY="-3" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10004" x="844" y="0" width="218" height="214" frameX="-6" frameY="-2" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10005" x="1066" y="0" width="222" height="216" frameX="-4" frameY="-1" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10006" x="1292" y="0" width="223" height="218" frameX="-4" frameY="0" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10007" x="1519" y="0" width="223" height="218" frameX="-4" frameY="0" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10008" x="1746" y="0" width="224" height="218" frameX="-3" frameY="0" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10009" x="0" y="222" width="225" height="219" frameX="-3" frameY="0" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10010" x="229" y="222" width="227" height="158" frameX="-2" frameY="-30" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10011" x="460" y="222" width="229" height="119" frameX="-1" frameY="-50" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10012" x="693" y="222" width="231" height="98" frameX="0" frameY="-60" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10013" x="928" y="222" width="231" height="87" frameX="0" frameY="-66" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash blue 10014" x="1163" y="222" width="231" height="82" frameX="0" frameY="-68" frameWidth="231" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10000" x="1398" y="222" width="196" height="191" frameX="-18" frameY="-14" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10001" x="1598" y="222" width="204" height="200" frameX="-14" frameY="-9" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10002" x="1806" y="222" width="211" height="207" frameX="-11" frameY="-6" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10003" x="0" y="445" width="216" height="211" frameX="-8" frameY="-4" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10004" x="220" y="445" width="218" height="215" frameX="-7" frameY="-2" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10005" x="442" y="445" width="222" height="217" frameX="-5" frameY="-1" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10006" x="668" y="445" width="223" height="218" frameX="-5" frameY="0" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10007" x="895" y="445" width="224" height="219" frameX="-4" frameY="0" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10008" x="1123" y="445" width="224" height="219" frameX="-4" frameY="0" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10009" x="1351" y="445" width="224" height="219" frameX="-4" frameY="0" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10010" x="1579" y="445" width="228" height="152" frameX="-2" frameY="-33" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10011" x="1811" y="445" width="230" height="111" frameX="-1" frameY="-54" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10012" x="0" y="668" width="231" height="91" frameX="-1" frameY="-64" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10013" x="235" y="668" width="231" height="83" frameX="-1" frameY="-68" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash green 10014" x="470" y="668" width="232" height="82" frameX="0" frameY="-68" frameWidth="232" frameHeight="219"/>
+	<SubTexture name="erectus splash purple 10000" x="706" y="668" width="191" height="196" frameX="-21" frameY="-14" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10001" x="901" y="668" width="200" height="204" frameX="-16" frameY="-10" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10002" x="1105" y="668" width="207" height="212" frameX="-13" frameY="-6" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10003" x="1316" y="668" width="211" height="216" frameX="-11" frameY="-4" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10004" x="1531" y="668" width="215" height="220" frameX="-9" frameY="-2" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10005" x="1750" y="668" width="217" height="222" frameX="-8" frameY="-1" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10006" x="0" y="894" width="218" height="223" frameX="-7" frameY="0" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10007" x="222" y="894" width="219" height="224" frameX="-7" frameY="0" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10008" x="445" y="894" width="219" height="224" frameX="-7" frameY="0" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10009" x="668" y="894" width="219" height="224" frameX="-7" frameY="0" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10010" x="891" y="894" width="225" height="154" frameX="-4" frameY="-35" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10011" x="1120" y="894" width="229" height="112" frameX="-2" frameY="-56" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10012" x="1353" y="894" width="231" height="90" frameX="-1" frameY="-67" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10013" x="1588" y="894" width="232" height="82" frameX="0" frameY="-71" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash purple 10014" x="0" y="1122" width="232" height="82" frameX="0" frameY="-71" frameWidth="232" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10000" x="236" y="1122" width="191" height="196" frameX="-20" frameY="-14" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10001" x="431" y="1122" width="199" height="204" frameX="-16" frameY="-10" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10002" x="634" y="1122" width="207" height="212" frameX="-12" frameY="-6" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10003" x="845" y="1122" width="211" height="216" frameX="-10" frameY="-4" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10004" x="1060" y="1122" width="215" height="220" frameX="-8" frameY="-2" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10005" x="1279" y="1122" width="217" height="222" frameX="-7" frameY="-1" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10006" x="1500" y="1122" width="218" height="223" frameX="-6" frameY="0" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10007" x="1722" y="1122" width="219" height="224" frameX="-6" frameY="0" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10008" x="0" y="1350" width="219" height="224" frameX="-6" frameY="0" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10009" x="223" y="1350" width="219" height="224" frameX="-6" frameY="0" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10010" x="446" y="1350" width="225" height="155" frameX="-3" frameY="-34" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10011" x="675" y="1350" width="229" height="111" frameX="-1" frameY="-56" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10012" x="908" y="1350" width="231" height="91" frameX="0" frameY="-66" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10013" x="1143" y="1350" width="231" height="83" frameX="0" frameY="-70" frameWidth="231" frameHeight="224"/>
+	<SubTexture name="erectus splash red 10014" x="1378" y="1350" width="231" height="82" frameX="0" frameY="-71" frameWidth="231" frameHeight="224"/>
+</TextureAtlas>

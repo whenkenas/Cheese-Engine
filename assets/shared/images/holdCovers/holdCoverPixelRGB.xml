@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TextureAtlas imagePath="holdCoverPixelRGB.png">
+	<SubTexture name="holdCoverRGB0000" x="0" y="0" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverRGB0001" x="36" y="0" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverRGB0002" x="72" y="0" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverRGB0003" x="108" y="0" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverRGB0004" x="0" y="32" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverRGB0005" x="36" y="32" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverRGB0006" x="72" y="32" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverRGB0007" x="108" y="32" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverEndRGB0000" x="0" y="64" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverEndRGB0001" x="36" y="64" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverEndRGB0002" x="72" y="64" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverEndRGB0003" x="108" y="64" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverEndRGB0004" x="0" y="96" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverEndRGB0005" x="36" y="96" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverEndRGB0006" x="72" y="96" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+	<SubTexture name="holdCoverEndRGB0007" x="108" y="96" width="36" height="32" frameX="-56" frameY="-10" frameWidth="200" frameHeight="59" />
+</TextureAtlas>

@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="noteSplashes-omegus.png">
+	<!-- Created with Adobe Animate version 22.0.5.191 -->
+	<!-- MC07 is awesome and cool. -->
+	<SubTexture name="splash0000" x="0" y="0" width="689" height="654" rotated="false" frameX="-136" frameY="-142" frameWidth="963" frameHeight="900"/>
+	<SubTexture name="splash0001" x="691" y="0" width="819" height="783" rotated="false" frameX="-72" frameY="-62" frameWidth="963" frameHeight="900"/>
+	<SubTexture name="splash0002" x="0" y="785" width="905" height="837" rotated="false" frameX="-36" frameY="-31" frameWidth="963" frameHeight="900"/>
+	<SubTexture name="splash0003" x="907" y="785" width="963" height="900" rotated="false"/>
+	<SubTexture name="splash0004" x="1872" y="785" width="1" height="1" rotated="false" frameX="0" frameY="0" frameWidth="963" frameHeight="900"/>
+</TextureAtlas>
