@@ -32,6 +32,10 @@ Attempting to be an engine with V Slice + Codename + Psych Engine features.
 
 ---
 
+![PsychionalEngineLogo](docs/img/PsychEngineLogoTweak.png)
+
+Engine originally used on [Mind Games Mod](https://gamebanana.com/mods/301107), intended to be a fix for the vanilla version's many issues while keeping the casual play aspect of it. Also aiming to be an easier alternative to newbie coders.
+
 ## Installation:
 
 Refer to [the Build Instructions](/docs/BUILDING.md)
@@ -40,7 +44,7 @@ Refer to [the Build Instructions](/docs/BUILDING.md)
 
 If you wish to disable things like *Lua Scripts* or *Video Cutscenes*, you can refer to the `Project.xml` file.
 
-Inside `Project.xml`, you will find several variables to customize Cheese Engine to your liking.
+Inside `Project.xml`, you will find several variables to customize Psych Engine to your liking.
 
 To start you off, disabling *Video Cutscenes* should be simple, simply delete the line `"VIDEOS_ALLOWED"` or comment it out by wrapping the line in XML-like comments, like this: `<!-- YOUR_LINE_HERE -->`
 
