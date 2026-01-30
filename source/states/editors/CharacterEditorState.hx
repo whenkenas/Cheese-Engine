@@ -473,6 +473,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var animationIndicesInputText:PsychUIInputText;
 	var animationFramerate:PsychUINumericStepper;
 	var animationLoopCheckBox:PsychUICheckBox;
+	var animationNoAnimCheckBox:PsychUICheckBox;
 	function addAnimationsUI()
 	{
 		var tab_group = UI_characterbox.getTab('Animations').menu;
@@ -481,14 +482,19 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		animationNameInputText = new PsychUIInputText(animationInputText.x, animationInputText.y + 35, 150, '', 8);
 		animationIndicesInputText = new PsychUIInputText(animationNameInputText.x, animationNameInputText.y + 40, 250, '', 8);
 		animationFramerate = new PsychUINumericStepper(animationInputText.x + 170, animationInputText.y, 1, 24, 0, 240, 0);
-		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y - 1, "Should it Loop?", 100);
+		animationNoAnimCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y - 25, "No Hold", 100);
+		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y + 20, "Should it Loop?", 100);
 
 		animationDropDown = new PsychUIDropDownMenu(15, animationInputText.y - 55, [''], function(selectedAnimation:Int, pressed:String) {
 			var anim:AnimArray = character.animationsArray[selectedAnimation];
 			animationInputText.text = anim.anim;
 			animationNameInputText.text = anim.name;
 			animationLoopCheckBox.checked = anim.loop;
+			animationNoAnimCheckBox.checked = (anim.noAnimation == true);
 			animationFramerate.value = anim.fps;
+
+			var isIdleAnim:Bool = anim.anim.toLowerCase().contains('idle') || (!anim.anim.toLowerCase().startsWith('sing') && !anim.anim.toLowerCase().contains('miss'));
+			animationNoAnimCheckBox.visible = !isIdleAnim;
 
 			var indicesStr:String = anim.indices.toString();
 			animationIndicesInputText.text = indicesStr.substr(1, indicesStr.length - 2);
@@ -542,6 +548,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			var addedAnim:AnimArray = newAnim(animationInputText.text, animationNameInputText.text);
 			addedAnim.fps = Math.round(animationFramerate.value);
 			addedAnim.loop = animationLoopCheckBox.checked;
+			addedAnim.noAnimation = animationNoAnimCheckBox.checked;
 			addedAnim.indices = indices;
 			addedAnim.offsets = lastOffsets;
 			addAnimation(addedAnim.anim, addedAnim.name, addedAnim.fps, addedAnim.loop, addedAnim.indices);
@@ -589,6 +596,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		tab_group.add(animationNameInputText);
 		tab_group.add(animationIndicesInputText);
 		tab_group.add(animationFramerate);
+		tab_group.add(animationNoAnimCheckBox);
 		tab_group.add(animationLoopCheckBox);
 		tab_group.add(addUpdateButton);
 		tab_group.add(removeButton);
@@ -1218,7 +1226,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			fps: 24,
 			anim: anim,
 			indices: [],
-			name: name
+			name: name,
+			noAnimation: false
 		};
 	}
 

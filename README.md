@@ -2,16 +2,16 @@
 
 # Cheese Engine!
 
-Original engine created by ShadowMario: [@ShadowMario](https://github.com/ShadowMario)
+Original Engine created by ShadowMario: [@ShadowMario](https://github.com/ShadowMario)
 
-Attempting to be an engine with V Slice + Codename + Psych Engine features.
+Attempting to be an engine with V Slice + Codename + Psych Engine features, and trying to fix bugs!
 
 ## CHANGES:
 
 - **States in HSCRIPT** - Read the readme.txt file in the respective mod folder for more information
 - **Better Chart Editor** - More similar to V Slice
 ![Chart Editor](docs/img/ChartEditor.png)
-- **V Slice Stickers** - You can add your own stickers
+- **V Slice Stickers** - You can add your own stickers (If you want to add stickers by song, create a folder with the song name.)
 - **MetaData Pause SubState** - Enhanced pause menu with metadata
 - **Better Camera Follow Pos** - Some scripts that use Camera Follow Pos may bug with this, it will be improved in the next update
 - **V Slice Volume** - Now the volume is more... cooler!

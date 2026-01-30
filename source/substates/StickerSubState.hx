@@ -156,6 +156,57 @@ class StickerSubState extends MusicBeatSubstate
 			
 			if(FileSystem.exists(modStickersBasePath) && FileSystem.isDirectory(modStickersBasePath))
 			{
+				var songName:String = null;
+			var useSongStickers:Bool = false;
+			
+			if(PlayState.SONG != null && PlayState.SONG.song != null)
+			{
+				songName = PlayState.SONG.song;
+				var songStickerPath1:String = modStickersBasePath + songName + '/';
+				var songStickerPath2:String = modStickersBasePath + StringTools.replace(songName, '-', ' ') + '/';
+				var songStickerPath3:String = modStickersBasePath + StringTools.replace(songName, ' ', '-') + '/';
+				
+				var songStickerPath:String = null;
+				if(FileSystem.exists(songStickerPath1) && FileSystem.isDirectory(songStickerPath1))
+					songStickerPath = songStickerPath1;
+				else if(FileSystem.exists(songStickerPath2) && FileSystem.isDirectory(songStickerPath2))
+					songStickerPath = songStickerPath2;
+				else if(FileSystem.exists(songStickerPath3) && FileSystem.isDirectory(songStickerPath3))
+					songStickerPath = songStickerPath3;
+				
+				if(songStickerPath != null)
+				{
+					useSongStickers = true;
+					var setScale:Float = 1.0;
+					var setConfigPath:String = songStickerPath + 'stickers.json';
+					
+					if(FileSystem.exists(setConfigPath))
+					{
+						try {
+							var setConfigContent:String = sys.io.File.getContent(setConfigPath);
+							var setConfig:Dynamic = haxe.Json.parse(setConfigContent);
+							if(setConfig.scale != null)
+								setScale = Std.parseFloat(Std.string(setConfig.scale));
+						} catch(e:Dynamic) {}
+					}
+					
+					for(file in FileSystem.readDirectory(songStickerPath))
+					{
+						if(file.endsWith('.png'))
+						{
+							var folderName:String = songStickerPath.substring(modStickersBasePath.length);
+							folderName = folderName.substring(0, folderName.length - 1);
+							var stickerPath:String = 'mods/' + Mods.currentModDirectory + '/stickers/' + folderName + '/' + file.substring(0, file.length - 4);
+							stickerFiles.push({path: stickerPath, scale: setScale});
+						}
+					}
+					
+					trace('Loaded ${stickerFiles.length} song-specific stickers for: $songName');
+				}
+			}
+			
+			if(!useSongStickers && FileSystem.exists(modStickersBasePath) && FileSystem.isDirectory(modStickersBasePath))
+			{
 				for(item in FileSystem.readDirectory(modStickersBasePath))
 				{
 					var itemPath:String = modStickersBasePath + item;
@@ -190,6 +241,7 @@ class StickerSubState extends MusicBeatSubstate
 						stickerFiles.push({path: stickerPath, scale: 1.0});
 					}
 				}
+			}
 			}
 		}
 		#end

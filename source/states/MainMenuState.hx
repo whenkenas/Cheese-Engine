@@ -98,6 +98,14 @@ class MainMenuState extends MusicBeatState
 			rightItem.x -= rightItem.width;
 		}
 
+		var tabText:FlxText = new FlxText(12, FlxG.height - 84, 0, "Press TAB to open the MODS selector.", 12);
+		tabText.scrollFactor.set();
+		tabText.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		add(tabText);
+		var cheeseVer:FlxText = new FlxText(12, FlxG.height - 64, 0, "Cheese Engine v0.5", 12);
+		cheeseVer.scrollFactor.set();
+		cheeseVer.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		add(cheeseVer);
 		var psychVer:FlxText = new FlxText(12, FlxG.height - 44, 0, "Psych Engine v" + psychEngineVersion, 12);
 		psychVer.scrollFactor.set();
 		psychVer.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);

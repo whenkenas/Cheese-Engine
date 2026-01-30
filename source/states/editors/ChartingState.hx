@@ -169,6 +169,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var miniChartTween:FlxTween;
 	
 	var camUI:FlxCamera;
+	var camNotifications:FlxCamera;
 
 	var prevGridBg:ChartingGridSprite;
 	var gridBg:ChartingGridSprite;
@@ -294,6 +295,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		camUI = new FlxCamera();
 		camUI.bgColor.alpha = 0;
 		FlxG.cameras.add(camUI, false);
+
+		camNotifications = new FlxCamera();
+		camNotifications.bgColor.alpha = 0;
+		FlxG.cameras.add(camNotifications, false);
 
 		chartEditorSave = new FlxSave();
 		chartEditorSave.bind('chart_editor_data', CoolUtil.getSavePath());
@@ -486,7 +491,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		outputTxt.borderSize = 2;
 		outputTxt.borderStyle = OUTLINE_FAST;
 		outputTxt.scrollFactor.set();
-		outputTxt.cameras = [camUI];
+		outputTxt.cameras = [camNotifications];
 		outputTxt.alpha = 0;
 		add(outputTxt);
 
