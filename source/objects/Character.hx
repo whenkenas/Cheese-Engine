@@ -290,14 +290,17 @@ class Character extends FlxSprite
 
 		var currentAnimName:String = getAnimationName();
 		var noAnimForCurrentAnim:Bool = false;
-		for (anim in animationsArray)
-			if (anim.anim == currentAnimName && anim.noAnimation == true) {
-				noAnimForCurrentAnim = true;
-				break;
-			}
-
-		if (currentAnimName.startsWith('sing')) {
-			if (!noAnimForCurrentAnim) holdTimer += elapsed;
+		if (currentAnimName.startsWith('sing'))
+		{
+			for (anim in animationsArray)
+				if (anim.anim == currentAnimName && anim.noAnimation == true)
+				{
+					noAnimForCurrentAnim = true;
+					break;
+				}
+			
+			if (!noAnimForCurrentAnim)
+				holdTimer += elapsed;
 		}
 		else if(isPlayer) holdTimer = 0;
 

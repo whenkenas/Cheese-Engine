@@ -4138,35 +4138,35 @@ class PlayState extends MusicBeatState
 			var animToPlay:String = singAnimations[Std.int(Math.abs(Math.min(singAnimations.length-1, note.noteData)))] + note.animSuffix;
 			
 			if(note.noteType == 'GF + BF Note')
-				{
-					if(boyfriend != null)
 					{
-						var bfCanPlay:Bool = true;
-						if(note.isSustainNote)
+						if(boyfriend != null)
 						{
-							var holdAnim:String = animToPlay + '-hold';
-							if(boyfriend.animation.exists(holdAnim)) animToPlay = holdAnim;
-							if(boyfriend.getAnimationName() == holdAnim || boyfriend.getAnimationName() == holdAnim + '-loop') bfCanPlay = false;
+							var bfCanPlay:Bool = true;
+							if(note.isSustainNote)
+							{
+								var holdAnim:String = animToPlay + '-hold';
+								if(boyfriend.animation.exists(holdAnim)) animToPlay = holdAnim;
+								if(boyfriend.getAnimationName() == holdAnim || boyfriend.getAnimationName() == holdAnim + '-loop') bfCanPlay = false;
+							}
+							
+							if(bfCanPlay) boyfriend.playAnim(animToPlay, true);
+							if(!note.isSustainNote) boyfriend.holdTimer = 0;
 						}
 						
-						if(bfCanPlay) boyfriend.playAnim(animToPlay, true);
-						boyfriend.holdTimer = 0;
-					}
-					
-					if(gf != null)
-					{
-						var gfCanPlay:Bool = true;
-						if(note.isSustainNote)
+						if(gf != null)
 						{
-							var holdAnim:String = animToPlay + '-hold';
-							if(gf.animation.exists(holdAnim)) animToPlay = holdAnim;
-							if(gf.getAnimationName() == holdAnim || gf.getAnimationName() == holdAnim + '-loop') gfCanPlay = false;
+							var gfCanPlay:Bool = true;
+							if(note.isSustainNote)
+							{
+								var holdAnim:String = animToPlay + '-hold';
+								if(gf.animation.exists(holdAnim)) animToPlay = holdAnim;
+								if(gf.getAnimationName() == holdAnim || gf.getAnimationName() == holdAnim + '-loop') gfCanPlay = false;
+							}
+							
+							if(gfCanPlay) gf.playAnim(animToPlay, true);
+							if(!note.isSustainNote) gf.holdTimer = 0;
 						}
-						
-						if(gfCanPlay) gf.playAnim(animToPlay, true);
-						gf.holdTimer = 0;
 					}
-				}
 				else if(note.noteType == 'Opponent Sing')
 				{
 					if(dad != null)
@@ -4180,7 +4180,7 @@ class PlayState extends MusicBeatState
 						}
 						
 						if(dadCanPlay) dad.playAnim(animToPlay, true);
-						dad.holdTimer = 0;
+						if(!note.isSustainNote) dad.holdTimer = 0;
 					}
 				}
 			else if(note.noteType == 'Opponent + GF Note')
@@ -4196,7 +4196,7 @@ class PlayState extends MusicBeatState
 					}
 					
 					if(dadCanPlay) dad.playAnim(animToPlay, true);
-					dad.holdTimer = 0;
+					if(!note.isSustainNote) dad.holdTimer = 0;
 				}
 				
 				if(gf != null)
@@ -4210,7 +4210,7 @@ class PlayState extends MusicBeatState
 					}
 					
 					if(gfCanPlay) gf.playAnim(animToPlay, true);
-					gf.holdTimer = 0;
+					if(!note.isSustainNote) gf.holdTimer = 0;
 				}
 			}
 			else
@@ -4229,7 +4229,7 @@ class PlayState extends MusicBeatState
 					}
 
 					if(canPlay) char.playAnim(animToPlay, true);
-					char.holdTimer = 0;
+					if(!note.isSustainNote) char.holdTimer = 0;
 				}
 			}
 		}
@@ -4295,7 +4295,7 @@ class PlayState extends MusicBeatState
 						}
 						
 						if(dadCanPlay) dad.playAnim(animToPlay, true);
-						dad.holdTimer = 0;
+						if(!note.isSustainNote) dad.holdTimer = 0;
 					}
 				}
 				else if(char != null && note.noteType != 'Opponent + GF Note')
@@ -4309,7 +4309,7 @@ class PlayState extends MusicBeatState
 					}
 	
 					if(canPlay) char.playAnim(animToPlay, true);
-					char.holdTimer = 0;
+					if(!note.isSustainNote) char.holdTimer = 0;
 
 					if(note.noteType == 'Hey!')
 					{

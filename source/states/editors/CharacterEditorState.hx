@@ -482,8 +482,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		animationNameInputText = new PsychUIInputText(animationInputText.x, animationInputText.y + 35, 150, '', 8);
 		animationIndicesInputText = new PsychUIInputText(animationNameInputText.x, animationNameInputText.y + 40, 250, '', 8);
 		animationFramerate = new PsychUINumericStepper(animationInputText.x + 170, animationInputText.y, 1, 24, 0, 240, 0);
-		animationNoAnimCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y - 25, "No Hold", 100);
-		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y + 20, "Should it Loop?", 100);
+		animationNoAnimCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationFramerate.y + 25, "No Hold", 100);
+		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNoAnimCheckBox.y + 25, "Should it Loop?", 100);
 
 		animationDropDown = new PsychUIDropDownMenu(15, animationInputText.y - 55, [''], function(selectedAnimation:Int, pressed:String) {
 			var anim:AnimArray = character.animationsArray[selectedAnimation];
@@ -893,6 +893,14 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		if (FlxG.keys.pressed.L) FlxG.camera.scroll.x += elapsed * 500 * shiftMult * ctrlMult;
 		if (FlxG.keys.pressed.I) FlxG.camera.scroll.y -= elapsed * 500 * shiftMult * ctrlMult;
 
+		var isOverUI = (FlxG.mouse.overlaps(UI_box, camHUD) || FlxG.mouse.overlaps(UI_characterbox, camHUD));
+
+		if(!isOverUI && FlxG.mouse.pressed && !FlxG.mouse.pressedRight && (FlxG.mouse.deltaScreenX != 0 || FlxG.mouse.deltaScreenY != 0))
+		{
+			FlxG.camera.scroll.x -= FlxG.mouse.deltaScreenX;
+			FlxG.camera.scroll.y -= FlxG.mouse.deltaScreenY;
+		}
+
 		var lastZoom = FlxG.camera.zoom;
 		if(FlxG.keys.justPressed.R && !FlxG.keys.pressed.CONTROL) FlxG.camera.zoom = 1;
 		else if (FlxG.keys.pressed.E && FlxG.camera.zoom < 3) {
@@ -902,6 +910,12 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		else if (FlxG.keys.pressed.Q && FlxG.camera.zoom > 0.1) {
 			FlxG.camera.zoom -= elapsed * FlxG.camera.zoom * shiftMult * ctrlMult;
 			if(FlxG.camera.zoom < 0.1) FlxG.camera.zoom = 0.1;
+		}
+
+		if(!isOverUI && FlxG.mouse.wheel != 0)
+		{
+			var zoomAmount = FlxG.mouse.wheel * 0.1;
+			FlxG.camera.zoom = Math.max(0.1, Math.min(3, FlxG.camera.zoom + zoomAmount));
 		}
 
 		if(lastZoom != FlxG.camera.zoom) cameraZoomText.text = 'Zoom: ' + FlxMath.roundDecimal(FlxG.camera.zoom, 2) + 'x';
