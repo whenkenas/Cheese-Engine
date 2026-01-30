@@ -4,9 +4,6 @@ import flixel.system.ui.FlxSoundTray;
 import openfl.display.Bitmap;
 import openfl.utils.Assets;
 import openfl.display.BitmapData;
-#if HSCRIPT_ALLOWED
-import psychlua.HScript;
-#end
 
 class FunkinSoundTray extends FlxSoundTray
 {
@@ -15,31 +12,10 @@ class FunkinSoundTray extends FlxSoundTray
 	var alphaTarget:Float = 0;
 
 	var volumeMaxSound:String;
-	
-	#if HSCRIPT_ALLOWED
-	private static var useCustomScript:Bool = false;
-	private static var customScript:HScript = null;
-	#end
 
 	public function new()
 	{
 		super();
-		
-		#if HSCRIPT_ALLOWED
-		if(customScript == null)
-			customScript = BackendLoader.getBackendScript('FunkinSoundTray');
-		
-		if(customScript != null)
-		{
-			useCustomScript = true;
-			customScript.set('soundTray', this);
-			
-			if(customScript.exists('new'))
-				customScript.call('new', [this]);
-			
-			return;
-		}
-		#end
 		
 		removeChildren();
 
@@ -87,14 +63,6 @@ class FunkinSoundTray extends FlxSoundTray
 
 	override public function update(MS:Float):Void
 	{
-		#if HSCRIPT_ALLOWED
-		if(useCustomScript && customScript != null && customScript.exists('update'))
-		{
-			customScript.call('update', [MS]);
-			return;
-		}
-		#end
-		
 		var elapsed:Float = MS / 1000;
 		y = FlxMath.lerp(y, lerpYPos, 0.1);
 		alpha = FlxMath.lerp(alpha, alphaTarget, 0.25);
@@ -129,14 +97,6 @@ class FunkinSoundTray extends FlxSoundTray
 
 	override public function show(up:Bool = false):Void
 	{
-		#if HSCRIPT_ALLOWED
-		if(useCustomScript && customScript != null && customScript.exists('show'))
-		{
-			customScript.call('show', [up]);
-			return;
-		}
-		#end
-		
 		_timer = 1;
 		lerpYPos = 10;
 		visible = true;

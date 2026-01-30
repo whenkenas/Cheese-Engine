@@ -166,6 +166,14 @@ class HScript extends Iris
 		set('PlayState', PlayState);
 		set('Paths', Paths);
 		set('Conductor', Conductor);
+		set('FlxSubState', flixel.FlxSubState);
+		set('MusicBeatSubstate', backend.MusicBeatSubstate);
+		set('FlxGradient', flixel.util.FlxGradient);
+		set('FlxAxes', {
+			X: flixel.util.FlxAxes.X,
+			Y: flixel.util.FlxAxes.Y,
+			XY: flixel.util.FlxAxes.XY
+		});
 		set('LoadingState', states.LoadingState);
 		set('ClientPrefs', ClientPrefs);
 		#if ACHIEVEMENTS_ALLOWED

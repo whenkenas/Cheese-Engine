@@ -1,9 +1,6 @@
 package backend;
 
 import flixel.util.FlxGradient;
-#if HSCRIPT_ALLOWED
-import psychlua.HScript;
-#end
 
 class CustomFadeTransition extends MusicBeatSubstate {
 	public static var finishCallback:Void->Void;
@@ -12,36 +9,8 @@ class CustomFadeTransition extends MusicBeatSubstate {
 	var transGradient:FlxSprite;
 
 	var duration:Float;
-	
-	#if HSCRIPT_ALLOWED
-	private static var useCustomScript:Bool = false;
-	private static var customScript:HScript = null;
-	#end
-	
 	public function new(duration:Float, isTransIn:Bool)
 	{
-		#if HSCRIPT_ALLOWED
-		if(customScript == null)
-			customScript = BackendLoader.getBackendScript('CustomFadeTransition');
-		
-		if(customScript != null)
-		{
-			useCustomScript = true;
-			this.duration = duration;
-			this.isTransIn = isTransIn;
-			super();
-			
-			customScript.set('transition', this);
-			customScript.set('duration', duration);
-			customScript.set('isTransIn', isTransIn);
-			
-			if(customScript.exists('new'))
-				customScript.call('new', [this, duration, isTransIn]);
-			
-			return;
-		}
-		#end
-		
 		this.duration = duration;
 		this.isTransIn = isTransIn;
 		super();
@@ -49,15 +18,6 @@ class CustomFadeTransition extends MusicBeatSubstate {
 
 	override function create()
 	{
-		#if HSCRIPT_ALLOWED
-		if(useCustomScript && customScript != null && customScript.exists('create'))
-		{
-			customScript.call('create', [this]);
-			super.create();
-			return;
-		}
-		#end
-		
 		cameras = [FlxG.cameras.list[FlxG.cameras.list.length-1]];
 		var width:Int = Std.int(FlxG.width / Math.max(camera.zoom, 0.001));
 		var height:Int = Std.int(FlxG.height / Math.max(camera.zoom, 0.001));
@@ -86,14 +46,6 @@ class CustomFadeTransition extends MusicBeatSubstate {
 	override function update(elapsed:Float) {
 		super.update(elapsed);
 
-		#if HSCRIPT_ALLOWED
-		if(useCustomScript && customScript != null && customScript.exists('update'))
-		{
-			customScript.call('update', [elapsed]);
-			return;
-		}
-		#end
-
 		final height:Float = FlxG.height * Math.max(camera.zoom, 0.001);
 		final targetPos:Float = transGradient.height + 50 * Math.max(camera.zoom, 0.001);
 		if(duration > 0)
@@ -112,15 +64,9 @@ class CustomFadeTransition extends MusicBeatSubstate {
 		}
 	}
 
+	// Don't delete this
 	override function close():Void
 	{
-		#if HSCRIPT_ALLOWED
-		if(useCustomScript && customScript != null && customScript.exists('close'))
-		{
-			customScript.call('close', []);
-		}
-		#end
-		
 		super.close();
 
 		if(finishCallback != null)
