@@ -36,7 +36,6 @@ typedef AnimArray = {
 	var loop:Bool;
 	var indices:Array<Int>;
 	var offsets:Array<Int>;
-	@:optional var noAnimation:Bool;
 }
 
 class Character extends FlxSprite
@@ -288,20 +287,7 @@ class Character extends FlxSprite
 				if(isAnimationFinished()) playAnim(getAnimationName(), false, false, animation.curAnim.frames.length - 3);
 		}
 
-		var currentAnimName:String = getAnimationName();
-		var noAnimForCurrentAnim:Bool = false;
-		if (currentAnimName.startsWith('sing'))
-		{
-			for (anim in animationsArray)
-				if (anim.anim == currentAnimName && anim.noAnimation == true)
-				{
-					noAnimForCurrentAnim = true;
-					break;
-				}
-			
-			if (!noAnimForCurrentAnim)
-				holdTimer += elapsed;
-		}
+		if (getAnimationName().startsWith('sing')) holdTimer += elapsed;
 		else if(isPlayer) holdTimer = 0;
 
 		if (!isPlayer && holdTimer >= Conductor.stepCrochet * (0.0011 #if FLX_PITCH / (FlxG.sound.music != null ? FlxG.sound.music.pitch : 1) #end) * singDuration)
