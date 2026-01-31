@@ -55,6 +55,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var unsavedProgress:Bool = false;
 
 	var selectedFormat:FlxTextFormat = new FlxTextFormat(FlxColor.LIME);
+	var holdingObjectType:Int = -1;
 
 	public function new(char:String = null, goToPlayState:Bool = false)
 	{
@@ -473,7 +474,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var animationIndicesInputText:PsychUIInputText;
 	var animationFramerate:PsychUINumericStepper;
 	var animationLoopCheckBox:PsychUICheckBox;
-	var animationNoAnimCheckBox:PsychUICheckBox;
 	function addAnimationsUI()
 	{
 		var tab_group = UI_characterbox.getTab('Animations').menu;
@@ -482,19 +482,14 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		animationNameInputText = new PsychUIInputText(animationInputText.x, animationInputText.y + 35, 150, '', 8);
 		animationIndicesInputText = new PsychUIInputText(animationNameInputText.x, animationNameInputText.y + 40, 250, '', 8);
 		animationFramerate = new PsychUINumericStepper(animationInputText.x + 170, animationInputText.y, 1, 24, 0, 240, 0);
-		animationNoAnimCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationFramerate.y + 25, "No Hold", 100);
-		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNoAnimCheckBox.y + 25, "Should it Loop?", 100);
+		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y - 1, "Should it Loop?", 100);
 
 		animationDropDown = new PsychUIDropDownMenu(15, animationInputText.y - 55, [''], function(selectedAnimation:Int, pressed:String) {
 			var anim:AnimArray = character.animationsArray[selectedAnimation];
 			animationInputText.text = anim.anim;
 			animationNameInputText.text = anim.name;
 			animationLoopCheckBox.checked = anim.loop;
-			animationNoAnimCheckBox.checked = (anim.noAnimation == true);
 			animationFramerate.value = anim.fps;
-
-			var isIdleAnim:Bool = anim.anim.toLowerCase().contains('idle') || (!anim.anim.toLowerCase().startsWith('sing') && !anim.anim.toLowerCase().contains('miss'));
-			animationNoAnimCheckBox.visible = !isIdleAnim;
 
 			var indicesStr:String = anim.indices.toString();
 			animationIndicesInputText.text = indicesStr.substr(1, indicesStr.length - 2);
@@ -548,7 +543,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			var addedAnim:AnimArray = newAnim(animationInputText.text, animationNameInputText.text);
 			addedAnim.fps = Math.round(animationFramerate.value);
 			addedAnim.loop = animationLoopCheckBox.checked;
-			addedAnim.noAnimation = animationNoAnimCheckBox.checked;
 			addedAnim.indices = indices;
 			addedAnim.offsets = lastOffsets;
 			addAnimation(addedAnim.anim, addedAnim.name, addedAnim.fps, addedAnim.loop, addedAnim.indices);
@@ -596,7 +590,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		tab_group.add(animationNameInputText);
 		tab_group.add(animationIndicesInputText);
 		tab_group.add(animationFramerate);
-		tab_group.add(animationNoAnimCheckBox);
 		tab_group.add(animationLoopCheckBox);
 		tab_group.add(addUpdateButton);
 		tab_group.add(removeButton);
@@ -887,19 +880,36 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		}
 		if(FlxG.keys.pressed.CONTROL) ctrlMult = 0.25;
 
+		if(FlxG.mouse.justPressed)
+	{
+		if(FlxG.mouse.pressedRight) holdingObjectType = 0;
+		else if(FlxG.mouse.pressedMiddle) holdingObjectType = 2;
+		else if(FlxG.mouse.pressed) holdingObjectType = 1;
+	}
+	else if(FlxG.mouse.justReleased) holdingObjectType = -1;
+
+	if(FlxG.mouse.pressedRight && FlxG.mouse.pressed)
+	{
+		holdingObjectType = -1;
+	}
+
+	if(holdingObjectType == 0 && FlxG.mouse.pressedRight)
+	{
+		character.x -= FlxG.mouse.deltaScreenX / FlxG.camera.zoom;
+		character.y -= FlxG.mouse.deltaScreenY / FlxG.camera.zoom;
+		updatePointerPos(false);
+	}
+	else if(holdingObjectType == 1 && FlxG.mouse.pressed && !FlxG.mouse.pressedRight)
+	{
+		FlxG.camera.scroll.x -= FlxG.mouse.deltaScreenX * shiftMult * ctrlMult;
+		FlxG.camera.scroll.y -= FlxG.mouse.deltaScreenY * shiftMult * ctrlMult;
+	}
+
 		// CAMERA CONTROLS
 		if (FlxG.keys.pressed.J) FlxG.camera.scroll.x -= elapsed * 500 * shiftMult * ctrlMult;
 		if (FlxG.keys.pressed.K) FlxG.camera.scroll.y += elapsed * 500 * shiftMult * ctrlMult;
 		if (FlxG.keys.pressed.L) FlxG.camera.scroll.x += elapsed * 500 * shiftMult * ctrlMult;
 		if (FlxG.keys.pressed.I) FlxG.camera.scroll.y -= elapsed * 500 * shiftMult * ctrlMult;
-
-		var isOverUI = (FlxG.mouse.overlaps(UI_box, camHUD) || FlxG.mouse.overlaps(UI_characterbox, camHUD));
-
-		if(!isOverUI && FlxG.mouse.pressed && !FlxG.mouse.pressedRight && (FlxG.mouse.deltaScreenX != 0 || FlxG.mouse.deltaScreenY != 0))
-		{
-			FlxG.camera.scroll.x -= FlxG.mouse.deltaScreenX;
-			FlxG.camera.scroll.y -= FlxG.mouse.deltaScreenY;
-		}
 
 		var lastZoom = FlxG.camera.zoom;
 		if(FlxG.keys.justPressed.R && !FlxG.keys.pressed.CONTROL) FlxG.camera.zoom = 1;
@@ -912,13 +922,18 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			if(FlxG.camera.zoom < 0.1) FlxG.camera.zoom = 0.1;
 		}
 
-		if(!isOverUI && FlxG.mouse.wheel != 0)
-		{
-			var zoomAmount = FlxG.mouse.wheel * 0.1;
-			FlxG.camera.zoom = Math.max(0.1, Math.min(3, FlxG.camera.zoom + zoomAmount));
-		}
+		if(FlxG.mouse.wheel != 0)
+	{
+		var zoomAmount:Float = 0.04;
+		if(FlxG.keys.pressed.CONTROL) zoomAmount = 0.01;
+		else if(FlxG.keys.pressed.SHIFT) zoomAmount = 0.16;
 
-		if(lastZoom != FlxG.camera.zoom) cameraZoomText.text = 'Zoom: ' + FlxMath.roundDecimal(FlxG.camera.zoom, 2) + 'x';
+		FlxG.camera.zoom += FlxG.mouse.wheel * zoomAmount * FlxG.camera.zoom;
+		if(FlxG.camera.zoom > 3) FlxG.camera.zoom = 3;
+		if(FlxG.camera.zoom < 0.1) FlxG.camera.zoom = 0.1;
+	}
+
+	if(lastZoom != FlxG.camera.zoom) cameraZoomText.text = 'Zoom: ' + FlxMath.roundDecimal(FlxG.camera.zoom, 2) + 'x';
 
 		// CHARACTER CONTROLS
 		var changedAnim:Bool = false;
@@ -1240,8 +1255,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			fps: 24,
 			anim: anim,
 			indices: [],
-			name: name,
-			noAnimation: false
+			name: name
 		};
 	}
 
