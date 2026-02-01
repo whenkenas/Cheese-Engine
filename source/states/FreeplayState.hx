@@ -424,15 +424,15 @@ class FreeplayState extends MusicBeatState
 			}
 
 			if (controls.UI_LEFT_P)
-			{
-				changeDiff(-1);
-				_updateSongLastDifficulty();
-			}
-			else if (controls.UI_RIGHT_P)
-			{
-				changeDiff(1);
-				_updateSongLastDifficulty();
-			}
+		{
+			changeDiff(-1);
+			_updateSongLastDifficulty();
+		}
+		else if (controls.UI_RIGHT_P)
+		{
+			changeDiff(1);
+			_updateSongLastDifficulty();
+		}
 		}
 
 		if (controls.BACK)
@@ -468,8 +468,17 @@ class FreeplayState extends MusicBeatState
 
 			Mods.currentModDirectory = songs[curSelected].folder;
 			var poop:String = Highscore.formatSong(songs[curSelected].songName.toLowerCase(), curDifficulty);
-			Song.loadFromJson(poop, songs[curSelected].songName.toLowerCase());
-			if (PlayState.SONG.needsVoices)
+			try
+			{
+				Song.loadFromJson(poop, songs[curSelected].songName.toLowerCase());
+			}
+			catch(e:haxe.Exception)
+			{
+				trace('ERROR LOADING PREVIEW: ${e.message}');
+				FlxG.sound.play(Paths.sound('cancelMenu'));
+				return;
+			}
+			if (PlayState.SONG != null && PlayState.SONG.needsVoices)
 			{
 				vocals = new FlxSound();
 				try
@@ -533,48 +542,42 @@ class FreeplayState extends MusicBeatState
 			var songLowercase:String = Paths.formatToSongPath(songs[curSelected].songName);
 			var poop:String = Highscore.formatSong(songLowercase, curDifficulty);
 
-			try
-			{
-				Song.loadFromJson(poop, songLowercase);
-				PlayState.isStoryMode = false;
-				PlayState.storyDifficulty = curDifficulty;
+			var chartExists = Song.getChart(poop, songLowercase);
+		if(chartExists == null)
+		{
+			var difficultyName:String = Difficulty.getString(curDifficulty);
+			missingText.text = 'ERROR WHILE LOADING CHART:\n\nSong: ${songs[curSelected].songName}\nDifficulty: $difficultyName\n\nChart file not found!';
+			missingText.screenCenter(Y);
+			missingText.visible = true;
+			missingTextBG.visible = true;
+			FlxG.sound.play(Paths.sound('cancelMenu'));
 
-				trace('CURRENT WEEK: ' + WeekData.getWeekFileName());
-			}
-			catch(e:haxe.Exception)
-			{
-				trace('ERROR! ${e.message}');
+			updateTexts(elapsed);
+			super.update(elapsed);
+			return;
+		}
 
-				var errorStr:String = e.message;
-				if(errorStr.contains('There is no TEXT asset with an ID of')) errorStr = 'Missing file: ' + errorStr.substring(errorStr.indexOf(songLowercase), errorStr.length-1); //Missing chart
-				else errorStr += '\n\n' + e.stack;
+		Song.loadFromJson(poop, songLowercase);
+		PlayState.isStoryMode = false;
+		PlayState.storyDifficulty = curDifficulty;
 
-				missingText.text = 'ERROR WHILE LOADING CHART:\n$errorStr';
-				missingText.screenCenter(Y);
-				missingText.visible = true;
-				missingTextBG.visible = true;
-				FlxG.sound.play(Paths.sound('cancelMenu'));
+		trace('CURRENT WEEK: ' + WeekData.getWeekFileName());
+		
+		@:privateAccess
+		if(PlayState._lastLoadedModDirectory != Mods.currentModDirectory)
+		{
+			trace('CHANGED MOD DIRECTORY, RELOADING STUFF');
+			Paths.freeGraphicsFromMemory();
+		}
+		LoadingState.prepareToSong();
+		LoadingState.loadAndSwitchState(new PlayState());
+		#if !SHOW_LOADING_SCREEN FlxG.sound.music.stop(); #end
+		stopMusicPlay = true;
 
-				updateTexts(elapsed);
-				super.update(elapsed);
-				return;
-			}
-
-			@:privateAccess
-			if(PlayState._lastLoadedModDirectory != Mods.currentModDirectory)
-			{
-				trace('CHANGED MOD DIRECTORY, RELOADING STUFF');
-				Paths.freeGraphicsFromMemory();
-			}
-			LoadingState.prepareToSong();
-			LoadingState.loadAndSwitchState(new PlayState());
-			#if !SHOW_LOADING_SCREEN FlxG.sound.music.stop(); #end
-			stopMusicPlay = true;
-
-			destroyFreeplayVocals();
-			#if (MODS_ALLOWED && DISCORD_ALLOWED)
-			DiscordClient.loadModRPC();
-			#end
+		destroyFreeplayVocals();
+		#if (MODS_ALLOWED && DISCORD_ALLOWED)
+		DiscordClient.loadModRPC();
+		#end
 		}
 		else if(controls.RESET && !player.playingMusic)
 		{

@@ -67,6 +67,8 @@ class LoadingState extends MusicBeatState
 	var intendedPercent:Float = 0;
 	var curPercent:Float = 0;
 	var stateChangeDelay:Float = 0;
+	var loadTimeout:Float = 0;
+	var maxLoadTime:Float = 15.0;
 
 	#if PSYCH_WATERMARKS
 	var logo:FlxSprite;
@@ -90,6 +92,7 @@ class LoadingState extends MusicBeatState
 	override function create()
 	{
 		persistentUpdate = true;
+		loadTimeout = 0;
 		barGroup = new FlxSpriteGroup();
 		add(barGroup);
 
@@ -197,6 +200,8 @@ class LoadingState extends MusicBeatState
 		super.update(elapsed);
 		if (dontUpdate) return;
 
+		loadTimeout += elapsed;
+
 		if (!transitioning)
 		{
 			if (!finishedLoading && checkLoaded())
@@ -208,6 +213,14 @@ class LoadingState extends MusicBeatState
 					return;
 				}
 				else stateChangeDelay = Math.max(0, stateChangeDelay - elapsed);
+			}
+			else if (loadTimeout >= maxLoadTime)
+			{
+				trace('LoadingState: Timeout reached, forcing load completion');
+				loaded = loadMax;
+				transitioning = true;
+				onLoad();
+				return;
 			}
 			intendedPercent = loaded / loadMax;
 		}
@@ -351,7 +364,7 @@ class LoadingState extends MusicBeatState
 		requestedBitmaps.clear();
 		originalBitmapKeys.clear();
 		// trace('we checked if loaded');
-		return (loaded >= loadMax && initialThreadCompleted);
+		return ((loaded >= loadMax || loadMax <= 0) && initialThreadCompleted);
 	}
 
 	public static function loadNextDirectory()
@@ -663,6 +676,14 @@ class LoadingState extends MusicBeatState
 		mutex = new Mutex();
 		loadMax = imagesToPrepare.length + soundsToPrepare.length + musicToPrepare.length + songsToPrepare.length;
 		loaded = 0;
+
+		if(loadMax <= 0)
+		{
+			trace('LoadingState: Nothing to load, loadMax is 0');
+			loaded = 1;
+			loadMax = 1;
+			return;
+		}
 
 		//then start threads
 		_threadFunc();

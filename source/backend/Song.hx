@@ -126,6 +126,10 @@ class Song
 	{
 		if(folder == null) folder = jsonInput;
 		PlayState.SONG = getChart(jsonInput, folder);
+		if(PlayState.SONG == null)
+		{
+			throw new haxe.Exception('Chart file not found: $jsonInput');
+		}
 		loadedSongName = folder;
 		chartPath = _lastPath;
 		#if windows
@@ -170,7 +174,12 @@ class Song
 			rawData = File.getContent(_lastPath);
 		else
 		#end
-			rawData = Assets.getText(_lastPath);
+		{
+			if(Assets.exists(_lastPath))
+				rawData = Assets.getText(_lastPath);
+			else
+				return null;
+		}
 
 		return rawData != null ? parseJSON(rawData, jsonInput) : null;
 	}
