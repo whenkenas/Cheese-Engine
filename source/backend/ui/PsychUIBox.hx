@@ -281,10 +281,11 @@ class PsychUIBox extends FlxSpriteGroup
 			selectedTab.menu.visible = progress > 0.01;
 	}
 
-	var _originalHeight:Int = 0;
-	public function resize(width:Int, height:Int)
+	public var _originalHeight:Int = 0;
+	public function resize(width:Int, height:Int, updateOriginal:Bool = true)
 	{
-		_originalHeight = height;
+		if(updateOriginal)
+			_originalHeight = height;
 		_targetHeight = height;
 		_currentHeight = height;
 		bg.setGraphicSize(width, height);

@@ -91,7 +91,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		['BG Freaks Expression', "Should be used only in \"school\" Stage!"],
 		['Trigger BG Ghouls', "Should be used only in \"schoolEvil\" Stage!"],
 		['Play Animation', "Plays an animation on a Character,\nonce the animation is completed,\nthe animation changes to Idle\n\nValue 1: Animation to play.\nValue 2: Character (Dad, BF, GF)"],
-		['Camera Follow Pos', "Locks camera to a specific position or character.\n\nValue 1: Position or Target\n- BF, GF, Dad (follows character)\n- Or absolute position: X, Y (e.g., 400, 800)\n- Leave empty to unlock and return to normal\n\nValue 2: Tween settings or instant\n- Leave empty or 'instant' for instant movement\n- Format: duration, easeName\n- Example: 1.5, sineInOut\n- Available eases: linear, quadIn, quadOut, quadInOut, cubeIn, cubeOut, cubeInOut, sineIn, sineOut, sineInOut, etc.\n\nNote: Camera stays locked until you clear it (empty Value 1) or use Target Camera event"],
+		['Target Follow Pos', "Locks camera to a specific position or character.\n\nValue 1: Position or Target\n- BF, GF, Dad (follows character)\n- Or absolute position: X, Y (e.g., 400, 800)\n- Leave empty to unlock and return to normal\n\nValue 2: Tween settings or instant\n- Leave empty or 'instant' for instant movement\n- Format: duration, easeName\n- Example: 1.5, sineInOut\n- Available eases: linear, quadIn, quadOut, quadInOut, cubeIn, cubeOut, cubeInOut, sineIn, sineOut, sineInOut, etc.\n\nNote: Camera stays locked until you clear it (empty Value 1) or use Target Camera event"],
+		['Camera Follow Pos', "Value 1: X\nValue 2: Y\n\nThe camera won't change the follow point\nafter using this, for getting it back\nto normal, leave both values blank."],
 		['Alt Idle Animation', "Sets a specified postfix after the idle animation name.\nYou can use this to trigger 'idle-alt' if you set\nValue 2 to -alt\n\nValue 1: Character to set (Dad, BF or GF)\nValue 2: New postfix (Leave it blank to disable)"],
 		['Screen Shake', "Value 1: Camera shake\nValue 2: HUD shake\n\nEvery value works as the following example: \"1, 0.05\".\nThe first number (1) is the duration.\nThe second number (0.05) is the intensity."],
 		['Change Character', "Value 1: Character to change (Dad, BF, GF)\nValue 2: New character's name"],
@@ -154,6 +155,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var chartEditorSave:FlxSave;
 	var mainBox:PsychUIBox;
 	var mainBoxPosition:FlxPoint = FlxPoint.get(FlxG.width - 300, 24);
+	var mainBoxOriginalHeight:Int = 280;
+	var lastMainBoxTab:String = '';
+	var lastMainBoxMinimized:Bool = false;
 	var infoBox:PsychUIBox;
 	var infoBoxPosition:FlxPoint = FlxPoint.get(FlxG.width - 220, 304);
 	var upperBox:PsychUIBox;
@@ -1932,6 +1936,22 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 		ignoreClickForThisFrame = false;
 
+		if(mainBox.selectedName != lastMainBoxTab || mainBox.isMinimized != lastMainBoxMinimized)
+		{
+			lastMainBoxTab = mainBox.selectedName;
+			lastMainBoxMinimized = mainBox.isMinimized;
+			
+			if(!mainBox.isMinimized && lastMainBoxTab != 'Events' && lastMainBoxTab != null)
+			{
+				mainBox.resize(300, mainBoxOriginalHeight, true);
+				infoBox.setPosition(infoBoxPosition.x, infoBoxPosition.y);
+			}
+			else if(!mainBox.isMinimized && lastMainBoxTab == 'Events')
+			{
+				updateEventDescriptionHeight();
+			}
+		}
+
 		if(Conductor.songPosition != lastTime || forceDataUpdate)
 		{
 			var curTime:String = FlxStringUtil.formatTime(Conductor.songPosition / 1000, true);
@@ -3425,6 +3445,22 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	var eventsList:Array<Array<String>>;
 	var curEventSelected:Int = 0;
+	function updateEventDescriptionHeight()
+	{
+		if(eventDescriptionText != null && mainBox != null)
+		{
+			eventDescriptionText.autoSize = true;
+			var textHeight:Float = eventDescriptionText.height;
+			var neededHeight:Int = Std.int(textHeight + 215);
+			
+			if(neededHeight < mainBoxOriginalHeight)
+				neededHeight = mainBoxOriginalHeight;
+			
+			mainBox.resize(300, neededHeight, false);
+			var newInfoY:Float = mainBoxPosition.y + neededHeight + 0;
+			infoBox.setPosition(infoBoxPosition.x, newInfoY);
+		}
+	}
 	function addEventsTab()
 	{
 		var tab_group = mainBox.getTab('Events').menu;
@@ -3437,6 +3473,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var eventName:String = eventSelected[0];
 			var description:String = eventSelected[1];
 			eventDescriptionText.text = description;
+			updateEventDescriptionHeight();
 			if(selectedNotes.length > 1)
 			{
 				for (note in selectedNotes)

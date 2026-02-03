@@ -2390,7 +2390,7 @@ class PlayState extends MusicBeatState
 		#end
 		#end
 		EditorHelper.returnToState = previousState;
-		MusicBeatState.switchState(new CharacterEditorState(SONG.player2));
+		MusicBeatState.switchState(new CharacterEditorState(SONG.player2, true));
 	}
 
 	public var isDead:Bool = false; //Don't mess with this on Lua!!!
@@ -2550,6 +2550,20 @@ class PlayState extends MusicBeatState
 				}
 
 			case 'Camera Follow Pos':
+				if(camFollow != null)
+				{
+					isCameraOnForcedPos = false;
+					if(flValue1 != null || flValue2 != null)
+					{
+						isCameraOnForcedPos = true;
+						if(flValue1 == null) flValue1 = 0;
+						if(flValue2 == null) flValue2 = 0;
+						camFollow.x = flValue1;
+						camFollow.y = flValue2;
+					}
+				}
+
+			case 'Target Follow Pos':
 				if(camFollow != null)
 				{
 					var targetX:Float = 0;
