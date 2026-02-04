@@ -32,12 +32,16 @@ class DiscordClient
 			initialize();
 
 		Application.current.window.onClose.add(function() {
-			if(isInitialized) shutdown();
+			if(isInitialized) {
+				Discord.ClearPresence();
+				shutdown();
+			}
 		});
 	}
 
 	public dynamic static function shutdown()
 	{
+		Discord.ClearPresence();
 		isInitialized = false;
 		Discord.Shutdown();
 	}

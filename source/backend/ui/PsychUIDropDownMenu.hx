@@ -37,8 +37,33 @@ class PsychUIDropDownMenu extends PsychUIInputText
 		{
 			if(old != cur)
 			{
-				_curFilter = this.list.filter(function(str:String) return str.startsWith(cur));
-				showDropDown(true, 0, _curFilter);
+				if(cur.length == 0)
+				{
+					_curFilter = null;
+					showDropDown(true, 0, _curFilter);
+				}
+				else
+				{
+					var isNumeric:Bool = ~/^[0-9]+$/.match(cur);
+					
+					if(isNumeric)
+					{
+						var searchIndex:Int = Std.parseInt(cur);
+						_curFilter = this.list.filter(function(str:String) {
+							var index:Int = this.list.indexOf(str);
+							return Std.string(index).indexOf(cur) == 0;
+						});
+					}
+					else
+					{
+						var searchLower:String = cur.toLowerCase();
+						_curFilter = this.list.filter(function(str:String) {
+							return str.toLowerCase().indexOf(searchLower) != -1;
+						});
+					}
+					
+					showDropDown(true, 0, _curFilter);
+				}
 			}
 		}
 		unfocus = function()
