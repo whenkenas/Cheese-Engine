@@ -178,6 +178,20 @@ class HScriptStateLoader
 					var stateInstance = new HScriptState(hscript, stateName, savedModDirectory, null);
 					trace('DEBUG: HScriptState instance created');
 					hscript.set('state', stateInstance);
+					hscript.set('add', function(obj:Dynamic) { return stateInstance.add(obj); });
+					hscript.set('remove', function(obj:Dynamic, splice:Bool = false) { return stateInstance.remove(obj, splice); });
+					hscript.set('insert', function(position:Int, obj:Dynamic) { return stateInstance.insert(position, obj); });
+					hscript.set('members', stateInstance.members);
+					hscript.set('camera', FlxG.camera);
+					hscript.set('cameras', FlxG.cameras);
+					hscript.set('save', FlxG.save);
+					hscript.set('sound', FlxG.sound);
+					hscript.set('openSubState', function(substate:Dynamic) { stateInstance.openSubState(substate); });
+					hscript.set('closeSubState', function() { stateInstance.closeSubState(); });
+					hscript.set('switchState', function(nextState:Dynamic) { FlxG.switchState(nextState); });
+					hscript.set('resetState', function() { FlxG.resetState(); });
+					hscript.set('persistentUpdate', stateInstance.persistentUpdate);
+					hscript.set('persistentDraw', stateInstance.persistentDraw);
 					trace('DEBUG: Set state to instance');
 					
 					trace('✓ HScript state created successfully!');

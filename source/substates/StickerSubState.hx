@@ -136,113 +136,181 @@ class StickerSubState extends MusicBeatSubstate
 		
 		#if sys
 		var enableFNFStickers:Bool = true;
-		var modStickersBasePath:String = '';
-		
-		#if MODS_ALLOWED
-		if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
-		{
-			modStickersBasePath = Paths.mods(Mods.currentModDirectory + '/stickers/');
-			var mainConfigPath:String = modStickersBasePath + 'stickers.json';
+			var noStickers:Bool = false;
+			var modStickersBasePath:String = '';
 			
-			if(FileSystem.exists(mainConfigPath))
+			#if MODS_ALLOWED
+			if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
 			{
-				try {
-					var configContent:String = sys.io.File.getContent(mainConfigPath);
-					var config:Dynamic = haxe.Json.parse(configContent);
-					if(config.enable_fnf_stickers != null)
-						enableFNFStickers = config.enable_fnf_stickers;
-				} catch(e:Dynamic) {}
-			}
+				modStickersBasePath = Paths.mods(Mods.currentModDirectory + '/stickers/');
+				var mainConfigPath:String = modStickersBasePath + 'infoStickers.json';
+				
+				if(FileSystem.exists(mainConfigPath))
+				{
+					try {
+						var configContent:String = sys.io.File.getContent(mainConfigPath);
+						var config:Dynamic = haxe.Json.parse(configContent);
+						if(config.enable_fnf_stickers != null)
+							enableFNFStickers = config.enable_fnf_stickers;
+						if(config.no_stickers != null)
+							noStickers = config.no_stickers;
+					} catch(e:Dynamic) {}
+				}
+				
+				if(noStickers)
+				{
+					switchingState = true;
+					new FlxTimer().start(0.01, _ -> {
+						FlxG.switchState(targetState(this));
+					});
+					return;
+				}
 			
 			if(FileSystem.exists(modStickersBasePath) && FileSystem.isDirectory(modStickersBasePath))
-			{
-				var songName:String = null;
-			var useSongStickers:Bool = false;
-			
-			if(PlayState.SONG != null && PlayState.SONG.song != null)
-			{
-				songName = PlayState.SONG.song;
-				var songStickerPath1:String = modStickersBasePath + songName + '/';
-				var songStickerPath2:String = modStickersBasePath + StringTools.replace(songName, '-', ' ') + '/';
-				var songStickerPath3:String = modStickersBasePath + StringTools.replace(songName, ' ', '-') + '/';
-				
-				var songStickerPath:String = null;
-				if(FileSystem.exists(songStickerPath1) && FileSystem.isDirectory(songStickerPath1))
-					songStickerPath = songStickerPath1;
-				else if(FileSystem.exists(songStickerPath2) && FileSystem.isDirectory(songStickerPath2))
-					songStickerPath = songStickerPath2;
-				else if(FileSystem.exists(songStickerPath3) && FileSystem.isDirectory(songStickerPath3))
-					songStickerPath = songStickerPath3;
-				
-				if(songStickerPath != null)
 				{
-					useSongStickers = true;
-					var setScale:Float = 1.0;
-					var setConfigPath:String = songStickerPath + 'stickers.json';
+					var currentSongName:String = null;
+					var currentDifficulty:String = null;
 					
-					if(FileSystem.exists(setConfigPath))
+					if(PlayState.SONG != null && PlayState.SONG.song != null)
 					{
-						try {
-							var setConfigContent:String = sys.io.File.getContent(setConfigPath);
-							var setConfig:Dynamic = haxe.Json.parse(setConfigContent);
-							if(setConfig.scale != null)
-								setScale = Std.parseFloat(Std.string(setConfig.scale));
-						} catch(e:Dynamic) {}
+						currentSongName = PlayState.SONG.song;
+						if(PlayState.storyDifficulty >= 0 && PlayState.storyDifficulty < Difficulty.list.length)
+							currentDifficulty = Difficulty.list[PlayState.storyDifficulty];
 					}
 					
-					for(file in FileSystem.readDirectory(songStickerPath))
+					var songNameVariants:Array<String> = [];
+					if(currentSongName != null)
 					{
-						if(file.endsWith('.png'))
-						{
-							var folderName:String = songStickerPath.substring(modStickersBasePath.length);
-							folderName = folderName.substring(0, folderName.length - 1);
-							var stickerPath:String = 'mods/' + Mods.currentModDirectory + '/stickers/' + folderName + '/' + file.substring(0, file.length - 4);
-							stickerFiles.push({path: stickerPath, scale: setScale});
-						}
+						songNameVariants.push(currentSongName);
+						songNameVariants.push(StringTools.replace(currentSongName, '-', ' '));
+						songNameVariants.push(StringTools.replace(currentSongName, ' ', '-'));
+						songNameVariants.push(currentSongName.toLowerCase());
+						songNameVariants.push(StringTools.replace(currentSongName.toLowerCase(), '-', ' '));
+						songNameVariants.push(StringTools.replace(currentSongName.toLowerCase(), ' ', '-'));
 					}
 					
-					trace('Loaded ${stickerFiles.length} song-specific stickers for: $songName');
-				}
-			}
-			
-			if(!useSongStickers && FileSystem.exists(modStickersBasePath) && FileSystem.isDirectory(modStickersBasePath))
-			{
-				for(item in FileSystem.readDirectory(modStickersBasePath))
-				{
-					var itemPath:String = modStickersBasePath + item;
-					
-					if(FileSystem.isDirectory(itemPath))
+					for(item in FileSystem.readDirectory(modStickersBasePath))
 					{
-						var setScale:Float = 1.0;
-						var setConfigPath:String = itemPath + '/stickers.json';
+						var itemPath:String = modStickersBasePath + item;
 						
-						if(FileSystem.exists(setConfigPath))
-						{
-							try {
-								var setConfigContent:String = sys.io.File.getContent(setConfigPath);
-								var setConfig:Dynamic = haxe.Json.parse(setConfigContent);
-								if(setConfig.scale != null)
-									setScale = Std.parseFloat(Std.string(setConfig.scale));
-							} catch(e:Dynamic) {}
-						}
+						if(item == 'infoStickers.json') continue;
 						
-						for(file in FileSystem.readDirectory(itemPath))
+						if(FileSystem.isDirectory(itemPath))
 						{
-							if(file.endsWith('.png'))
+							var setScale:Float = 1.0;
+							var stickerSongs:Array<String> = [];
+							var setConfigPath:String = itemPath + '/stickers.json';
+							
+							if(FileSystem.exists(setConfigPath))
 							{
-								var stickerPath:String = 'mods/' + Mods.currentModDirectory + '/stickers/' + item + '/' + file.substring(0, file.length - 4);
-								stickerFiles.push({path: stickerPath, scale: setScale});
+								try {
+									var setConfigContent:String = sys.io.File.getContent(setConfigPath);
+									var setConfig:Dynamic = haxe.Json.parse(setConfigContent);
+									if(setConfig.scale != null)
+										setScale = Std.parseFloat(Std.string(setConfig.scale));
+									if(setConfig.stickerSongs != null)
+										stickerSongs = cast setConfig.stickerSongs;
+								} catch(e:Dynamic) {}
+							}
+							
+							var shouldLoadThisSet:Bool = false;
+							
+							if(stickerSongs.length == 0)
+							{
+								shouldLoadThisSet = true;
+							}
+							else if(currentSongName != null)
+							{
+								for(songEntry in stickerSongs)
+								{
+									var entryParts:Array<String> = songEntry.split('-');
+									var entrySongName:String = '';
+									var entryDifficulty:String = null;
+									
+									if(entryParts.length > 1)
+									{
+										var lastPart:String = entryParts[entryParts.length - 1].toLowerCase();
+										var knownDifficulties:Array<String> = ['easy', 'normal', 'hard'];
+										
+										if(knownDifficulties.indexOf(lastPart) != -1)
+										{
+											entryDifficulty = lastPart;
+											entryParts.pop();
+											entrySongName = entryParts.join('-');
+										}
+										else
+										{
+											entrySongName = songEntry;
+										}
+									}
+									else
+									{
+										entrySongName = songEntry;
+									}
+									
+									var songMatches:Bool = false;
+									for(variant in songNameVariants)
+									{
+										if(variant.toLowerCase() == entrySongName.toLowerCase() ||
+										   StringTools.replace(variant, ' ', '-').toLowerCase() == entrySongName.toLowerCase() ||
+										   StringTools.replace(variant, '-', ' ').toLowerCase() == entrySongName.toLowerCase())
+										{
+											songMatches = true;
+											break;
+										}
+									}
+									
+									if(songMatches)
+									{
+										if(entryDifficulty == null || currentDifficulty == null || entryDifficulty.toLowerCase() == currentDifficulty.toLowerCase())
+										{
+											shouldLoadThisSet = true;
+											break;
+										}
+									}
+								}
+							}
+							
+							var isSongNamedFolder:Bool = false;
+							if(currentSongName != null)
+							{
+								for(variant in songNameVariants)
+								{
+									if(item.toLowerCase() == variant.toLowerCase() ||
+									   StringTools.replace(item, ' ', '-').toLowerCase() == variant.toLowerCase() ||
+									   StringTools.replace(item, '-', ' ').toLowerCase() == variant.toLowerCase())
+									{
+										isSongNamedFolder = true;
+										break;
+									}
+								}
+							}
+							
+							if(isSongNamedFolder)
+								shouldLoadThisSet = true;
+							
+							if(shouldLoadThisSet)
+							{
+								for(file in FileSystem.readDirectory(itemPath))
+								{
+									if(file.endsWith('.png'))
+									{
+										var stickerPath:String = 'mods/' + Mods.currentModDirectory + '/stickers/' + item + '/' + file.substring(0, file.length - 4);
+										stickerFiles.push({path: stickerPath, scale: setScale});
+									}
+								}
+								
+								if(isSongNamedFolder)
+									trace('Loaded song-specific folder stickers: $item');
 							}
 						}
-					}
-					else if(item.endsWith('.png'))
-					{
-						var stickerPath:String = 'mods/' + Mods.currentModDirectory + '/stickers/' + item.substring(0, item.length - 4);
-						stickerFiles.push({path: stickerPath, scale: 1.0});
+						else if(item.endsWith('.png'))
+						{
+							var stickerPath:String = 'mods/' + Mods.currentModDirectory + '/stickers/' + item.substring(0, item.length - 4);
+							stickerFiles.push({path: stickerPath, scale: 1.0});
+						}
 					}
 				}
-			}
-			}
 		}
 		#end
 		

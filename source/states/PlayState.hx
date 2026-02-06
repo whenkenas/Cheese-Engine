@@ -3507,13 +3507,60 @@ class PlayState extends MusicBeatState
 					#end
 
 					canResync = false;
-					FlxTransitionableState.skipNextTransIn = true;
-					FlxTransitionableState.skipNextTransOut = true;
 					
 					var stateToReturn:String = returnAfterSongState != null ? returnAfterSongState : 'FreeplayState';
 					returnAfterSongState = null;
 					
-					stickerSubState = new StickerSubState(null, function(sticker) {
+					var checkNoStickers:Bool = false;
+					#if MODS_ALLOWED
+					if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
+					{
+						var modStickersBasePath:String = Paths.mods(Mods.currentModDirectory + '/stickers/');
+						var mainConfigPath:String = modStickersBasePath + 'infoStickers.json';
+						
+						if(sys.FileSystem.exists(mainConfigPath))
+						{
+							try {
+								var configContent:String = sys.io.File.getContent(mainConfigPath);
+								var config:Dynamic = haxe.Json.parse(configContent);
+								if(config.no_stickers != null && config.no_stickers == true)
+									checkNoStickers = true;
+							} catch(e:Dynamic) {}
+						}
+					}
+					#end
+					
+					if(checkNoStickers)
+					{
+						#if HSCRIPT_ALLOWED
+						var hscriptState = backend.HScriptStateLoader.loadStateScript(stateToReturn);
+						if(hscriptState != null)
+						{
+							MusicBeatState.switchState(hscriptState);
+						}
+						else
+						#end
+						{
+							var stateClass = backend.StateManager.getStateClass(stateToReturn);
+							if(stateClass != null)
+							{
+								var stateInstance = Type.createInstance(stateClass, []);
+								MusicBeatState.switchState(stateInstance);
+							}
+							else
+							{
+								MusicBeatState.switchState(new FreeplayState());
+							}
+						}
+						FlxG.sound.playMusic(Paths.music('freakyMenu'));
+						changedDifficulty = false;
+					}
+					else
+					{
+						FlxTransitionableState.skipNextTransIn = true;
+						FlxTransitionableState.skipNextTransOut = true;
+						
+						stickerSubState = new StickerSubState(null, function(sticker) {
 						var oldStickers = sticker.grpStickers != null ? sticker.grpStickers.members.copy() : null;
 						
 						#if HSCRIPT_ALLOWED
@@ -3545,6 +3592,7 @@ class PlayState extends MusicBeatState
 					});
 				openSubState(stickerSubState);
 				changedDifficulty = false;
+			}
 			}
 			transitioning = true;
 		}

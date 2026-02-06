@@ -521,32 +521,41 @@ class PauseSubState extends MusicBeatSubstate
 					
 					close();
 					
-					FlxTransitionableState.skipNextTransIn = true;
-					FlxTransitionableState.skipNextTransOut = true;
-					
-					if(PlayState.isStoryMode)
+					var checkNoStickers:Bool = false;
+					#if MODS_ALLOWED
+					if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
 					{
-						var stickerSubState:StickerSubState = new StickerSubState(null, function(sticker) return new StoryMenuState());
-						PlayState.instance.openSubState(stickerSubState);
-					}
-					else 
-					{
-						var stateToReturn:String = PlayState.returnAfterSongState != null ? PlayState.returnAfterSongState : 'FreeplayState';
-						PlayState.returnAfterSongState = null;
+						var modStickersBasePath:String = Paths.mods(Mods.currentModDirectory + '/stickers/');
+						var mainConfigPath:String = modStickersBasePath + 'infoStickers.json';
 						
-						var stickerSubState:StickerSubState = new StickerSubState(null, function(sticker) {
-							var oldStickers = sticker.grpStickers != null ? sticker.grpStickers.members.copy() : null;
+						if(sys.FileSystem.exists(mainConfigPath))
+						{
+							try {
+								var configContent:String = sys.io.File.getContent(mainConfigPath);
+								var config:Dynamic = haxe.Json.parse(configContent);
+								if(config.no_stickers != null && config.no_stickers == true)
+									checkNoStickers = true;
+							} catch(e:Dynamic) {}
+						}
+					}
+					#end
+					
+					if(checkNoStickers)
+					{
+						if(PlayState.isStoryMode)
+						{
+							MusicBeatState.switchState(new StoryMenuState());
+						}
+						else
+						{
+							var stateToReturn:String = PlayState.returnAfterSongState != null ? PlayState.returnAfterSongState : 'FreeplayState';
+							PlayState.returnAfterSongState = null;
 							
 							#if HSCRIPT_ALLOWED
 							var hscriptState = backend.HScriptStateLoader.loadStateScript(stateToReturn);
 							if(hscriptState != null)
 							{
-								if(Std.isOfType(hscriptState, backend.HScriptState))
-								{
-									var hstate = cast(hscriptState, backend.HScriptState);
-									hstate.oldStickers = oldStickers;
-								}
-								return hscriptState;
+								MusicBeatState.switchState(hscriptState);
 							}
 							else
 							#end
@@ -555,18 +564,65 @@ class PauseSubState extends MusicBeatSubstate
 								if(stateClass != null)
 								{
 									var stateInstance = Type.createInstance(stateClass, []);
-									if(Std.isOfType(stateInstance, FreeplayState))
-									{
-										return new FreeplayState(oldStickers);
-									}
-									return stateInstance;
+									MusicBeatState.switchState(stateInstance);
 								}
-								return new FreeplayState(oldStickers);
+								else
+								{
+									MusicBeatState.switchState(new FreeplayState());
+								}
 							}
-						});
-						PlayState.instance.openSubState(stickerSubState);
+						}
+						FlxG.sound.playMusic(Paths.music('freakyMenu'));
 					}
-			}
+					else
+					{
+						FlxTransitionableState.skipNextTransIn = true;
+						FlxTransitionableState.skipNextTransOut = true;
+						
+						if(PlayState.isStoryMode)
+						{
+							var stickerSubState:StickerSubState = new StickerSubState(null, function(sticker) return new StoryMenuState());
+							PlayState.instance.openSubState(stickerSubState);
+						}
+						else 
+						{
+							var stateToReturn:String = PlayState.returnAfterSongState != null ? PlayState.returnAfterSongState : 'FreeplayState';
+							PlayState.returnAfterSongState = null;
+							
+							var stickerSubState:StickerSubState = new StickerSubState(null, function(sticker) {
+								var oldStickers = sticker.grpStickers != null ? sticker.grpStickers.members.copy() : null;
+								
+								#if HSCRIPT_ALLOWED
+								var hscriptState = backend.HScriptStateLoader.loadStateScript(stateToReturn);
+								if(hscriptState != null)
+								{
+									if(Std.isOfType(hscriptState, backend.HScriptState))
+									{
+										var hstate = cast(hscriptState, backend.HScriptState);
+										hstate.oldStickers = oldStickers;
+									}
+									return hscriptState;
+								}
+								else
+								#end
+								{
+									var stateClass = backend.StateManager.getStateClass(stateToReturn);
+									if(stateClass != null)
+									{
+										var stateInstance = Type.createInstance(stateClass, []);
+										if(Std.isOfType(stateInstance, FreeplayState))
+										{
+											return new FreeplayState(oldStickers);
+										}
+										return stateInstance;
+									}
+									return new FreeplayState(oldStickers);
+								}
+							});
+							PlayState.instance.openSubState(stickerSubState);
+						}
+					}
+				}
 		}
 	}
 
