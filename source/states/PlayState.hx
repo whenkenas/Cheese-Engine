@@ -45,6 +45,7 @@ import shaders.ErrorHandledShader;
 import objects.VideoSprite;
 import objects.Note.EventNote;
 import objects.*;
+import objects.HoldCover;
 import states.stages.*;
 import states.stages.objects.*;
 
@@ -181,7 +182,7 @@ class PlayState extends MusicBeatState
 	public var grpNoteSplashes:FlxTypedGroup<NoteSplash> = new FlxTypedGroup<NoteSplash>();
 	public var strumlineBackgroundPlayer:FlxSprite;
 	public var strumlineBackgroundOpponent:FlxSprite;
-	public var holdCovers:Map<String, FlxSprite> = new Map<String, FlxSprite>();
+	public var holdCovers:Map<String, HoldCover> = new Map<String, HoldCover>();
 
 	public var camZooming:Bool = false;
 	public var camZoomingMult:Float = 1;
@@ -1757,39 +1758,17 @@ class PlayState extends MusicBeatState
 
 	private function initializeHoldCovers():Void
 	{
-		var colors:Array<String> = ['Purple', 'Blue', 'Green', 'Red'];
-		var path:String = isPixelStage ? 'holdCovers/holdCoverPixelRGB' : 'holdCovers/holdCoverRGB';
-		var alphaBF:Float = 1.0;
-		var alphaDAD:Float = 1.0;
-
-		for (color in colors)
+		for (i in 0...4)
 		{
-			for (suffix in ['BF', 'DAD'])
-			{
-				var coverName:String = 'hold' + color + suffix;
-				var cover:FlxSprite = new FlxSprite();
-				cover.frames = Paths.getSparrowAtlas(path);
-				cover.animation.addByPrefix('hold', 'holdCoverRGB', 24, true);
-				cover.animation.addByPrefix('end', 'holdCoverEndRGB', 24, false);
-				cover.visible = false;
-				cover.cameras = [camHUD];
-				
-				if(isPixelStage)
-				{
-					cover.setGraphicSize(Std.int(cover.width * 6));
-					cover.updateHitbox();
-					cover.animation.addByPrefix('hold', 'holdCoverRGB', 33, true);
-					cover.animation.addByPrefix('end', 'holdCoverEndRGB', 33, false);
-					cover.antialiasing = false;
-				}
-				else
-					cover.antialiasing = ClientPrefs.data.antialiasing;
-
-				cover.alpha = (suffix == 'BF' ? alphaBF : alphaDAD) * ClientPrefs.data.holdCoverAlpha;
-				
-				holdCovers.set(coverName, cover);
-				noteGroup.add(cover);
-			}
+			var coverBF:HoldCover = new HoldCover(i, false, isPixelStage, camHUD);
+			var coverDAD:HoldCover = new HoldCover(i, true, isPixelStage, camHUD);
+			
+			var colorName:String = HoldCover.getColorName(i);
+			holdCovers.set('hold' + colorName + 'BF', coverBF);
+			holdCovers.set('hold' + colorName + 'DAD', coverDAD);
+			
+			noteGroup.add(coverBF);
+			noteGroup.add(coverDAD);
 		}
 
 		applyRGBShadersToHoldCovers();
@@ -1797,48 +1776,22 @@ class PlayState extends MusicBeatState
 
 	private function applyRGBShadersToHoldCovers():Void
 	{
-		var colors:Array<String> = ['Purple', 'Blue', 'Green', 'Red'];
-		
-		for (i in 0...colors.length)
+		for (i in 0...4)
 		{
 			if(Note.globalRgbShaders[i] == null)
 				Note.initializeGlobalRGBShader(i);
-				
+			
+			var colorName:String = HoldCover.getColorName(i);
 			for (suffix in ['BF', 'DAD'])
 			{
-				var coverName:String = 'hold' + colors[i] + suffix;
+				var coverName:String = 'hold' + colorName + suffix;
 				if(holdCovers.exists(coverName))
 				{
-					var cover:FlxSprite = holdCovers.get(coverName);
+					var cover:HoldCover = holdCovers.get(coverName);
 					cover.shader = Note.globalRgbShaders[i].shader;
 				}
 			}
 		}
-	}
-
-	private function updateHoldCoverPosition(cover:FlxSprite, noteData:Int, isOpponent:Bool):Void
-	{
-		if(ClientPrefs.data.holdCoverAlpha <= 0) return;
-		
-		var strumIndex:Int = isOpponent ? noteData : noteData + 4;
-		if(strumIndex >= strumLineNotes.length) return;
-		
-		var strum:StrumNote = strumLineNotes.members[strumIndex];
-		if(strum == null) return;
-
-		if(isPixelStage)
-		{
-			var offsetX:Float = isOpponent ? (ClientPrefs.data.middleScroll ? [-715, -715, -50, -50][noteData] : -1025) : -385;
-			cover.setPosition(strum.x + offsetX, strum.y - 125);
-		}
-		else
-		{
-			var offsetX:Float = isOpponent ? (ClientPrefs.data.middleScroll ? [-440, -440, 230, 230][noteData] : -750) : -105;
-			cover.setPosition(strum.x + offsetX, strum.y - 100);
-		}
-
-		if(ClientPrefs.data.middleScroll && isOpponent)
-			cover.alpha = strumLineNotes.members[0] != null ? strumLineNotes.members[0].alpha : 0.35;
 	}
 
 	override function openSubState(SubState:FlxSubState)
@@ -1987,19 +1940,6 @@ class PlayState extends MusicBeatState
 		}
 		else FlxG.camera.followLerp = 0;
 		callOnScripts('onUpdate', [elapsed]);
-
-		if(ClientPrefs.data.holdCoverAlpha > 0)
-		{
-			for (coverName in holdCovers.keys())
-			{
-				var cover:FlxSprite = holdCovers.get(coverName);
-				if(cover.visible && cover.animation.curAnim != null)
-				{
-					if(cover.animation.curAnim.name == 'end' && cover.animation.curAnim.finished)
-						cover.visible = false;
-				}
-			}
-		}
 
 		super.update(elapsed);
 
@@ -3899,6 +3839,10 @@ class PlayState extends MusicBeatState
 			spr.playAnim('static');
 			spr.resetAnim = 0;
 		}
+		
+		if(ClientPrefs.data.holdCoverAlpha > 0)
+			hideHoldCover(key, false);
+		
 		callOnScripts('onKeyRelease', [key]);
 	}
 
@@ -3973,7 +3917,7 @@ class PlayState extends MusicBeatState
 
 	function noteMiss(daNote:Note):Void { //You didn't hit the key and let it go offscreen, also used by Hurt Notes
 		if(ClientPrefs.data.holdCoverAlpha > 0)
-				hideHoldCover(daNote.noteData, false);
+			hideHoldCover(daNote.noteData, daNote.mustPress ? false : true);
 		//Dupe note remove
 		notes.forEachAlive(function(note:Note) {
 			if (daNote != note && daNote.mustPress && daNote.noteData == note.noteData && daNote.isSustainNote == note.isSustainNote && Math.abs(daNote.strumTime - note.strumTime) < 1)
@@ -4086,10 +4030,7 @@ class PlayState extends MusicBeatState
 	{
 		if(opponentMode)
 		{
-			if (songName != 'tutorial')
-				camZooming = true;
-
-			if(note.noteType == 'Hey!' && boyfriend.hasAnimation('hey'))
+				if(note.noteType == 'Hey!' && boyfriend.hasAnimation('hey'))
 			{
 				boyfriend.playAnim('hey', true);
 				boyfriend.specialAnim = true;
@@ -4129,6 +4070,9 @@ class PlayState extends MusicBeatState
 			strumPlayAnim(true, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
 			note.hitByOpponent = true;
 
+			if(ClientPrefs.data.holdCoverAlpha > 0 && note.isSustainNote)
+				handleHoldCoverHit(note, true);
+
 			if (!note.isSustainNote) invalidateNote(note);
 			return;
 		}
@@ -4138,8 +4082,8 @@ class PlayState extends MusicBeatState
 
 		if(result == LuaUtils.Function_Stop) return;
 
-		if (songName != 'tutorial')
-			camZooming = true;
+		if (songName != 'tutorial' && !opponentMode)
+		camZooming = true;
 
 		if(note.noteType == 'Hey!' && dad.hasAnimation('hey'))
 		{
@@ -4251,6 +4195,9 @@ class PlayState extends MusicBeatState
 		if(opponentVocals.length <= 0) vocals.volume = 1;
 		strumPlayAnim(true, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
 		note.hitByOpponent = true;
+
+		if(ClientPrefs.data.holdCoverAlpha > 0 && note.isSustainNote)
+			handleHoldCoverHit(note, true);
 
 		stagesFunc(function(stage:BaseStage) stage.opponentNoteHit(note));
 		var result:Dynamic = callOnLuas('opponentNoteHit', [notes.members.indexOf(note), Math.abs(note.noteData), note.noteType, note.isSustainNote]);
@@ -4456,34 +4403,51 @@ class PlayState extends MusicBeatState
 
 	private function handleHoldCoverHit(note:Note, isOpponent:Bool):Void
 	{
-		var colors:Array<String> = ['Purple', 'Blue', 'Green', 'Red'];
-		var color:String = colors[note.noteData];
+		var color:String = HoldCover.getColorName(note.noteData);
 		var suffix:String = isOpponent ? 'DAD' : 'BF';
+		if(opponentMode) suffix = (suffix == 'DAD') ? 'BF' : 'DAD';
 		var coverName:String = 'hold' + color + suffix;
 		
 		if(holdCovers.exists(coverName))
 		{
-			var cover:FlxSprite = holdCovers.get(coverName);
-			cover.visible = true;
+			var cover:HoldCover = holdCovers.get(coverName);
 			
 			var isEnd:Bool = note.animation.curAnim != null && note.animation.curAnim.name.endsWith('end');
-			cover.animation.play(isEnd ? 'end' : 'hold', true);
 			
-			updateHoldCoverPosition(cover, note.noteData, isOpponent);
+			if(isEnd && isOpponent)
+			{
+				cover.visible = false;
+				return;
+			}
+			
+			var strumIndex:Int = isOpponent ? note.noteData : note.noteData + 4;
+			if(strumIndex < strumLineNotes.length)
+			{
+				var strum:StrumNote = strumLineNotes.members[strumIndex];
+				if(strum != null && strum.visible)
+				{
+					if(isEnd)
+						cover.playEnd();
+					else
+						cover.playHold();
+					
+					cover.updatePosition(strum, isPixelStage);
+				}
+			}
 		}
 	}
 
 	private function hideHoldCover(noteData:Int, isOpponent:Bool):Void
 	{
-		var colors:Array<String> = ['Purple', 'Blue', 'Green', 'Red'];
-		var color:String = colors[noteData];
+		var color:String = HoldCover.getColorName(noteData);
 		var suffix:String = isOpponent ? 'DAD' : 'BF';
+		if(opponentMode) suffix = (suffix == 'DAD') ? 'BF' : 'DAD';
 		var coverName:String = 'hold' + color + suffix;
 		
 		if(holdCovers.exists(coverName))
 		{
-			var cover:FlxSprite = holdCovers.get(coverName);
-			cover.visible = false;
+			var cover:HoldCover = holdCovers.get(coverName);
+			cover.hide();
 		}
 	}
 
@@ -4615,6 +4579,16 @@ class PlayState extends MusicBeatState
 		{
 			if(targetCameraEventInstant)
 				targetCameraEventInstant = false;
+			
+			if(opponentMode)
+			{
+				if(targetCameraEventTween != null)
+				{
+					targetCameraEventTween.cancel();
+					targetCameraEventTween = null;
+				}
+				isCameraOnForcedPos = false;
+			}
 			
 			if (generatedMusic && !endingSong && !isCameraOnForcedPos)
 				moveCameraSection();

@@ -54,8 +54,8 @@ class FPSCounter extends Sprite
 	{
 		super();
 
-		this.x = x + 1.5;
-		this.y = y + 7;
+		this.x = x;
+		this.y = y;
 		this.color = color;
 
 		currentFPS = 0;

@@ -219,17 +219,12 @@ class Main extends Sprite
 		ClientPrefs.loadPrefs();
 
 		#if !mobile
-		fpsVar = new FPSCounter(10, 3, 0xFFFFFF);
+		fpsVar = new FPSCounter(10, 10, 0xFFFFFF);
 		fpsVar.preloadBothModes();
 		addChild(fpsVar);
 		Lib.current.stage.align = "tl";
 		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
 		ClientPrefs.updateFPSCounter();
-		
-		FlxG.signals.gameResized.add(scaleFPSCounter);
-		scaleFPSCounter(FlxG.width, FlxG.height);
-		FlxG.signals.gameResized.add(scaleSoundTray);
-		scaleSoundTray(FlxG.width, FlxG.height);
 		#end
 
 		#if (linux || mac)
@@ -272,25 +267,6 @@ class Main extends Sprite
 		@:privateAccess {
 		        sprite.__cacheBitmap = null;
 			sprite.__cacheBitmapData = null;
-		}
-	}
-
-	#if !mobile
-	static function scaleFPSCounter(width:Int, height:Int):Void {
-		if (fpsVar != null) {
-			var scale:Float = Math.min(FlxG.stage.stageWidth / FlxG.width, FlxG.stage.stageHeight / FlxG.height);
-			scale *= 0.86;
-			fpsVar.scaleX = fpsVar.scaleY = scale;
-		}
-	}
-	#end
-
-	static function scaleSoundTray(width:Int, height:Int):Void {
-		var soundTray = @:privateAccess FlxG.game.soundTray;
-		if (soundTray != null) {
-			var scale:Float = Math.min(FlxG.stage.stageWidth / FlxG.width, FlxG.stage.stageHeight / FlxG.height);
-			scale *= 0.86;
-			soundTray.scaleX = soundTray.scaleY = scale;
 		}
 	}
 

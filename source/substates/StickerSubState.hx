@@ -273,29 +273,27 @@ class StickerSubState extends MusicBeatSubstate
 
 		var xPos:Float = -100;
 		var yPos:Float = -100;
-		var failedAttempts:Int = 0;
-		var maxFailedAttempts:Int = 20;
 		
-		while (xPos <= FlxG.width + 100 && failedAttempts < maxFailedAttempts)
+		while (xPos <= FlxG.width)
 		{
 			var randomStickerData:StickerData = FlxG.random.getObject(stickerFiles);
-			var sticky:StickerSprite = new StickerSprite(xPos, yPos, randomStickerData.path, randomStickerData.scale);
+			var sticky:StickerSprite = new StickerSprite(0, 0, randomStickerData.path, randomStickerData.scale);
 			
 			if(sticky.graphic == null || sticky.graphic.width <= 1)
 			{
 				sticky.destroy();
 				xPos += 100;
-				failedAttempts++;
 				continue;
 			}
 
-			failedAttempts = 0;
 			sticky.visible = false;
-			xPos += Math.max(sticky.frameWidth * 0.5, 50);
+			sticky.x = xPos;
+			sticky.y = yPos;
+			xPos += sticky.frameWidth * 0.5;
 
-			if (xPos >= FlxG.width + 100)
+			if (xPos >= FlxG.width)
 			{
-				if (yPos <= FlxG.height + 100)
+				if (yPos <= FlxG.height)
 				{
 					xPos = -100;
 					yPos += FlxG.random.float(70, 120);
@@ -384,6 +382,29 @@ class StickerSubState extends MusicBeatSubstate
 	override public function update(elapsed:Float):Void
 	{
 		super.update(elapsed);
+	}
+
+	override public function onResize(width:Int, height:Int):Void
+	{
+		super.onResize(width, height);
+		
+		if(grpStickers != null)
+		{
+			for(sticker in grpStickers.members)
+			{
+				if(sticker != null && sticker.exists)
+				{
+					var uiCamera:FlxCamera = null;
+					for(cam in FlxG.cameras.list)
+					{
+						if(cam != null)
+							uiCamera = cam;
+					}
+					if(uiCamera != null)
+						sticker.cameras = [uiCamera];
+				}
+			}
+		}
 	}
 
 	override public function close():Void
