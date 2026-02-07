@@ -860,43 +860,32 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function loadMetaDataCredits()
 	{
-		var songFolder:String = Paths.formatToSongPath(PlayState.SONG.song);
-		var metaPath:String = 'mods/data/$songFolder/metadata.json';
+		var loadedMeta:backend.MetaData.SongMeta = backend.MetaData.parse(Paths.formatToSongPath(PlayState.SONG.song));
 		
-		if(FileSystem.exists(metaPath))
+		for(credit in loadedMeta.credits)
 		{
-			try
+			if(credit.names != null && credit.names.length > 0)
 			{
-				var metaContent:String = File.getContent(metaPath);
-				var meta:Dynamic = haxe.Json.parse(metaContent);
-				
-				if(Reflect.hasField(meta, 'creditsA'))
+				if(credit.role == "Artist")
 				{
-					metaDataCreditsA = cast Reflect.field(meta, 'creditsA');
-					artistInputText.text = metaDataCreditsA.join(', ');
+					metaDataCreditsA = credit.names;
+					artistInputText.text = credit.names.join(', ');
 				}
-				
-				if(Reflect.hasField(meta, 'creditsCO'))
+				else if(credit.role == "Composer")
 				{
-					metaDataCreditsCO = cast Reflect.field(meta, 'creditsCO');
-					composerInputText.text = metaDataCreditsCO.join(', ');
+					metaDataCreditsCO = credit.names;
+					composerInputText.text = credit.names.join(', ');
 				}
-				
-				if(Reflect.hasField(meta, 'creditsCH'))
+				else if(credit.role == "Charter")
 				{
-					metaDataCreditsCH = cast Reflect.field(meta, 'creditsCH');
-					charterInputText.text = metaDataCreditsCH.join(', ');
+					metaDataCreditsCH = credit.names;
+					charterInputText.text = credit.names.join(', ');
 				}
-				
-				if(Reflect.hasField(meta, 'creditsCOD'))
+				else if(credit.role == "Coder")
 				{
-					metaDataCreditsCOD = cast Reflect.field(meta, 'creditsCOD');
-					coderInputText.text = metaDataCreditsCOD.join(', ');
+					metaDataCreditsCOD = credit.names;
+					coderInputText.text = credit.names.join(', ');
 				}
-			}
-			catch(e:Exception)
-			{
-				trace('Error loading metadata: ${e.message}');
 			}
 		}
 	}
@@ -3242,30 +3231,43 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(txt);
 
 		objY += 40;
-		artistInputText = new PsychUIInputText(objX, objY, 120, loadedMeta.creditsA.join(', '), 8);
-		metaDataCreditsA = loadedMeta.creditsA.filter(function(s:String) return s.length > 0);
+		var artistNames:Array<String> = [""];
+		var composerNames:Array<String> = [""];
+		var charterNames:Array<String> = [""];
+		var coderNames:Array<String> = [""];
+		
+		for(credit in loadedMeta.credits)
+		{
+			if(credit.role == "Artist") artistNames = credit.names;
+			else if(credit.role == "Composer") composerNames = credit.names;
+			else if(credit.role == "Charter") charterNames = credit.names;
+			else if(credit.role == "Coder") coderNames = credit.names;
+		}
+		
+		artistInputText = new PsychUIInputText(objX, objY, 120, artistNames.join(', '), 8);
+		metaDataCreditsA = artistNames.filter(function(s:String) return s.length > 0);
 		artistInputText.onChange = function(old:String, cur:String)
 		{
 			metaDataCreditsA = cur.split(',').map(function(s:String) return s.trim()).filter(function(s:String) return s.length > 0);
 		};
 		
-		composerInputText = new PsychUIInputText(objX + 150, objY, 120, loadedMeta.creditsCO.join(', '), 8);
-		metaDataCreditsCO = loadedMeta.creditsCO.filter(function(s:String) return s.length > 0);
+		composerInputText = new PsychUIInputText(objX + 150, objY, 120, composerNames.join(', '), 8);
+		metaDataCreditsCO = composerNames.filter(function(s:String) return s.length > 0);
 		composerInputText.onChange = function(old:String, cur:String)
 		{
 			metaDataCreditsCO = cur.split(',').map(function(s:String) return s.trim()).filter(function(s:String) return s.length > 0);
 		};
 
 		objY += 40;
-		charterInputText = new PsychUIInputText(objX, objY, 120, loadedMeta.creditsCH.join(', '), 8);
-		metaDataCreditsCH = loadedMeta.creditsCH.filter(function(s:String) return s.length > 0);
+		charterInputText = new PsychUIInputText(objX, objY, 120, charterNames.join(', '), 8);
+		metaDataCreditsCH = charterNames.filter(function(s:String) return s.length > 0);
 		charterInputText.onChange = function(old:String, cur:String)
 		{
 			metaDataCreditsCH = cur.split(',').map(function(s:String) return s.trim()).filter(function(s:String) return s.length > 0);
 		};
 		
-		coderInputText = new PsychUIInputText(objX + 150, objY, 120, loadedMeta.creditsCOD.join(', '), 8);
-		metaDataCreditsCOD = loadedMeta.creditsCOD.filter(function(s:String) return s.length > 0);
+		coderInputText = new PsychUIInputText(objX + 150, objY, 120, coderNames.join(', '), 8);
+		metaDataCreditsCOD = coderNames.filter(function(s:String) return s.length > 0);
 		coderInputText.onChange = function(old:String, cur:String)
 		{
 			metaDataCreditsCOD = cur.split(',').map(function(s:String) return s.trim()).filter(function(s:String) return s.length > 0);
@@ -3301,15 +3303,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			return;
 		}
 
-		var metadata:Dynamic = {
-			creditsA: metaDataCreditsA.length > 0 ? metaDataCreditsA : [""],
-			creditsCO: metaDataCreditsCO.length > 0 ? metaDataCreditsCO : [""],
-			creditsCH: metaDataCreditsCH.length > 0 ? metaDataCreditsCH : [""],
-			creditsCOD: metaDataCreditsCOD.length > 0 ? metaDataCreditsCOD : [""],
-			showAllCredits: showAllCreditsCheckBox.checked
-		};
-
-		var metadataJson:String = haxe.Json.stringify(metadata, null, '\t');
+		var creditLines:Array<String> = [];
+		
+		if(metaDataCreditsA.length > 0)
+			creditLines.push('\t\t"Artist": ' + haxe.Json.stringify(metaDataCreditsA));
+		if(metaDataCreditsCO.length > 0)
+			creditLines.push('\t\t"Composer": ' + haxe.Json.stringify(metaDataCreditsCO));
+		if(metaDataCreditsCH.length > 0)
+			creditLines.push('\t\t"Charter": ' + haxe.Json.stringify(metaDataCreditsCH));
+		if(metaDataCreditsCOD.length > 0)
+			creditLines.push('\t\t"Coder": ' + haxe.Json.stringify(metaDataCreditsCOD));
+		
+		var metadataJson:String = '{\n\t"credits": {\n' + creditLines.join(',\n') + '\n\t},\n\t"showAllCredits": ' + (showAllCreditsCheckBox.checked ? 'true' : 'false') + '\n}';
 		var songFolder:String = Paths.formatToSongPath(PlayState.SONG.song);
 		var chartName:String = 'metadata.json';
 

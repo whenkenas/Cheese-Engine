@@ -102,30 +102,28 @@ class PauseSubState extends MusicBeatSubstate
 		add(levelInfo);
 
 		var currentY:Float = levelInfo.y + 32;
-		var artisttxt:FlxText = null;
-		var composertxt:FlxText = null;
-		var chartertxt:FlxText = null;
-		var codertxt:FlxText = null;
+		var allCreditTexts:Array<FlxText> = [];
 
 		trace("=== PAUSE METADATA DEBUG ===");
 		trace("PlayState.songmeta: " + PlayState.songmeta);
-		if (PlayState.songmeta != null)
+		if (PlayState.songmeta != null && PlayState.songmeta.credits != null)
 		{
-			trace("creditsA: " + PlayState.songmeta.creditsA);
-			trace("creditsCO: " + PlayState.songmeta.creditsCO);
-			trace("creditsCH: " + PlayState.songmeta.creditsCH);
-			trace("creditsCOD: " + PlayState.songmeta.creditsCOD);
+			for(credit in PlayState.songmeta.credits)
+			{
+				trace(credit.role + ": " + credit.names);
+			}
 		}
 
 		var hasValidMetadata:Bool = false;
-		if (PlayState.songmeta != null)
+		if (PlayState.songmeta != null && PlayState.songmeta.credits != null)
 		{
-			if((PlayState.songmeta.creditsA != null && PlayState.songmeta.creditsA.length > 0 && PlayState.songmeta.creditsA[0] != "") ||
-			   (PlayState.songmeta.creditsCO != null && PlayState.songmeta.creditsCO.length > 0 && PlayState.songmeta.creditsCO[0] != "") ||
-			   (PlayState.songmeta.creditsCH != null && PlayState.songmeta.creditsCH.length > 0 && PlayState.songmeta.creditsCH[0] != "") ||
-			   (PlayState.songmeta.creditsCOD != null && PlayState.songmeta.creditsCOD.length > 0 && PlayState.songmeta.creditsCOD[0] != ""))
+			for(credit in PlayState.songmeta.credits)
 			{
-				hasValidMetadata = true;
+				if(credit.names != null && credit.names.length > 0 && credit.names[0] != "")
+				{
+					hasValidMetadata = true;
+					break;
+				}
 			}
 		}
 		trace("hasValidMetadata: " + hasValidMetadata);
@@ -135,67 +133,29 @@ class PauseSubState extends MusicBeatSubstate
 		{
 			if(PlayState.songmeta.showAllCredits)
 			{
-				if(PlayState.songmeta.creditsA != null && PlayState.songmeta.creditsA.length > 0 && PlayState.songmeta.creditsA[0] != "")
+				for(credit in PlayState.songmeta.credits)
 				{
-					artisttxt = new FlxText(0, currentY, 0, "Artist: " + PlayState.songmeta.creditsA.join(", "), 32);
-					artisttxt.scrollFactor.set();
-					artisttxt.setFormat(Paths.font('vcr.ttf'), 32);
-					artisttxt.updateHitbox();
-					artisttxt.x = FlxG.width - (artisttxt.width + 20);
-					artisttxt.alpha = 0;
-					add(artisttxt);
-					currentY += 32;
-				}
-
-				if(PlayState.songmeta.creditsCO != null && PlayState.songmeta.creditsCO.length > 0 && PlayState.songmeta.creditsCO[0] != "")
-				{
-					composertxt = new FlxText(0, currentY, 0, "Composer: " + PlayState.songmeta.creditsCO.join(", "), 32);
-					composertxt.scrollFactor.set();
-					composertxt.setFormat(Paths.font('vcr.ttf'), 32);
-					composertxt.updateHitbox();
-					composertxt.x = FlxG.width - (composertxt.width + 20);
-					composertxt.alpha = 0;
-					add(composertxt);
-					currentY += 32;
-				}
-
-				if(PlayState.songmeta.creditsCH != null && PlayState.songmeta.creditsCH.length > 0 && PlayState.songmeta.creditsCH[0] != "")
-				{
-					chartertxt = new FlxText(0, currentY, 0, "Charter: " + PlayState.songmeta.creditsCH.join(", "), 32);
-					chartertxt.scrollFactor.set();
-					chartertxt.setFormat(Paths.font('vcr.ttf'), 32);
-					chartertxt.updateHitbox();
-					chartertxt.x = FlxG.width - (chartertxt.width + 20);
-					chartertxt.alpha = 0;
-					add(chartertxt);
-					currentY += 32;
-				}
-
-				if(PlayState.songmeta.creditsCOD != null && PlayState.songmeta.creditsCOD.length > 0 && PlayState.songmeta.creditsCOD[0] != "")
-				{
-					codertxt = new FlxText(0, currentY, 0, "Coder: " + PlayState.songmeta.creditsCOD.join(", "), 32);
-					codertxt.scrollFactor.set();
-					codertxt.setFormat(Paths.font('vcr.ttf'), 32);
-					codertxt.updateHitbox();
-					codertxt.x = FlxG.width - (codertxt.width + 20);
-					codertxt.alpha = 0;
-					add(codertxt);
-					currentY += 32;
+					if(credit.names != null && credit.names.length > 0 && credit.names[0] != "")
+					{
+						var creditText = new FlxText(0, currentY, 0, credit.role + ": " + credit.names.join(", "), 32);
+						creditText.scrollFactor.set();
+						creditText.setFormat(Paths.font('vcr.ttf'), 32);
+						creditText.updateHitbox();
+						creditText.x = FlxG.width - (creditText.width + 20);
+						creditText.alpha = 0;
+						add(creditText);
+						allCreditTexts.push(creditText);
+						currentY += 32;
+					}
 				}
 			}
 			else
 			{
-				if(PlayState.songmeta.creditsA != null && PlayState.songmeta.creditsA.length > 0 && PlayState.songmeta.creditsA[0] != "")
-					creditsList.push("Artist: " + PlayState.songmeta.creditsA.join(", "));
-				
-				if(PlayState.songmeta.creditsCO != null && PlayState.songmeta.creditsCO.length > 0 && PlayState.songmeta.creditsCO[0] != "")
-					creditsList.push("Composer: " + PlayState.songmeta.creditsCO.join(", "));
-				
-				if(PlayState.songmeta.creditsCH != null && PlayState.songmeta.creditsCH.length > 0 && PlayState.songmeta.creditsCH[0] != "")
-					creditsList.push("Charter: " + PlayState.songmeta.creditsCH.join(", "));
-				
-				if(PlayState.songmeta.creditsCOD != null && PlayState.songmeta.creditsCOD.length > 0 && PlayState.songmeta.creditsCOD[0] != "")
-					creditsList.push("Coder: " + PlayState.songmeta.creditsCOD.join(", "));
+				for(credit in PlayState.songmeta.credits)
+				{
+					if(credit.names != null && credit.names.length > 0 && credit.names[0] != "")
+						creditsList.push(credit.role + ": " + credit.names.join(", "));
+				}
 
 				if(creditsList.length > 0)
 				{
@@ -237,24 +197,9 @@ class PauseSubState extends MusicBeatSubstate
 		
 		if(PlayState.songmeta.showAllCredits)
 		{
-			if(artisttxt != null)
+			for(creditText in allCreditTexts)
 			{
-				FlxTween.tween(artisttxt, {alpha: 1, y: artisttxt.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: tweenDelay});
-				tweenDelay += 0.2;
-			}
-			if(composertxt != null)
-			{
-				FlxTween.tween(composertxt, {alpha: 1, y: composertxt.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: tweenDelay});
-				tweenDelay += 0.2;
-			}
-			if(chartertxt != null)
-			{
-				FlxTween.tween(chartertxt, {alpha: 1, y: chartertxt.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: tweenDelay});
-				tweenDelay += 0.2;
-			}
-			if(codertxt != null)
-			{
-				FlxTween.tween(codertxt, {alpha: 1, y: codertxt.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: tweenDelay});
+				FlxTween.tween(creditText, {alpha: 1, y: creditText.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: tweenDelay});
 				tweenDelay += 0.2;
 			}
 		}
@@ -267,20 +212,6 @@ class PauseSubState extends MusicBeatSubstate
 				
 				startCreditRotation();
 			}
-		}
-
-		FlxTween.tween(levelDifficulty, {alpha: 1, y: levelDifficulty.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: tweenDelay});
-		FlxTween.tween(blueballedTxt, {alpha: 1, y: blueballedTxt.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: tweenDelay + 0.2});
-
-		if(chartertxt != null)
-		{
-			FlxTween.tween(chartertxt, {alpha: 1, y: chartertxt.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: tweenDelay});
-			tweenDelay += 0.2;
-		}
-		if(codertxt != null)
-		{
-			FlxTween.tween(codertxt, {alpha: 1, y: codertxt.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: tweenDelay});
-			tweenDelay += 0.2;
 		}
 
 		FlxTween.tween(levelDifficulty, {alpha: 1, y: levelDifficulty.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: tweenDelay});

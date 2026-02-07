@@ -2492,6 +2492,19 @@ class PlayState extends MusicBeatState
 			case 'Camera Follow Pos':
 				if(camFollow != null)
 				{
+					if(targetCameraEventTween != null)
+					{
+						targetCameraEventTween.cancel();
+						targetCameraEventTween = null;
+					}
+					targetCameraEventInstant = false;
+					
+					if(cameraFollowPosTween != null)
+					{
+						cameraFollowPosTween.cancel();
+						cameraFollowPosTween = null;
+					}
+					
 					isCameraOnForcedPos = false;
 					if(flValue1 != null || flValue2 != null)
 					{
@@ -2506,11 +2519,23 @@ class PlayState extends MusicBeatState
 			case 'Target Follow Pos':
 				if(camFollow != null)
 				{
+					if(targetCameraEventTween != null)
+					{
+						targetCameraEventTween.cancel();
+						targetCameraEventTween = null;
+					}
+					targetCameraEventInstant = false;
+					
 					var targetX:Float = 0;
 					var targetY:Float = 0;
 					
 					if(value1 == null || value1.trim().length == 0)
 					{
+						if(cameraFollowPosTween != null)
+						{
+							cameraFollowPosTween.cancel();
+							cameraFollowPosTween = null;
+						}
 						isCameraOnForcedPos = false;
 					}
 					else
@@ -3126,6 +3151,12 @@ class PlayState extends MusicBeatState
 				}
 
 			case 'Target Camera':
+				if(cameraFollowPosTween != null)
+				{
+					cameraFollowPosTween.cancel();
+					cameraFollowPosTween = null;
+				}
+				targetCameraEventInstant = false;
 				isCameraOnForcedPos = false;
 				
 				var targetX:Float = 0;
@@ -3203,15 +3234,12 @@ class PlayState extends MusicBeatState
 					targetCameraEventTween = null;
 				}
 				
-				targetCameraEventInstant = false;
-				
 				if(value2 == null || value2.trim().length == 0 || value2.trim().toLowerCase() == 'instant')
 				{
 					FlxG.camera.follow(null);
 					camFollow.setPosition(targetX, targetY);
 					FlxG.camera.focusOn(camFollow.getPosition());
 					FlxG.camera.follow(camFollow, LOCKON, 0);
-					targetCameraEventInstant = true;
 				}
 				else
 				{
