@@ -4,6 +4,7 @@ import openfl.display.BitmapData;
 import flixel.FlxState;
 import flixel.util.FlxSave;
 import backend.PsychCamera;
+import debug.CMD;
 
 @:bitmap("assets/embed/images/ui/cursor.png")
 private class FunkinCursor extends BitmapData {}
@@ -69,6 +70,16 @@ class MusicBeatState extends FlxState
 
 		updateCurStep();
 		updateBeat();
+
+		var consoleKeys = ClientPrefs.keyBinds.get('debug_console');
+		if (consoleKeys != null) {
+			for (key in consoleKeys) {
+				if (FlxG.keys.checkStatus(key, JUST_PRESSED)) {
+					CMD.openCMD();
+					break;
+				}
+			}
+		}
 
 		if (oldStep != curStep)
 		{

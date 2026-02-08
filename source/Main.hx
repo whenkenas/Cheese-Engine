@@ -5,6 +5,7 @@ import android.content.Context;
 #end
 
 import debug.FPSCounter;
+import debug.CMD;
 
 import flixel.graphics.FlxGraphic;
 import flixel.FlxGame;
@@ -271,11 +272,26 @@ class Main extends Sprite
 	}
 
 	function onKeyDown(event:openfl.events.KeyboardEvent):Void {
+		trace("Tecla presionada: " + event.keyCode);
+		
 		var screenshotKeys = ClientPrefs.keyBinds.get('screenshot');
 		if (screenshotKeys != null) {
 			for (key in screenshotKeys) {
 				if (event.keyCode == key) {
 					takeScreenshot();
+					break;
+				}
+			}
+		}
+
+		var consoleKeys = ClientPrefs.keyBinds.get('debug_console');
+		trace("consoleKeys: " + consoleKeys);
+		if (consoleKeys != null) {
+			for (key in consoleKeys) {
+				trace("Comparando " + event.keyCode + " con " + key);
+				if (event.keyCode == key) {
+					trace("ABRIENDO CMD!");
+					CMD.openCMD();
 					break;
 				}
 			}
