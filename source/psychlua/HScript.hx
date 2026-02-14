@@ -20,6 +20,7 @@ import crowplexus.hscript.Expr.Error as IrisError;
 import crowplexus.hscript.Printer;
 
 import haxe.ValueException;
+import openfl.display.BlendMode;
 
 typedef HScriptInfos = {
 	> haxe.PosInfos,
@@ -162,6 +163,21 @@ class HScript extends Iris
 		set('FlxTween', flixel.tweens.FlxTween);
 		set('FlxEase', flixel.tweens.FlxEase);
 		set('FlxColor', CustomFlxColor);
+		set('ADD', BlendMode.ADD);
+		set('ALPHA', BlendMode.ALPHA);
+		set('DARKEN', BlendMode.DARKEN);
+		set('DIFFERENCE', BlendMode.DIFFERENCE);
+		set('ERASE', BlendMode.ERASE);
+		set('HARDLIGHT', BlendMode.HARDLIGHT);
+		set('INVERT', BlendMode.INVERT);
+		set('LAYER', BlendMode.LAYER);
+		set('LIGHTEN', BlendMode.LIGHTEN);
+		set('MULTIPLY', BlendMode.MULTIPLY);
+		set('NORMAL', BlendMode.NORMAL);
+		set('OVERLAY', BlendMode.OVERLAY);
+		set('SCREEN', BlendMode.SCREEN);
+		set('SHADER', BlendMode.SHADER);
+		set('SUBTRACT', BlendMode.SUBTRACT);
 		set('Countdown', backend.BaseStage.Countdown);
 		set('PlayState', PlayState);
 		set('Paths', Paths);

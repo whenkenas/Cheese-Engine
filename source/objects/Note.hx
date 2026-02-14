@@ -366,7 +366,7 @@ class Note extends FlxSprite
 		var skin:String = texture;
 		if(texture.length < 1)
 		{
-			var skinPostfix:String = getNoteSkinPostfix();
+			var skinPostfix:String = (PlayState.stageUI == "pixel" || postfix == 'no-postfix') ? '' : getNoteSkinPostfix();
 			var chartSkin:String = PlayState.SONG != null ? PlayState.SONG.arrowSkin : null;
 			var chartHasSkin:Bool = (chartSkin != null && chartSkin.length > 0);
 			
@@ -398,45 +398,67 @@ class Note extends FlxSprite
 			animName = animation.curAnim.name;
 		}
 
-		var skinPixel:String = skin;
 		var lastScaleY:Float = scale.y;
-		var skinPostfix:String = getNoteSkinPostfix();
-		var customSkin:String = skin + skinPostfix;
-		var path:String = PlayState.isPixelStage ? 'pixelUI/' : '';
-		if(customSkin == _lastValidChecked || Paths.fileExists('images/' + path + customSkin + '.png', IMAGE))
-		{
-			skin = customSkin;
-			_lastValidChecked = customSkin;
+		var skinPostfix:String = '';
+		
+		if(PlayState.stageUI != "pixel") {
+			skinPostfix = getNoteSkinPostfix();
+			var customSkin:String = skin + skinPostfix;
+			if(customSkin == _lastValidChecked || Paths.fileExists('images/' + customSkin + '.png', IMAGE))
+			{
+				skin = customSkin;
+				_lastValidChecked = customSkin;
+			}
+			else skinPostfix = '';
 		}
-		else skinPostfix = '';
+		
+		var skinPixel:String = skin;
+		if(!skinPixel.contains('/')) {
+			skinPixel = 'noteSkins/' + skinPixel;
+		}
 
-		if(PlayState.isPixelStage) {
-			if(isSustainNote) {
-				var graphic = Paths.image('pixelUI/' + skinPixel + 'ENDS' + skinPostfix);
+		if(PlayState.isPixelStage || PlayState.stageUI == "pixel") {
+		var pixelSkinExists:Bool = false;
+		if(isSustainNote) {
+			pixelSkinExists = Paths.fileExists('images/pixelUI/' + skinPixel + 'ENDS.png', IMAGE);
+		} else {
+			pixelSkinExists = Paths.fileExists('images/pixelUI/' + skinPixel + '.png', IMAGE);
+		}
+		
+		if(!pixelSkinExists) {
+			skinPixel = 'noteSkins/NOTE_assets';
+		}
+		
+		if(isSustainNote) {
+			var graphic = Paths.image('pixelUI/' + skinPixel + 'ENDS');
+			if(graphic != null) {
 				loadGraphic(graphic, true, Math.floor(graphic.width / 4), Math.floor(graphic.height / 2));
 				originalHeight = graphic.height / 2;
-			} else {
-				var graphic = Paths.image('pixelUI/' + skinPixel + skinPostfix);
-				loadGraphic(graphic, true, Math.floor(graphic.width / 4), Math.floor(graphic.height / 5));
-			}
-			setGraphicSize(Std.int(width * PlayState.daPixelZoom));
-			loadPixelNoteAnims();
-			antialiasing = false;
-
-			if(isSustainNote) {
-				offsetX += _lastNoteOffX;
-				_lastNoteOffX = (width - 7) * (PlayState.daPixelZoom / 2);
-				offsetX -= _lastNoteOffX;
 			}
 		} else {
-			frames = Paths.getSparrowAtlas(skin);
-			loadNoteAnims();
-			if(!isSustainNote)
-			{
-				centerOffsets();
-				centerOrigin();
+			var graphic = Paths.image('pixelUI/' + skinPixel);
+			if(graphic != null) {
+				loadGraphic(graphic, true, Math.floor(graphic.width / 4), Math.floor(graphic.height / 5));
 			}
 		}
+		setGraphicSize(Std.int(width * PlayState.daPixelZoom));
+		loadPixelNoteAnims();
+		antialiasing = false;
+
+		if(isSustainNote) {
+			offsetX += _lastNoteOffX;
+			_lastNoteOffX = (width - 7) * (PlayState.daPixelZoom / 2);
+			offsetX -= _lastNoteOffX;
+		}
+	} else {
+		frames = Paths.getSparrowAtlas(skin);
+		loadNoteAnims();
+		if(!isSustainNote)
+		{
+			centerOffsets();
+			centerOrigin();
+		}
+	}
 
 		if(isSustainNote) {
 			scale.y = lastScaleY;

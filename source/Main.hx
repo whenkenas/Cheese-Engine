@@ -272,8 +272,6 @@ class Main extends Sprite
 	}
 
 	function onKeyDown(event:openfl.events.KeyboardEvent):Void {
-		trace("Tecla presionada: " + event.keyCode);
-		
 		var screenshotKeys = ClientPrefs.keyBinds.get('screenshot');
 		if (screenshotKeys != null) {
 			for (key in screenshotKeys) {
@@ -285,12 +283,9 @@ class Main extends Sprite
 		}
 
 		var consoleKeys = ClientPrefs.keyBinds.get('debug_console');
-		trace("consoleKeys: " + consoleKeys);
 		if (consoleKeys != null) {
 			for (key in consoleKeys) {
-				trace("Comparando " + event.keyCode + " con " + key);
 				if (event.keyCode == key) {
-					trace("ABRIENDO CMD!");
 					CMD.openCMD();
 					break;
 				}

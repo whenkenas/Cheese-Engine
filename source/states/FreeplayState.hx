@@ -543,19 +543,20 @@ class FreeplayState extends MusicBeatState
 			var poop:String = Highscore.formatSong(songLowercase, curDifficulty);
 
 			var chartExists = Song.getChart(poop, songLowercase);
-		if(chartExists == null)
-		{
-			var difficultyName:String = Difficulty.getString(curDifficulty);
-			missingText.text = 'ERROR WHILE LOADING CHART:\n\nSong: ${songs[curSelected].songName}\nDifficulty: $difficultyName\n\nChart file not found!';
-			missingText.screenCenter(Y);
-			missingText.visible = true;
-			missingTextBG.visible = true;
-			FlxG.sound.play(Paths.sound('cancelMenu'));
+			if(chartExists == null)
+			{
+				var difficultyName:String = Difficulty.getString(curDifficulty);
+				var chartPath:String = Paths.json('${songLowercase}/${poop}');
+				missingText.text = 'ERROR WHILE LOADING CHART:\n\nSong: ${songs[curSelected].songName}\nDifficulty: $difficultyName\n\nChart file not found!\n\nPath: $chartPath';
+				missingText.screenCenter(Y);
+				missingText.visible = true;
+				missingTextBG.visible = true;
+				FlxG.sound.play(Paths.sound('cancelMenu'));
 
-			updateTexts(elapsed);
-			super.update(elapsed);
-			return;
-		}
+				updateTexts(elapsed);
+				super.update(elapsed);
+				return;
+			}
 
 		Song.loadFromJson(poop, songLowercase);
 		PlayState.isStoryMode = false;

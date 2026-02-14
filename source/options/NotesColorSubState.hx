@@ -640,7 +640,8 @@ class NotesColorSubState extends MusicBeatSubstate
 			myNotes.add(newNote);
 		}
 
-		bigNote = new Note(0, 0, false, true);
+		bigNote = new Note(0, 0, null, false);
+		if(onPixel) bigNote.reloadNote('', 'no-postfix');
 		bigNote.setPosition(250, 325);
 		bigNote.setGraphicSize(250);
 		bigNote.updateHitbox();
@@ -666,7 +667,7 @@ class NotesColorSubState extends MusicBeatSubstate
 			var newAnim:String = curSelectedNote == note.ID ? 'confirm' : 'pressed';
 			note.alpha = (curSelectedNote == note.ID) ? 1 : 0.6;
 			if(note.animation.curAnim == null || note.animation.curAnim.name != newAnim) note.playAnim(newAnim, true);
-			if(instant) note.animation.curAnim.finish();
+			if(instant && note.animation.curAnim != null) note.animation.curAnim.finish();
 		}
 		bigNote.animation.play('note$curSelectedNote', true);
 		updateColors();
