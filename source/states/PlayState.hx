@@ -1922,7 +1922,9 @@ class PlayState extends MusicBeatState
 	var startedCountdown:Bool = false;
 	var canPause:Bool = true;
 	var freezeCamera:Bool = false;
+	var camZoomTweens:Array<FlxTween> = [];
 	var camZoomTween:FlxTween;
+	var camZoomTweenEndTime:Float = -999;
 
 	override public function update(elapsed:Float)
 	{
@@ -3132,22 +3134,30 @@ class PlayState extends MusicBeatState
 						case 'smootherstepinout': easeFunc = FlxEase.smootherStepInOut;
 					}
 
-					if(camZoomTween != null)
-					{
-						camZoomTween.cancel();
-						camZoomTween = null;
-					}
+					for(t in camZoomTweens) { t.cancel(); }
+					camZoomTweens = [];
+					camZoomTween = null;
+					FlxTween.cancelTweensOf(FlxG.camera);
 
 					camZooming = false;
-					camZoomTween = FlxTween.tween(FlxG.camera, {zoom: zoomValue}, duration / playbackRate, {
+					var newTween:FlxTween = FlxTween.tween(FlxG.camera, {zoom: zoomValue}, duration / playbackRate, {
 						ease: easeFunc,
 						onComplete: function(twn:FlxTween)
 						{
+							trace('[CAM TWEEN COMPLETE] twn==$camZoomTween: ${twn == camZoomTween} zoom=${FlxG.camera.zoom} defaultCamZoom=$defaultCamZoom');
+							if(twn != camZoomTween) {
+								trace('[CAM TWEEN COMPLETE] IGNORADO - era un tween viejo');
+								return;
+							}
 							defaultCamZoom = FlxG.camera.zoom;
 							camZoomTween = null;
+							camZoomTweenEndTime = haxe.Timer.stamp();
 							camZooming = true;
+							trace('[CAM TWEEN COMPLETE] APLICADO - defaultCamZoom=$defaultCamZoom camZooming=$camZooming');
 						}
 					});
+					camZoomTween = newTween;
+					camZoomTweens.push(newTween);
 				}
 
 			case 'Target Camera':
@@ -4158,7 +4168,7 @@ class PlayState extends MusicBeatState
 
 		if(result == LuaUtils.Function_Stop) return;
 
-		if (songName != 'tutorial' && !opponentMode)
+		if (songName != 'tutorial' && !opponentMode && camZoomTween == null)
 		camZooming = true;
 
 		if(note.noteType == 'Hey!' && dad.hasAnimation('hey'))
@@ -4669,11 +4679,12 @@ class PlayState extends MusicBeatState
 			if (generatedMusic && !endingSong && !isCameraOnForcedPos)
 				moveCameraSection();
 
-			if (camZooming && FlxG.camera.zoom < 1.35 && ClientPrefs.data.camZooms)
+			if (camZooming && camZoomTween == null && FlxG.camera.zoom < 1.35 && ClientPrefs.data.camZooms && (haxe.Timer.stamp() - camZoomTweenEndTime) > 1.0)
 			{
 				FlxG.camera.zoom += 0.015 * camZoomingMult;
 				camHUD.zoom += 0.03 * camZoomingMult;
 			}
+			trace('[CAM] zoom=${FlxG.camera.zoom} defaultCamZoom=$defaultCamZoom camZooming=$camZooming tweenActive=${camZoomTween != null} timeSinceTween=${haxe.Timer.stamp() - camZoomTweenEndTime}');
 
 			if (SONG.notes[curSection].changeBPM)
 			{
