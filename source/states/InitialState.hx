@@ -26,6 +26,10 @@ class InitialState extends MusicBeatState
 					var icon = lime.graphics.Image.fromFile(iconPath);
 					lime.app.Application.current.window.setIcon(icon);
 				}
+
+				if (pack != null && pack.name != null)
+					winapi.WindowsCPP.reDefineMainWindowTitle(pack.name);
+				Main.applyModWindowColor();
 			} catch(e:Dynamic) {
 				trace("Error loading mod pack info: " + e);
 			}
