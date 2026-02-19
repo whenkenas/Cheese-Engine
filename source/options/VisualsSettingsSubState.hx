@@ -256,7 +256,7 @@ class VisualsSettingsSubState extends BaseOptionsMenu
 		option.onChange = onChangeWindowTheme;
 
 		var option:Option = new Option('Window Color:',
-			"Select window header color.\nDefault = System theme (requires restart)\nOther options = Custom colors (Windows 11 only)",
+			"Select window header color.\nDefault = System theme\nOther options = Custom colors (Windows 11 only)",
 			'windowColor',
 			STRING,
 			['Default', 'Red', 'Orange', 'Yellow', 'Green', 'Cyan', 'Blue', 'Purple', 'Pink', 'Grey']);

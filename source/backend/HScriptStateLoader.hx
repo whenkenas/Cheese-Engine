@@ -130,7 +130,7 @@ class HScriptStateLoader
 			var scriptPath = Paths.modFolders('$savedModDirectory/states/$stateName.hx');
 			var exists = sys.FileSystem.exists(scriptPath);
 			
-			if(exists)
+			if(exists && stateName != 'LoadingState' && stateName != 'LoadingScreen')
 			{
 				Mods.currentModDirectory = savedModDirectory;
 				Mods.loadTopMod();

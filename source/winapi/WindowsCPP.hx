@@ -28,6 +28,27 @@ package winapi;
 
 #define UNICODE
 
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+
+#ifndef DWMWA_VISIBLE_FRAME_BORDER_THICKNESS
+#define DWMWA_VISIBLE_FRAME_BORDER_THICKNESS 37
+#endif
+
+#ifndef DWMWA_WINDOW_CORNER_PREFERENCE
+#define DWMWA_WINDOW_CORNER_PREFERENCE 33
+#endif
+
+#ifndef DWM_WINDOW_CORNER_PREFERENCE
+typedef enum {
+    DWMWCP_DEFAULT    = 0,
+    DWMWCP_DONOTROUND = 1,
+    DWMWCP_ROUND      = 2,
+    DWMWCP_ROUNDSMALL = 3
+} DWM_WINDOW_CORNER_PREFERENCE;
+#endif
+
 #pragma comment(lib, "Dwmapi")
 #pragma comment(lib, "ntdll.lib")
 #pragma comment(lib, "user32.lib")
@@ -594,6 +615,19 @@ class WindowsCPP
 	}
 	')
 	public static function _setWindowLayeredMode(numberMode:Int)
+	{
+	}
+
+	@:functionCode('
+        HWND window = GET_MAIN_WINDOW();
+
+        COLORREF color = 0xFFFFFFFF;
+        DwmSetWindowAttribute(window, 35, &color, sizeof(COLORREF));
+        DwmSetWindowAttribute(window, 34, &color, sizeof(COLORREF));
+
+        UpdateWindow(window);
+    ')
+	public static function resetWindowBorderColor()
 	{
 	}
 }

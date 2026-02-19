@@ -49,6 +49,7 @@ import backend.Highscore;
 
 #if (cpp && windows)
 import hxwindowmode.WindowColorMode;
+import winapi.WindowsCPP;
 #end
 
 #if (linux && !debug)
@@ -392,6 +393,7 @@ class Main extends Sprite
 		}
 		
 		if(ClientPrefs.data.windowColor == 'Default') {
+			WindowsCPP.resetWindowBorderColor();
 			WindowColorMode.setWindowColorMode(isDark);
 		} else {
 			var color:Array<Int> = getWindowColor(ClientPrefs.data.windowColor);
@@ -429,8 +431,22 @@ class Main extends Sprite
 				if(Std.isOfType(pack.windowColor, String)) {
 					var colorString:String = cast pack.windowColor;
 					if(colorString == "PC Theme" || colorString == "Default") {
+						WindowsCPP.resetWindowBorderColor();
 						updateWindowTheme();
 						return;
+					}
+					var trimmed:String = StringTools.trim(colorString);
+					if(StringTools.startsWith(trimmed, "[") && StringTools.endsWith(trimmed, "]")) {
+						var inner:String = trimmed.substring(1, trimmed.length - 1);
+						var parts:Array<String> = inner.split(",");
+						if(parts.length >= 3) {
+							var r:Int = Std.parseInt(StringTools.trim(parts[0]));
+							var g:Int = Std.parseInt(StringTools.trim(parts[1]));
+							var b:Int = Std.parseInt(StringTools.trim(parts[2]));
+							WindowColorMode.setWindowBorderColor([r, g, b], true, true);
+							WindowColorMode.redrawWindowHeader();
+							return;
+						}
 					}
 				}
 				else if(Std.isOfType(pack.windowColor, Array)) {
@@ -447,6 +463,7 @@ class Main extends Sprite
 		}
 		#end
 
+		WindowsCPP.resetWindowBorderColor();
 		updateWindowTheme();
 	}
 	#end

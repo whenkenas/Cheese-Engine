@@ -205,6 +205,8 @@ class HScript extends Iris
 		#end
 		set('ShaderFilter', openfl.filters.ShaderFilter);
 		set('StringTools', StringTools);
+		set('Sound', flash.media.Sound);
+		set('Json', haxe.Json);
 		set('ColorSwap', shaders.ColorSwap);
 		#if flxanimate
 		set('FlxAnimate', FlxAnimate);

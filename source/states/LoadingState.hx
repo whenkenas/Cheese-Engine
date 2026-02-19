@@ -112,6 +112,8 @@ class LoadingState extends MusicBeatState
 		if(Mods.currentModDirectory != null && Mods.currentModDirectory.trim().length > 0)
 		{
 			var scriptPath:String = 'mods/${Mods.currentModDirectory}/data/LoadingScreen.hx'; //mods/My-Mod/data/LoadingScreen.hx
+			if(!FileSystem.exists(scriptPath))
+				scriptPath = 'mods/${Mods.currentModDirectory}/data/LoadingState.hx';
 			if(FileSystem.exists(scriptPath))
 			{
 				try
@@ -121,6 +123,7 @@ class LoadingState extends MusicBeatState
 					hscript.set('getLoadMax', function() return loadMax);
 					hscript.set('barBack', barBack);
 					hscript.set('bar', bar);
+					hscript.set('game', this);
 	
 					if(hscript.exists('onCreate'))
 					{

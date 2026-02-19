@@ -312,10 +312,13 @@ class ModSelectorSubstate extends MusicBeatSubstate
 			else
 			{
 				var pack:Dynamic = Mods.getPack();
+				var newTitle:String = "Friday Night Funkin': Psych Engine";
 				if (pack != null && pack.name != null)
-					lime.app.Application.current.window.title = pack.name;
-				else
-					lime.app.Application.current.window.title = "Friday Night Funkin': Psych Engine";
+					newTitle = pack.name;
+				lime.app.Application.current.window.title = newTitle;
+				winapi.WindowsCPP.reDefineMainWindowTitle(newTitle);
+
+				Main.applyModWindowColor();
 
 				var iconPath:String = Paths.modFolders('pack.png');
 				if (sys.FileSystem.exists(iconPath))
