@@ -23,6 +23,7 @@ class StickerSubState extends MusicBeatSubstate
 	public var grpStickers:FlxTypedGroup<StickerSprite>;
 	var targetState:StickerSubState->FlxState;
 	var switchingState:Bool = false;
+	public static var transitionSprite:StickerTransitionSprite = null;
 	var sounds:Array<String> = [];
 	var loadingText:FlxText;
 	var isWaitingForLoad:Bool = false;
@@ -50,26 +51,16 @@ class StickerSubState extends MusicBeatSubstate
 		if(sounds.length == 0)
 			sounds.push('scrollMenu');
 
+		if(transitionSprite == null)
+			transitionSprite = new StickerTransitionSprite();
+
 		grpStickers = new FlxTypedGroup<StickerSprite>();
 		add(grpStickers);
-		
-		var uiCamera:FlxCamera = null;
-		for(cam in FlxG.cameras.list)
-		{
-			if(cam != null)
-				uiCamera = cam;
-		}
-		if(uiCamera != null)
-			grpStickers.cameras = [uiCamera];
 
 		if (oldStickers != null)
 		{
 			for (sticker in oldStickers)
-			{
-				if(sticker != null && uiCamera != null)
-					sticker.cameras = [uiCamera];
 				grpStickers.add(sticker);
-			}
 			degenStickers();
 		}
 		else
@@ -86,6 +77,9 @@ class StickerSubState extends MusicBeatSubstate
 			close();
 			return;
 		}
+
+		transitionSprite.insert();
+		transitionSprite.setupStickers(grpStickers);
 
 		var totalStickers = grpStickers.members.length;
 		var stickersRemoved = 0;
@@ -129,6 +123,7 @@ class StickerSubState extends MusicBeatSubstate
 
 	function regenStickers():Void
 	{
+		transitionSprite.insert();
 		if (grpStickers.members.length > 0)
 			grpStickers.clear();
 
@@ -369,16 +364,6 @@ class StickerSubState extends MusicBeatSubstate
 			}
 
 			sticky.angle = FlxG.random.int(-60, 70);
-			
-			var uiCamera:FlxCamera = null;
-			for(cam in FlxG.cameras.list)
-			{
-				if(cam != null)
-					uiCamera = cam;
-			}
-			if(uiCamera != null)
-				sticky.cameras = [uiCamera];
-			
 			grpStickers.add(sticky);
 		}
 
@@ -394,6 +379,8 @@ class StickerSubState extends MusicBeatSubstate
 			lastOne.screenCenter();
 			lastOne.angle = 0;
 		}
+
+		transitionSprite.setupStickers(grpStickers);
 
 		for (ind => sticker in grpStickers.members)
 		{
@@ -450,39 +437,25 @@ class StickerSubState extends MusicBeatSubstate
 	override public function update(elapsed:Float):Void
 	{
 		super.update(elapsed);
+		transitionSprite?.update(elapsed);
 	}
 
 	override public function onResize(width:Int, height:Int):Void
 	{
 		super.onResize(width, height);
-		
-		if(grpStickers != null)
-		{
-			for(sticker in grpStickers.members)
-			{
-				if(sticker != null && sticker.exists)
-				{
-					var uiCamera:FlxCamera = null;
-					for(cam in FlxG.cameras.list)
-					{
-						if(cam != null)
-							uiCamera = cam;
-					}
-					if(uiCamera != null)
-						sticker.cameras = [uiCamera];
-				}
-			}
-		}
+		transitionSprite?.onResize();
 	}
 
 	override public function close():Void
 	{
 		if (switchingState) return;
+		transitionSprite?.clear();
 		super.close();
 	}
 
 	override public function destroy():Void
 	{
+		transitionSprite?.clear();
 		if (switchingState) return;
 		
 		if(grpStickers != null)
@@ -540,5 +513,68 @@ class StickerSprite extends FlxSprite
 			scrollFactor.set();
 			antialiasing = ClientPrefs.data.antialiasing;
 		}
+	}
+}
+
+@:access(flixel.FlxCamera)
+class StickerTransitionSprite extends openfl.display.Sprite
+{
+	public var stickersCamera:FlxCamera;
+	public var grpStickers:FlxTypedGroup<StickerSprite>;
+
+	public function new():Void
+	{
+		super();
+		visible = false;
+		stickersCamera = new FlxCamera();
+		stickersCamera.bgColor = 0x00000000;
+		addChild(stickersCamera.flashSprite);
+		FlxG.signals.gameResized.add((_, _) -> this.onResize());
+		onResize();
+	}
+
+	public function update(elapsed:Float):Void
+	{
+		stickersCamera.visible = visible;
+		if (!visible) return;
+		grpStickers?.update(elapsed);
+		stickersCamera.update(elapsed);
+
+		stickersCamera?.clearDrawStack();
+		stickersCamera?.canvas?.graphics.clear();
+
+		grpStickers?.draw();
+
+		stickersCamera.render();
+	}
+
+	public function insert():Void
+	{
+		FlxG.addChildBelowMouse(this, 9999);
+		visible = true;
+		onResize();
+	}
+
+	public function clear():Void
+	{
+		FlxG.removeChild(this);
+		visible = false;
+		grpStickers = null;
+		stickersCamera?.clearDrawStack();
+		stickersCamera?.canvas?.graphics.clear();
+	}
+
+	public function onResize():Void
+	{
+		x = y = 0;
+		scaleX = 1;
+		scaleY = 1;
+		stickersCamera.onResize();
+	}
+
+	public function setupStickers(group:FlxTypedGroup<StickerSprite>):Void
+	{
+		grpStickers = group;
+		grpStickers.camera = stickersCamera;
 	}
 }
