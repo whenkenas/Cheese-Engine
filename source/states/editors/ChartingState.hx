@@ -854,6 +854,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		noteTextureInputText.text = PlayState.SONG.arrowSkin;
 		noteSplashesInputText.text = PlayState.SONG.splashSkin;
+		holdCoverInputText.text = PlayState.SONG.holdCoverSkin;
 		
 		loadMetaDataCredits();
 	}
@@ -3345,6 +3346,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var noRGBCheckBox:PsychUICheckBox;
 	var noteTextureInputText:PsychUIInputText;
 	var noteSplashesInputText:PsychUIInputText;
+	var holdCoverInputText:PsychUIInputText;
 	function addDataTab()
 	{
 		var tab_group = mainBox.getTab('Data').menu;
@@ -3416,6 +3418,26 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			}
 		};
 
+		holdCoverInputText = new PsychUIInputText(objX + 140, objY - 40, 120, '');
+		holdCoverInputText.unfocus = function()
+		{
+			var changed:Bool = false;
+			if(PlayState.SONG.holdCoverSkin != holdCoverInputText.text) changed = true;
+			PlayState.SONG.holdCoverSkin = holdCoverInputText.text.trim();
+			if(PlayState.SONG.holdCoverSkin.trim().length < 1) PlayState.SONG.holdCoverSkin = null;
+
+			if(changed)
+			{
+				var textureLoad:String = 'images/${holdCoverInputText.text}.png';
+				if(Paths.fileExists(textureLoad, IMAGE) || holdCoverInputText.text.trim() == '')
+				{
+					if(holdCoverInputText.text.trim().length > 0) showOutput('Reloaded hold covers to: "$textureLoad"');
+					else showOutput('Reloaded hold covers to default texture');
+				}
+				else showOutput('ERROR: "$textureLoad" not found.', true);
+			}
+		};
+
 		noteSplashesInputText = new PsychUIInputText(objX + 140, objY, 120, '');
 		noteSplashesInputText.onChange = function(old:String, cur:String)
 		{
@@ -3434,8 +3456,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		tab_group.add(new FlxText(noteTextureInputText.x, noteTextureInputText.y - 15, 100, 'Note Texture:'));
 		tab_group.add(new FlxText(noteSplashesInputText.x, noteSplashesInputText.y - 15, 120, 'Note Splashes Texture:'));
+		tab_group.add(new FlxText(holdCoverInputText.x, holdCoverInputText.y - 15, 120, 'Hold Cover Texture:'));
 		tab_group.add(noteTextureInputText);
 		tab_group.add(noteSplashesInputText);
+		tab_group.add(holdCoverInputText);
 
 		tab_group.add(gameOverCharDropDown); //lowest priority to display properly
 	}

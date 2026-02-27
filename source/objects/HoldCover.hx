@@ -3,12 +3,15 @@ package objects;
 import flixel.FlxSprite;
 import flixel.FlxCamera;
 import backend.ClientPrefs;
+import shaders.RGBPalette;
+import shaders.RGBPalette.RGBShaderReference;
 
 class HoldCover extends FlxSprite
 {
 	public var noteData:Int = 0;
 	public var isOpponent:Bool = false;
 	public var colorName:String = '';
+	public var rgbShader:RGBShaderReference;
 	
 	private static var colors:Array<String> = ['Purple', 'Blue', 'Green', 'Red'];
 	
@@ -20,7 +23,10 @@ class HoldCover extends FlxSprite
 		this.isOpponent = isOpponent;
 		this.colorName = colors[noteData];
 		
+		var customSkin:String = PlayState.SONG != null ? PlayState.SONG.holdCoverSkin : null;
 		var path:String = isPixelStage ? 'holdCovers/holdCoverPixelRGB' : 'holdCovers/holdCoverRGB';
+		if(customSkin != null && customSkin.trim().length > 0 && Paths.fileExists('images/$customSkin.png', IMAGE))
+			path = customSkin;
 		frames = Paths.getSparrowAtlas(path);
 		
 		animation.addByPrefix('hold', 'holdCoverRGB', 24, true);

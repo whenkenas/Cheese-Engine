@@ -20,6 +20,7 @@
 	<define name="MULTITHREADED_LOADING" />
 	<define name="SHOW_LOADING_SCREEN" />
 	<define name="PSYCH_WATERMARKS"/>
+	<define name="CHEESE_ENGINE" />
 	<define name="VIDEOS_ALLOWED" if="windows || linux || android || mac" unless="32bits"/>
 	<define name="officialBuild" />
 

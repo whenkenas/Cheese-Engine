@@ -87,6 +87,8 @@ class Main extends Sprite
 
 	public static var fpsVar:FPSCounter;
 	public static var screenshotCounter:Int = 1;
+	public static var engineName:String = "Cheese Engine";
+	public static var engineVersion:String = "0.2.8";
 
 	public static function main():Void
 	{

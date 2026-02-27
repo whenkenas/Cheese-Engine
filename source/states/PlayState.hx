@@ -41,6 +41,7 @@ import openfl.filters.ShaderFilter;
 #end
 
 import shaders.ErrorHandledShader;
+import shaders.RGBPalette.RGBShaderReference;
 
 import objects.VideoSprite;
 import objects.Note.EventNote;
@@ -1075,6 +1076,7 @@ class PlayState extends MusicBeatState
 			canPause = true;
 			generateStaticArrows(0);
 			generateStaticArrows(1);
+			linkHoldCoversToStrums();
 			
 			if(opponentMode)
 			{
@@ -1766,6 +1768,9 @@ class PlayState extends MusicBeatState
 			var colorName:String = HoldCover.getColorName(i);
 			holdCovers.set('hold' + colorName + 'BF', coverBF);
 			holdCovers.set('hold' + colorName + 'DAD', coverDAD);
+
+			if(playerStrums.members[i] != null) playerStrums.members[i].holdCover = coverBF;
+			if(opponentStrums.members[i] != null) opponentStrums.members[i].holdCover = coverDAD;
 			
 			noteGroup.add(coverBF);
 			noteGroup.add(coverDAD);
@@ -1780,7 +1785,10 @@ class PlayState extends MusicBeatState
 		{
 			if(Note.globalRgbShaders[i] == null)
 				Note.initializeGlobalRGBShader(i);
-			
+
+			var arr:Array<FlxColor> = ClientPrefs.data.arrowRGB[i];
+			if(isPixelStage) arr = ClientPrefs.data.arrowRGBPixel[i];
+
 			var colorName:String = HoldCover.getColorName(i);
 			for (suffix in ['BF', 'DAD'])
 			{
@@ -1788,9 +1796,32 @@ class PlayState extends MusicBeatState
 				if(holdCovers.exists(coverName))
 				{
 					var cover:HoldCover = holdCovers.get(coverName);
-					cover.shader = Note.globalRgbShaders[i].shader;
+					cover.rgbShader = new RGBShaderReference(cover, Note.initializeGlobalRGBShader(i));
+					if(i <= arr.length)
+					{
+						@:bypassAccessor
+						{
+							cover.rgbShader.r = arr[0];
+							cover.rgbShader.g = arr[1];
+							cover.rgbShader.b = arr[2];
+						}
+					}
 				}
 			}
+		}
+	}
+
+	private function linkHoldCoversToStrums():Void
+	{
+		for (i in 0...4)
+		{
+			var colorName:String = HoldCover.getColorName(i);
+			var coverBF:HoldCover = holdCovers.get('hold' + colorName + 'BF');
+			var coverDAD:HoldCover = holdCovers.get('hold' + colorName + 'DAD');
+			if(playerStrums.members[i] != null && coverBF != null)
+				playerStrums.members[i].holdCover = coverBF;
+			if(opponentStrums.members[i] != null && coverDAD != null)
+				opponentStrums.members[i].holdCover = coverDAD;
 		}
 	}
 

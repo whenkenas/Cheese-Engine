@@ -458,6 +458,20 @@ class HScript extends Iris
 		set('Function_StopLua', LuaUtils.Function_StopLua);
 		set('Function_StopHScript', LuaUtils.Function_StopHScript);
 		set('Function_StopAll', LuaUtils.Function_StopAll);
+		set('engineName', Main.engineName);
+		set('engineVersion', Main.engineVersion);
+		set('build', {
+			name: 'Cheese',
+			fullName: 'Cheese Engine',
+			version: Main.engineVersion
+		});
+		set('isEngine', function(name:String):Bool {
+			var clean = StringTools.replace(StringTools.replace(name.toLowerCase(), '-', ''), ' ', '');
+			return switch(clean) {
+				case 'cheeseengine' | 'cheese' | 'cheesee' | 'ce': true;
+				default: false;
+			}
+		});
 	}
 
 	#if LUA_ALLOWED
