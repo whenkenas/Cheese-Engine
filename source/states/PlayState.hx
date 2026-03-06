@@ -184,6 +184,7 @@ class PlayState extends MusicBeatState
 	public var strumlineBackgroundPlayer:FlxSprite;
 	public var strumlineBackgroundOpponent:FlxSprite;
 	public var holdCovers:Map<String, HoldCover> = new Map<String, HoldCover>();
+	public var grpHoldCovers:FlxTypedGroup<HoldCover> = new FlxTypedGroup<HoldCover>();
 
 	public var camZooming:Bool = false;
 	public var camZoomingMult:Float = 1;
@@ -230,6 +231,9 @@ class PlayState extends MusicBeatState
 	public var camGame:FlxCamera;
 	public var camOther:FlxCamera;
 	public var cameraSpeed:Float = 1;
+	public var camSpeed(get, set):Float;
+	inline function get_camSpeed():Float return cameraSpeed;
+	inline function set_camSpeed(v:Float):Float { cameraSpeed = v; return v; }
 
 	public var songScore:Int = 0;
 	public var songHits:Int = 0;
@@ -1768,6 +1772,9 @@ class PlayState extends MusicBeatState
 			var colorName:String = HoldCover.getColorName(i);
 			holdCovers.set('hold' + colorName + 'BF', coverBF);
 			holdCovers.set('hold' + colorName + 'DAD', coverDAD);
+
+			grpHoldCovers.add(coverBF);
+			grpHoldCovers.add(coverDAD);
 
 			if(playerStrums.members[i] != null) playerStrums.members[i].holdCover = coverBF;
 			if(opponentStrums.members[i] != null) opponentStrums.members[i].holdCover = coverDAD;

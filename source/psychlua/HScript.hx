@@ -198,6 +198,39 @@ class HScript extends Iris
 		set('Character', Character);
 		set('Alphabet', Alphabet);
 		set('Note', objects.Note);
+		set('HoldCover', objects.HoldCover);
+		set('getHoldCoverProperty', function(cover:Dynamic, variable:String) {
+			if(PlayState.instance == null) return null;
+			var coverObj:objects.HoldCover = null;
+			if(Std.isOfType(cover, Int)) {
+				coverObj = PlayState.instance.grpHoldCovers.members[cover];
+			} else {
+				coverObj = PlayState.instance.holdCovers.get(cover);
+			}
+			if(coverObj == null) return null;
+			return LuaUtils.getGroupStuff(coverObj, variable);
+		});
+		set('setHoldCoverProperty', function(cover:Dynamic, variable:String, value:Dynamic) {
+			if(PlayState.instance == null) return null;
+			var coverObj:objects.HoldCover = null;
+			if(Std.isOfType(cover, Int)) {
+				coverObj = PlayState.instance.grpHoldCovers.members[cover];
+			} else {
+				coverObj = PlayState.instance.holdCovers.get(cover);
+			}
+			if(coverObj == null) return null;
+			return LuaUtils.setGroupStuff(coverObj, variable, value);
+		});
+		set('updateHoldCoverHitbox', function(cover:Dynamic) {
+			if(PlayState.instance == null) return;
+			var coverObj:objects.HoldCover = null;
+			if(Std.isOfType(cover, Int)) {
+				coverObj = PlayState.instance.grpHoldCovers.members[cover];
+			} else {
+				coverObj = PlayState.instance.holdCovers.get(cover);
+			}
+			if(coverObj != null) coverObj.updateHitbox();
+		});
 		set('CustomSubstate', CustomSubstate);
 		#if (!flash && sys)
 		set('FlxRuntimeShader', flixel.addons.display.FlxRuntimeShader);

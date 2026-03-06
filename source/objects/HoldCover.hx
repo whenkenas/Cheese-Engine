@@ -12,6 +12,9 @@ class HoldCover extends FlxSprite
 	public var isOpponent:Bool = false;
 	public var colorName:String = '';
 	public var rgbShader:RGBShaderReference;
+	public var disabled:Bool = false;
+	public var invisible:Bool = false;
+	public var forceHide:Bool = false;
 	
 	private static var colors:Array<String> = ['Purple', 'Blue', 'Green', 'Red'];
 	
@@ -97,6 +100,11 @@ class HoldCover extends FlxSprite
 	
 	public function updatePosition(strum:StrumNote, isPixelStage:Bool):Void
 	{
+		if(disabled || invisible || forceHide)
+		{
+			visible = false;
+			return;
+		}
 		if(ClientPrefs.data.holdCoverAlpha <= 0)
 		{
 			visible = false;

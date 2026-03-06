@@ -1099,6 +1099,45 @@ class FunkinLua {
 			luaTrace('updateHitbox: Couldnt find object: ' + obj, false, false, FlxColor.RED);
 		});
 
+		Lua_helper.add_callback(lua, "getHoldCoverProperty", function(cover:Dynamic, variable:String) {
+			if(PlayState.instance == null) return null;
+			var coverObj:objects.HoldCover = null;
+			if(Std.isOfType(cover, Int)) {
+				coverObj = PlayState.instance.grpHoldCovers.members[cover];
+			} else {
+				coverObj = PlayState.instance.holdCovers.get(cover);
+			}
+			if(coverObj == null) {
+				luaTrace('getHoldCoverProperty: HoldCover "' + cover + '" not found', false, false, FlxColor.RED);
+				return null;
+			}
+			return LuaUtils.getGroupStuff(coverObj, variable);
+		});
+		Lua_helper.add_callback(lua, "setHoldCoverProperty", function(cover:Dynamic, variable:String, value:Dynamic) {
+			if(PlayState.instance == null) return null;
+			var coverObj:objects.HoldCover = null;
+			if(Std.isOfType(cover, Int)) {
+				coverObj = PlayState.instance.grpHoldCovers.members[cover];
+			} else {
+				coverObj = PlayState.instance.holdCovers.get(cover);
+			}
+			if(coverObj == null) {
+				luaTrace('setHoldCoverProperty: HoldCover "' + cover + '" not found', false, false, FlxColor.RED);
+				return null;
+			}
+			return LuaUtils.setGroupStuff(coverObj, variable, value);
+		});
+		Lua_helper.add_callback(lua, "updateHoldCoverHitbox", function(cover:Dynamic) {
+			if(PlayState.instance == null) return;
+			var coverObj:objects.HoldCover = null;
+			if(Std.isOfType(cover, Int)) {
+				coverObj = PlayState.instance.grpHoldCovers.members[cover];
+			} else {
+				coverObj = PlayState.instance.holdCovers.get(cover);
+			}
+			if(coverObj != null) coverObj.updateHitbox();
+		});
+
 		Lua_helper.add_callback(lua, "removeLuaSprite", function(tag:String, destroy:Bool = true, ?group:String = null) {
 			var obj:FlxSprite = LuaUtils.getObjectDirectly(tag);
 			if(obj == null || obj.destroy == null)

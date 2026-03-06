@@ -90,6 +90,20 @@ class Main extends Sprite
 	public static var engineName:String = "Cheese Engine";
 	public static var engineVersion:String = "0.2.8";
 
+	var flashSprite:Sprite;
+	var flashBitmap:openfl.display.Bitmap;
+	var previewSprite:Sprite;
+	var shotPreviewBitmap:openfl.display.Bitmap;
+	var outlineBitmap:openfl.display.Bitmap;
+	var flashTween:FlxTween;
+	var previewFadeInTween:FlxTween;
+	var previewFadeOutTween:FlxTween;
+
+	static inline var PREVIEW_INITIAL_DELAY:Float = 0.25;
+	static inline var PREVIEW_FADE_IN_DURATION:Float = 0.3;
+	static inline var PREVIEW_FADE_OUT_DELAY:Float = 1.25;
+	static inline var PREVIEW_FADE_OUT_DURATION:Float = 0.3;
+
 	public static function main():Void
 	{
 		Lib.current.addChild(new Main());
@@ -231,6 +245,31 @@ class Main extends Sprite
 		ClientPrefs.updateFPSCounter();
 		#end
 
+		flashSprite = new Sprite();
+		flashSprite.mouseEnabled = false;
+		flashSprite.alpha = 0;
+		flashBitmap = new openfl.display.Bitmap(new BitmapData(game.width, game.height, false, 0xFFFFFFFF));
+		flashSprite.addChild(flashBitmap);
+		flashBitmap.width = FlxG.stage.stageWidth;
+		flashBitmap.height = FlxG.stage.stageHeight;
+
+		previewSprite = new Sprite();
+		previewSprite.alpha = 0;
+		previewSprite.mouseEnabled = true;
+		previewSprite.buttonMode = true;
+
+		outlineBitmap = new openfl.display.Bitmap(new BitmapData(Std.int(game.width / 5) + 10, Std.int(game.height / 5) + 10, true, 0xFFFFFFFF));
+		outlineBitmap.x = 5;
+		outlineBitmap.y = 5;
+		previewSprite.addChild(outlineBitmap);
+
+		shotPreviewBitmap = new openfl.display.Bitmap();
+		shotPreviewBitmap.scaleX = 1.0 / 5;
+		shotPreviewBitmap.scaleY = 1.0 / 5;
+		previewSprite.addChild(shotPreviewBitmap);
+
+		FlxG.stage.addChild(flashSprite);
+
 		#if (linux || mac)
 		var icon = Image.fromFile("icon.png");
 		Lib.current.stage.window.setIcon(icon);
@@ -312,22 +351,94 @@ class Main extends Sprite
 		var image = FlxG.game.stage.window.readPixels();
 		var bytes = image.encode(lime.graphics.ImageFileFormat.PNG);
 		File.saveBytes(fileName, bytes);
-		
-		var flashSprite = new Sprite();
-		var flashBitmap = new openfl.display.Bitmap(new BitmapData(Std.int(FlxG.stage.stageWidth), Std.int(FlxG.stage.stageHeight), false, 0xFFFFFFFF));
-		flashSprite.addChild(flashBitmap);
-		flashSprite.alpha = 1;
-		FlxG.stage.addChild(flashSprite);
-		
-		var flashTween = FlxTween.tween(flashSprite, {alpha: 0}, 0.15, {
-			onComplete: function(t:FlxTween) {
-				FlxG.stage.removeChild(flashSprite);
-			}
-		});
-		
+
 		FlxG.sound.play(Paths.sound('screenshot'), 0.4);
-		
 		trace("Screenshot saved: " + fileName);
+
+		flashBitmap.width = FlxG.stage.stageWidth;
+		flashBitmap.height = FlxG.stage.stageHeight;
+		flashSprite.alpha = 1;
+		FlxTween.tween(flashSprite, {alpha: 0}, 0.15);
+
+		showFancyPreview(BitmapData.fromImage(image), screenshotPath);
+	}
+
+	function showFancyPreview(shot:BitmapData, folderPath:String):Void {
+		shotPreviewBitmap.bitmapData = shot;
+		shotPreviewBitmap.x = outlineBitmap.x + 5;
+		shotPreviewBitmap.y = outlineBitmap.y + 5;
+		shotPreviewBitmap.width = outlineBitmap.width - 10;
+		shotPreviewBitmap.height = outlineBitmap.height - 10;
+
+		FlxG.stage.removeChild(previewSprite);
+
+		var changingAlpha:Bool = false;
+		var targetAlpha:Float = 1;
+
+		var onHover:openfl.events.MouseEvent->Void = function(e:openfl.events.MouseEvent)
+		{
+			if (!changingAlpha) e.target.alpha = 0.6;
+			targetAlpha = 0.6;
+		};
+
+		var onHoverOut:openfl.events.MouseEvent->Void = function(e:openfl.events.MouseEvent)
+		{
+			if (!changingAlpha) e.target.alpha = 1;
+			targetAlpha = 1;
+		};
+
+		var onMouseDown:openfl.events.MouseEvent->Void = null;
+		onMouseDown = function(e:openfl.events.MouseEvent)
+		{
+			if (previewSprite.alpha <= 0) return;
+			#if sys
+			#if windows
+			Sys.command('explorer', [folderPath.split('/').join('\\')]);
+			#elseif mac
+			Sys.command('open', [folderPath]);
+			#else
+			Sys.command('xdg-open', [folderPath]);
+			#end
+			#end
+		};
+
+		previewSprite.addEventListener(openfl.events.MouseEvent.MOUSE_DOWN, onMouseDown);
+		previewSprite.addEventListener(openfl.events.MouseEvent.MOUSE_MOVE, onHover);
+		previewSprite.addEventListener(openfl.events.MouseEvent.MOUSE_OUT, onHoverOut);
+
+		FlxTween.cancelTweensOf(previewSprite);
+		FlxG.stage.addChild(previewSprite);
+		previewSprite.alpha = 0.0;
+		previewSprite.x = 0;
+		previewSprite.y = -10;
+
+		if (previewSprite.hitTestPoint(previewSprite.mouseX, previewSprite.mouseY)) targetAlpha = 0.6;
+
+		new flixel.util.FlxTimer().start(PREVIEW_INITIAL_DELAY, function(_)
+		{
+			changingAlpha = true;
+			FlxTween.tween(previewSprite, {alpha: targetAlpha, y: 0}, PREVIEW_FADE_IN_DURATION, {
+				ease: flixel.tweens.FlxEase.quartOut,
+				onComplete: function(_)
+				{
+					changingAlpha = false;
+					new flixel.util.FlxTimer().start(PREVIEW_FADE_OUT_DELAY, function(_)
+					{
+						changingAlpha = true;
+						FlxTween.tween(previewSprite, {alpha: 0.0, y: 10}, PREVIEW_FADE_OUT_DURATION, {
+							ease: flixel.tweens.FlxEase.quartInOut,
+							onComplete: function(_)
+							{
+								previewSprite.removeEventListener(openfl.events.MouseEvent.MOUSE_DOWN, onMouseDown);
+								previewSprite.removeEventListener(openfl.events.MouseEvent.MOUSE_MOVE, onHover);
+								previewSprite.removeEventListener(openfl.events.MouseEvent.MOUSE_OUT, onHoverOut);
+								FlxG.stage.removeChild(previewSprite);
+							}
+						});
+					});
+				}
+			});
+		});
 	}
 
 	#if CRASH_HANDLER
