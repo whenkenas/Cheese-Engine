@@ -1027,8 +1027,9 @@ class LuaStateLoader
 		}
 
 		if(savedModDirectory != null && savedModDirectory != '') {
-			var scriptPath = Paths.modFolders('$savedModDirectory/states/$stateName.lua');
-			var exists = sys.FileSystem.exists(scriptPath);
+			var statesDir = Paths.modFolders('$savedModDirectory/states/');
+			var scriptPath = findScriptInDir(statesDir, '$stateName.lua');
+			var exists = scriptPath != null;
 
 			if(exists && stateName != 'LoadingState' && stateName != 'LoadingScreen') {
 				Mods.currentModDirectory = savedModDirectory;
@@ -1043,6 +1044,26 @@ class LuaStateLoader
 			}
 		}
 		#end
+		return null;
+	}
+    public static function findScriptInDir(dir:String, fileName:String):String
+	{
+		if(!sys.FileSystem.exists(dir) || !sys.FileSystem.isDirectory(dir))
+			return null;
+
+		var direct = dir + fileName;
+		if(sys.FileSystem.exists(direct))
+			return direct;
+
+		for(entry in sys.FileSystem.readDirectory(dir))
+		{
+			var full = dir + entry;
+			if(sys.FileSystem.isDirectory(full))
+			{
+				var found = findScriptInDir(full + '/', fileName);
+				if(found != null) return found;
+			}
+		}
 		return null;
 	}
 }

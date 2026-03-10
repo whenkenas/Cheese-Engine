@@ -114,17 +114,18 @@ class InitialState extends MusicBeatState
 					#end
 				}
 
+				var statesDirFallback = Paths.modFolders('${Mods.currentModDirectory}/states/');
 				#if HSCRIPT_ALLOWED
-				var titleScriptPath = Paths.modFolders('${Mods.currentModDirectory}/states/TitleState.hx');
-				if(sys.FileSystem.exists(titleScriptPath))
+				var titleHx = backend.HScriptStateLoader.findScriptInDir(statesDirFallback, 'TitleState.hx');
+				if(titleHx != null)
 				{
 					StateManager.switchState('TitleState');
 					return;
 				}
 				#end
 				#if LUA_ALLOWED
-				var titleLuaPath = Paths.modFolders('${Mods.currentModDirectory}/states/TitleState.lua');
-				if(sys.FileSystem.exists(titleLuaPath))
+				var titleLua = psychlua.LuaStateLoader.findScriptInDir(statesDirFallback, 'TitleState.lua');
+				if(titleLua != null)
 				{
 					StateManager.switchState('TitleState');
 					return;
@@ -135,5 +136,27 @@ class InitialState extends MusicBeatState
 			
 			MusicBeatState.switchState(new states.TitleState());
 		}
+	}
+
+	static function scanScriptsRecursive(dir:String, ext:String):Array<String>
+	{
+		var result:Array<String> = [];
+		if(!sys.FileSystem.exists(dir) || !sys.FileSystem.isDirectory(dir))
+			return result;
+
+		for(entry in sys.FileSystem.readDirectory(dir))
+		{
+			var full = dir + entry;
+			if(sys.FileSystem.isDirectory(full))
+			{
+				for(found in scanScriptsRecursive(full + '/', ext))
+					result.push(found);
+			}
+			else if(entry.endsWith(ext))
+			{
+				result.push(full);
+			}
+		}
+		return result;
 	}
 }
