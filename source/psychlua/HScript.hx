@@ -624,6 +624,11 @@ class HScript extends Iris
 		super.destroy();
 	}
 
+	public function getPosInfos():Dynamic
+	{
+		return interp.posInfos();
+	}
+
 	function set_varsToBring(values:Any) {
 		if (varsToBring != null)
 			for (key in Reflect.fields(varsToBring))

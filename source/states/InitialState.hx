@@ -48,13 +48,13 @@ class InitialState extends MusicBeatState
 		{
 			loadedState = true;
 			
-			#if HSCRIPT_ALLOWED
 			#if MODS_ALLOWED
 			if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
 			{
 				var statesDir = Paths.modFolders('${Mods.currentModDirectory}/states/');
 				if(sys.FileSystem.exists(statesDir) && sys.FileSystem.isDirectory(statesDir))
 				{
+					#if HSCRIPT_ALLOWED
 					for(file in sys.FileSystem.readDirectory(statesDir))
 					{
 						if(file.endsWith('.hx'))
@@ -84,16 +84,53 @@ class InitialState extends MusicBeatState
 							}
 						}
 					}
+					#end
+					#if LUA_ALLOWED
+					for(file in sys.FileSystem.readDirectory(statesDir))
+					{
+						if(file.endsWith('.lua'))
+						{
+							var stateName = file.substr(0, file.length - 4);
+							var fullPath = statesDir + file;
+							
+							if(sys.FileSystem.exists(fullPath))
+							{
+								try {
+									var luaState = new psychlua.LuaStateLoader.LuaState(fullPath, stateName, Mods.currentModDirectory, null);
+									if(luaState.isInitialState)
+									{
+										trace('InitialState: Found Lua initial state: $stateName');
+										luaState.destroy();
+										StateManager.switchState(stateName);
+										return;
+									}
+									luaState.destroy();
+								} catch(e:Dynamic) {
+									trace('InitialState: Error checking Lua $stateName: $e');
+								}
+							}
+						}
+					}
+					#end
 				}
-				
+
+				#if HSCRIPT_ALLOWED
 				var titleScriptPath = Paths.modFolders('${Mods.currentModDirectory}/states/TitleState.hx');
 				if(sys.FileSystem.exists(titleScriptPath))
 				{
 					StateManager.switchState('TitleState');
 					return;
 				}
+				#end
+				#if LUA_ALLOWED
+				var titleLuaPath = Paths.modFolders('${Mods.currentModDirectory}/states/TitleState.lua');
+				if(sys.FileSystem.exists(titleLuaPath))
+				{
+					StateManager.switchState('TitleState');
+					return;
+				}
+				#end
 			}
-			#end
 			#end
 			
 			MusicBeatState.switchState(new states.TitleState());

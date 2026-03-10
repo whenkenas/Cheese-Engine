@@ -1407,6 +1407,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					loadSection();
 					showOutput('Zoom: ${Math.round(curZoom * 100)}%');
 					updateScrollY();
+					if(selectedNotes.length > 0)
+						onSelectNote();
 				}
 			}
 		}
@@ -1718,13 +1720,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						if(note == null) continue;
 
 						note.chartY += diff;
-						var row:Float = (note.chartY / GRID_SIZE) * curZoom;
+						var row:Float = note.chartY / (GRID_SIZE * curZoom);
 						while(curSecRow + 1 < cachedSectionRow.length && cachedSectionRow[curSecRow] <= row)
 						{
 							curSecRow++;
 						}
 
-						note.setStrumTime(Math.max(-5000, note.strumTime + (diff * cachedSectionCrochets[curSecRow] / 4) / GRID_SIZE * curZoom));
+						note.setStrumTime(Math.max(-5000, note.strumTime + (diff * cachedSectionCrochets[curSecRow] / 4) / (GRID_SIZE * curZoom)));
 						positionNoteYOnTime(note, curSecRow);
 						if(note.isEvent) cast (note, EventMetaNote).updateEventText();
 					}
@@ -2397,6 +2399,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			highlight.scrollFactor.x = 0;
 			noteHighlights.add(highlight);
 		}
+
+		if(selectedNotes.length == 1 && !selectedNotes[0].isEvent)
+			updateSustainHighlights(selectedNotes[0]);
 		
 		if(selectedNotes.length == 1)
 		{
@@ -2457,8 +2462,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 		
 		var stepCrochet:Float = cachedSectionCrochets[noteSec] / 4;
-		var sustainHeight:Float = (note.sustainLength / stepCrochet) * GRID_SIZE * curZoom;
-		var numSquares:Int = Math.ceil(sustainHeight / GRID_SIZE) - 1;
+		var numSquares:Int = Math.round(note.sustainLength / stepCrochet * curZoom) - 1;
 		
 		if(numSquares < 1) return;
 		

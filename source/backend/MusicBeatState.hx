@@ -160,7 +160,6 @@ class MusicBeatState extends FlxState
 			return;
 		}
 
-		#if HSCRIPT_ALLOWED
 		#if MODS_ALLOWED
 		var currentMode = getCurrentModMode();
 		if(currentMode == 'SINGLE MOD' && Mods.currentModDirectory != null && Mods.currentModDirectory != '')
@@ -170,15 +169,19 @@ class MusicBeatState extends FlxState
 			{
 				var parts = stateClassName.split('.');
 				var stateName = parts[parts.length - 1];
-				
+
+				#if HSCRIPT_ALLOWED
 				var hscriptState = HScriptStateLoader.loadStateScript(stateName);
 				if(hscriptState != null)
-				{
 					nextState = hscriptState;
-				}
+				#end
+				#if LUA_ALLOWED
+				var luaState = psychlua.LuaStateLoader.loadStateScript(stateName);
+				if(luaState != null)
+					nextState = luaState;
+				#end
 			}
 		}
-		#end
 		#end
 
 		if(FlxTransitionableState.skipNextTransIn) FlxG.switchState(nextState);
@@ -223,7 +226,6 @@ class MusicBeatState extends FlxState
 	}
 
 	public static function resetState() {
-		#if HSCRIPT_ALLOWED
 		#if MODS_ALLOWED
 		var currentMode = getCurrentModMode();
 		if(currentMode == 'SINGLE MOD' && Mods.currentModDirectory != null && Mods.currentModDirectory != '')
@@ -233,16 +235,25 @@ class MusicBeatState extends FlxState
 			{
 				var parts = currentStateClassName.split('.');
 				var stateName = parts[parts.length - 1];
-				
+
+				#if HSCRIPT_ALLOWED
 				var hscriptState = HScriptStateLoader.loadStateScript(stateName);
 				if(hscriptState != null)
 				{
 					switchState(hscriptState);
 					return;
 				}
+				#end
+				#if LUA_ALLOWED
+				var luaState = psychlua.LuaStateLoader.loadStateScript(stateName);
+				if(luaState != null)
+				{
+					switchState(luaState);
+					return;
+				}
+				#end
 			}
 		}
-		#end
 		#end
 
 		if(FlxTransitionableState.skipNextTransIn) FlxG.resetState();

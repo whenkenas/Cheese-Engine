@@ -66,6 +66,20 @@ class StateManager
 			trace('No HScript state found for: $stateName');
 		}
 		#end
+		#if LUA_ALLOWED
+		trace('Checking for Lua state...');
+		var luaState = psychlua.LuaStateLoader.loadStateScript(stateName);
+		if(luaState != null)
+		{
+			trace('Lua state found! Loading: $stateName');
+			MusicBeatState.switchState(luaState);
+			return;
+		}
+		else
+		{
+			trace('No Lua state found for: $stateName');
+		}
+		#end
 		
 		trace('Looking for compiled state class...');
 		var stateClass = getStateClass(stateName);
