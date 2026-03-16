@@ -102,6 +102,15 @@ class StateManager
 			}
 		}
 	}
+
+	public static function loadLuaState(stateName:String, ?stickers:Array<substates.StickerSubState.StickerSprite>):FlxState
+	{
+		#if LUA_ALLOWED
+		var luaState = psychlua.LuaStateLoader.loadStateScript(stateName, stickers);
+		if(luaState != null) return luaState;
+		#end
+		return null;
+	}
 	
 	static function sanitizeModName(modName:String):String
 	{

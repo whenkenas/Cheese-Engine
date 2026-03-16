@@ -9,6 +9,7 @@ import openfl.Assets;
 import states.StoryMenuState;
 import states.MainMenuState;
 import backend.StateManager;
+import flixel.graphics.frames.FlxFrame;
 
 class TitleState extends MusicBeatState
 {
@@ -30,6 +31,15 @@ class TitleState extends MusicBeatState
 	var text:FlxSprite;
 	var expansion:FlxSprite;
 	var box:FlxSprite;
+	var isSingleMod:Bool = false;
+	var logoBl:FlxSprite;
+	var gfDance:FlxSprite;
+	var danceLeft:Bool = false;
+	var titleText:FlxSprite;
+	var newTitle:Bool = false;
+	var titleTimer:Float = 0;
+	var titleTextColors:Array<FlxColor> = [0xFF33FFFF, 0xFF3333CC];
+	var titleTextAlphas:Array<Float> = [1, .64];
 
 	override public function create():Void
 	{
@@ -95,21 +105,78 @@ class TitleState extends MusicBeatState
 		#end
 
 		#if MODS_ALLOWED
-		var pack:Dynamic = Mods.getPack();
-		if (pack != null && pack.name != null)
-			lime.app.Application.current.window.title = pack.name;
+		var modSave:flixel.util.FlxSave = new flixel.util.FlxSave();
+		modSave.bind('funkin', CoolUtil.getSavePath());
+		if(modSave != null && modSave.data != null && modSave.data.modMode != null)
+			isSingleMod = (modSave.data.modMode == 'SINGLE MOD');
 		else
-			lime.app.Application.current.window.title = "Friday Night Funkin': Psych Engine";
+			isSingleMod = (Mods.currentModDirectory != null && Mods.currentModDirectory != '');
 
-		var iconPath:String = Paths.modFolders('pack.png');
-		if (sys.FileSystem.exists(iconPath))
+		if(isSingleMod)
 		{
-			var icon = lime.graphics.Image.fromFile(iconPath);
-			lime.app.Application.current.window.setIcon(icon);
+			var pack:Dynamic = Mods.getPack();
+			if(pack != null && pack.name != null)
+				lime.app.Application.current.window.title = pack.name;
+			else
+				lime.app.Application.current.window.title = "Friday Night Funkin': Psych Engine";
+
+			var iconPath:String = Paths.modFolders('pack.png');
+			if(sys.FileSystem.exists(iconPath))
+			{
+				var icon = lime.graphics.Image.fromFile(iconPath);
+				lime.app.Application.current.window.setIcon(icon);
+			}
+		}
+		else
+		{
+			lime.app.Application.current.window.title = "Friday Night Funkin': Psych Engine";
 		}
 		#end
 
 		Conductor.bpm = 102;
+
+		if(isSingleMod)
+		{
+			logoBl = new FlxSprite(-150, -100);
+			logoBl.frames = Paths.getSparrowAtlas('logoBumpin');
+			logoBl.antialiasing = ClientPrefs.data.antialiasing;
+			logoBl.animation.addByPrefix('bump', 'logo bumpin', 24, false);
+			logoBl.animation.play('bump');
+			logoBl.updateHitbox();
+
+			gfDance = new FlxSprite(512, 40);
+			gfDance.antialiasing = ClientPrefs.data.antialiasing;
+			gfDance.frames = Paths.getSparrowAtlas('gfDanceTitle');
+			gfDance.animation.addByIndices('danceLeft', 'gfDance', [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29], "", 24, false);
+			gfDance.animation.addByIndices('danceRight', 'gfDance', [30, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], "", 24, false);
+			gfDance.animation.play('danceRight');
+
+			var animFrames:Array<FlxFrame> = [];
+			titleText = new FlxSprite(100, 576);
+			titleText.frames = Paths.getSparrowAtlas('titleEnter');
+			@:privateAccess
+			{
+				titleText.animation.findByPrefix(animFrames, "ENTER IDLE");
+				titleText.animation.findByPrefix(animFrames, "ENTER FREEZE");
+			}
+
+			if (newTitle = animFrames.length > 0)
+			{
+				titleText.animation.addByPrefix('idle', "ENTER IDLE", 24);
+				titleText.animation.addByPrefix('press', ClientPrefs.data.flashing ? "ENTER PRESSED" : "ENTER FREEZE", 24);
+			}
+			else
+			{
+				titleText.animation.addByPrefix('idle', "Press Enter to Begin", 24);
+				titleText.animation.addByPrefix('press', "ENTER PRESSED", 24);
+			}
+			titleText.animation.play('idle');
+			titleText.updateHitbox();
+
+			add(gfDance);
+			add(logoBl);
+			add(titleText);
+		}
 
 		blackScreen = new FlxSprite().makeGraphic(1, 1, FlxColor.BLACK);
 		blackScreen.scale.set(FlxG.width, FlxG.height);
@@ -187,8 +254,24 @@ class TitleState extends MusicBeatState
 			#end
 		}
 
+		if(isSingleMod && newTitle)
+		{
+			titleTimer += FlxMath.bound(elapsed, 0, 1);
+			if(titleTimer > 2) titleTimer -= 2;
+		}
+
 		if (initialized && !transitioning && skippedIntro)
 		{
+			if(isSingleMod && newTitle && !canSkip && titleText != null)
+			{
+				var timer:Float = titleTimer;
+				if(timer >= 1)
+					timer = (-timer) + 2;
+				timer = FlxEase.quadInOut(timer);
+				titleText.color = FlxColor.interpolate(titleTextColors[0], titleTextColors[1], timer);
+				titleText.alpha = FlxMath.lerp(titleTextAlphas[0], titleTextAlphas[1], timer);
+			}
+
 			if(pressedEnter)
 			{
 				if(canSkip)
@@ -197,6 +280,13 @@ class TitleState extends MusicBeatState
 				}
 				else
 				{
+					if(isSingleMod && titleText != null)
+					{
+						titleText.color = FlxColor.WHITE;
+						titleText.alpha = 1;
+						titleText.animation.play('press');
+					}
+
 					FlxG.camera.flash(ClientPrefs.data.flashing ? FlxColor.WHITE : 0x4CFFFFFF, 1);
 					FlxG.sound.play(Paths.sound('confirmMenu'), 0.7);
 					canSkip = true;
@@ -268,6 +358,18 @@ class TitleState extends MusicBeatState
 	{
 		super.beatHit();
 
+		if(logoBl != null)
+			logoBl.animation.play('bump', true);
+
+		if(gfDance != null)
+		{
+			danceLeft = !danceLeft;
+			if(danceLeft)
+				gfDance.animation.play('danceRight');
+			else
+				gfDance.animation.play('danceLeft');
+		}
+
 		if(!closedState)
 		{
 			sickBeats++;
@@ -318,38 +420,51 @@ class TitleState extends MusicBeatState
 			remove(credGroup);
 			FlxG.camera.flash(FlxColor.WHITE, 4);
 
-			bg = new FlxSprite(0, 0).loadGraphic(Paths.image('TitleMenu/bg'));
-			bg.antialiasing = false;
-			bg.setGraphicSize(FlxG.width, FlxG.height);
-			bg.updateHitbox();
-			add(bg);
+			if(isSingleMod)
+			{
+				if(gfDance != null) remove(gfDance);
+				if(logoBl != null) remove(logoBl);
+				if(titleText != null) remove(titleText);
 
-			logo = new FlxSprite(0, 0).loadGraphic(Paths.image('TitleMenu/logo'));
-			logo.antialiasing = false;
-			logo.setGraphicSize(FlxG.width, FlxG.height);
-			logo.updateHitbox();
-			add(logo);
-			FlxTween.tween(logo, {y: logo.y - 15}, 3, {ease: FlxEase.sineInOut, type: PINGPONG});
+				if(gfDance != null) add(gfDance);
+				if(logoBl != null) add(logoBl);
+				if(titleText != null) add(titleText);
+			}
+			else
+			{
+				bg = new FlxSprite(0, 0).loadGraphic(Paths.image('TitleMenu/bg'));
+				bg.antialiasing = false;
+				bg.setGraphicSize(FlxG.width, FlxG.height);
+				bg.updateHitbox();
+				add(bg);
 
-			text = new FlxSprite(0, 0).loadGraphic(Paths.image('TitleMenu/text'));
-			text.antialiasing = false;
-			text.setGraphicSize(FlxG.width, FlxG.height);
-			text.updateHitbox();
-			add(text);
-			FlxTween.tween(text, {y: text.y - 15}, 3, {ease: FlxEase.sineInOut, type: PINGPONG});
+				logo = new FlxSprite(0, 0).loadGraphic(Paths.image('TitleMenu/logo'));
+				logo.antialiasing = false;
+				logo.setGraphicSize(FlxG.width, FlxG.height);
+				logo.updateHitbox();
+				add(logo);
+				FlxTween.tween(logo, {y: logo.y - 15}, 3, {ease: FlxEase.sineInOut, type: PINGPONG});
 
-			expansion = new FlxSprite(0, 0).loadGraphic(Paths.image('TitleMenu/expansion'));
-			expansion.antialiasing = false;
-			expansion.setGraphicSize(FlxG.width, FlxG.height);
-			expansion.updateHitbox();
-			add(expansion);
-			FlxTween.tween(expansion, {y: expansion.y - 15}, 3, {ease: FlxEase.sineInOut, type: PINGPONG});
+				text = new FlxSprite(0, 0).loadGraphic(Paths.image('TitleMenu/text'));
+				text.antialiasing = false;
+				text.setGraphicSize(FlxG.width, FlxG.height);
+				text.updateHitbox();
+				add(text);
+				FlxTween.tween(text, {y: text.y - 15}, 3, {ease: FlxEase.sineInOut, type: PINGPONG});
 
-			box = new FlxSprite(0, 0).loadGraphic(Paths.image('TitleMenu/box'));
-			box.antialiasing = false;
-			box.setGraphicSize(FlxG.width, FlxG.height);
-			box.updateHitbox();
-			add(box);
+				expansion = new FlxSprite(0, 0).loadGraphic(Paths.image('TitleMenu/expansion'));
+				expansion.antialiasing = false;
+				expansion.setGraphicSize(FlxG.width, FlxG.height);
+				expansion.updateHitbox();
+				add(expansion);
+				FlxTween.tween(expansion, {y: expansion.y - 15}, 3, {ease: FlxEase.sineInOut, type: PINGPONG});
+
+				box = new FlxSprite(0, 0).loadGraphic(Paths.image('TitleMenu/box'));
+				box.antialiasing = false;
+				box.setGraphicSize(FlxG.width, FlxG.height);
+				box.updateHitbox();
+				add(box);
+			}
 
 			skippedIntro = true;
 		}

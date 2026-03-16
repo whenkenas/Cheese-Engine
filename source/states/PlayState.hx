@@ -3617,15 +3617,21 @@ class PlayState extends MusicBeatState
 						else
 						#end
 						{
-							var stateClass = backend.StateManager.getStateClass(stateToReturn);
-							if(stateClass != null)
+							var luaState = backend.StateManager.loadLuaState(stateToReturn);
+							if(luaState != null)
 							{
-								var stateInstance = Type.createInstance(stateClass, []);
-								MusicBeatState.switchState(stateInstance);
+								MusicBeatState.switchState(luaState);
 							}
 							else
 							{
-								MusicBeatState.switchState(new FreeplayState());
+								var stateClass = backend.StateManager.getStateClass(stateToReturn);
+								if(stateClass != null)
+								{
+									var stateInstance = Type.createInstance(stateClass, []);
+									MusicBeatState.switchState(stateInstance);
+								}
+								else
+									MusicBeatState.switchState(new FreeplayState());
 							}
 						}
 						FlxG.sound.playMusic(Paths.music('freakyMenu'));
@@ -3653,6 +3659,9 @@ class PlayState extends MusicBeatState
 						else
 						#end
 						{
+							var luaState = backend.StateManager.loadLuaState(stateToReturn, oldStickers);
+							if(luaState != null)
+								return luaState;
 							var stateClass = backend.StateManager.getStateClass(stateToReturn);
 							if(stateClass != null)
 							{

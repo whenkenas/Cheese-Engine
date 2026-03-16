@@ -98,6 +98,50 @@ class LuaState extends MusicBeatState
 		Lua_helper.add_callback(lua, "switchState", function(stateName:String) {
 			backend.StateManager.switchState(stateName);
 		});
+
+		Lua_helper.add_callback(lua, "isMusicPlaying", function() {
+			return FlxG.sound.music != null && FlxG.sound.music.playing;
+		});
+
+		Lua_helper.add_callback(lua, "getScore", function(songName:String, diffIndex:Int) {
+			return backend.Highscore.getScore(songName, diffIndex);
+		});
+
+		Lua_helper.add_callback(lua, "getSongsFromWeek", function(weekName:String) {
+			var result:Array<String> = [];
+			#if MODS_ALLOWED
+			var weekPath = Paths.mods(Mods.currentModDirectory + '/weeks/' + weekName + '.json');
+			if(FileSystem.exists(weekPath)) {
+				var weekData:Dynamic = haxe.Json.parse(sys.io.File.getContent(weekPath));
+				for(songData in cast(weekData.songs, Array<Dynamic>)) {
+					result.push(songData[0]);
+				}
+			}
+			#end
+			return result;
+		});
+
+		Lua_helper.add_callback(lua, "getDifficulties", function() {
+			return backend.Difficulty.list;
+		});
+
+		Lua_helper.add_callback(lua, "getDifficultyName", function(index:Int) {
+			if(index < 0 || index >= backend.Difficulty.list.length) return 'normal';
+			return backend.Difficulty.list[index];
+		});
+
+		Lua_helper.add_callback(lua, "loadSong", function(songName:String, ?difficulty:String = 'normal') {
+			Mods.currentModDirectory = Mods.currentModDirectory;
+			var chart = backend.Song.loadFromJson(songName.toLowerCase(), songName.toLowerCase());
+			if(chart != null) {
+				states.PlayState.SONG = chart;
+				states.PlayState.isStoryMode = false;
+				var diffIdx = backend.Difficulty.list.indexOf(difficulty);
+				states.PlayState.storyDifficulty = diffIdx < 0 ? 0 : diffIdx;
+				states.PlayState.previousState = 'FreeplayState';
+			}
+		});
+		
         Lua_helper.add_callback(lua, "lerp", function(a:Float, b:Float, t:Float) return a + (b - a) * t);
 		Lua_helper.add_callback(lua, "flxLerp", function(a:Float, b:Float, t:Float) return flixel.math.FlxMath.lerp(a, b, t));
 		Lua_helper.add_callback(lua, "setCameraZoom", function(zoom:Float) FlxG.camera.zoom = zoom);
@@ -110,7 +154,12 @@ class LuaState extends MusicBeatState
 			MusicBeatState.resetState();
 		});
 		Lua_helper.add_callback(lua, "openSubState", function(substate:Dynamic) {
-			openSubState(substate);
+			if(Std.isOfType(substate, String)) {
+				var cls = Type.resolveClass(substate);
+				if(cls != null) openSubState(Type.createInstance(cls, []));
+			} else {
+				openSubState(substate);
+			}
 		});
 		Lua_helper.add_callback(lua, "closeSubState", function() {
 			closeSubState();
@@ -1006,7 +1055,7 @@ class LuaState extends MusicBeatState
 
 class LuaStateLoader
 {
-	public static function loadStateScript(stateName:String):FlxState
+	public static function loadStateScript(stateName:String, ?stickers:Array<substates.StickerSubState.StickerSprite>):FlxState
 	{
 		#if MODS_ALLOWED
 		var save = FlxG.save;
@@ -1036,7 +1085,7 @@ class LuaStateLoader
 				Mods.loadTopMod();
 
 				try {
-					var stateInstance = new LuaState(scriptPath, stateName, savedModDirectory, null);
+					var stateInstance = new LuaState(scriptPath, stateName, savedModDirectory, stickers);
 					return stateInstance;
 				} catch(e:Dynamic) {
 					trace('LuaStateLoader: Error creating state $stateName: $e');
