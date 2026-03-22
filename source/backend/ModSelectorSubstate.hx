@@ -246,12 +246,15 @@ class ModSelectorSubstate extends MusicBeatSubstate
 				FlxTween.tween(modText, {alpha: 0}, 0.25, {ease: FlxEase.cubeOut});
 			}
 			
+			_selectedModForReset = selectedMod;
 			new FlxTimer().start(0.25, function(tmr:FlxTimer) {
 				completeReset();
 			});
 			#end
 		}
 	}
+	
+	var _selectedModForReset:String = '';
 	
 	function completeReset()
 	{
@@ -289,15 +292,16 @@ class ModSelectorSubstate extends MusicBeatSubstate
 
 		#if MODS_ALLOWED
 		try {
-			var currentMode = getCurrentModMode();
+			var currentMode = (_selectedModForReset == 'MODS + FNF SONGS' || _selectedModForReset == 'ALL MODS' || _selectedModForReset == 'DISABLE MODS') ? _selectedModForReset : 'SINGLE MOD';
 			
 			if(currentMode == 'MODS + FNF SONGS' || currentMode == 'ALL MODS' || currentMode == 'DISABLE MODS')
 			{
 				lime.app.Application.current.window.title = "Friday Night Funkin': Psych Engine";
 				
 				try {
-					lime.app.Application.current.window.setIcon(null);
-					
+					#if (cpp && windows)
+					winapi.WindowsCPP.resetWindowIconFromExe();
+					#else
 					var defaultIconPath:String = "icon.png";
 					if (sys.FileSystem.exists(defaultIconPath))
 					{
@@ -307,7 +311,16 @@ class ModSelectorSubstate extends MusicBeatSubstate
 							lime.app.Application.current.window.setIcon(iconImage);
 						}
 					}
+					#end
 				} catch(e:Dynamic) {}
+				
+				#if (cpp && windows)
+				try {
+					winapi.WindowsCPP.reDefineMainWindowTitle("Friday Night Funkin': Psych Engine");
+					winapi.WindowsCPP.resetWindowBorderColor();
+					Main.updateWindowTheme();
+				} catch(e:Dynamic) {}
+				#end
 			}
 			else
 			{

@@ -13,7 +13,11 @@ class InitialState extends MusicBeatState
 		FlxG.mouse.visible = false;
 		
 		#if MODS_ALLOWED
-		if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
+		var _save = FlxG.save;
+		var _modMode:String = (_save != null && _save.data != null) ? _save.data.modMode : null;
+		var _isSingleMod:Bool = (_modMode == null || _modMode == 'SINGLE MOD');
+		
+		if(_isSingleMod && Mods.currentModDirectory != null && Mods.currentModDirectory != '')
 		{
 			try {
 				var pack:Dynamic = Mods.getPack();

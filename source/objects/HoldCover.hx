@@ -30,10 +30,20 @@ class HoldCover extends FlxSprite
 		var path:String = isPixelStage ? 'holdCovers/holdCoverPixelRGB' : 'holdCovers/holdCoverRGB';
 		if(customSkin != null && customSkin.trim().length > 0 && Paths.fileExists('images/$customSkin.png', IMAGE))
 			path = customSkin;
-		frames = Paths.getSparrowAtlas(path);
-		
-		animation.addByPrefix('hold', 'holdCoverRGB', 24, true);
-		animation.addByPrefix('end', 'holdCoverEndRGB', 24, false);
+
+		var usePixelCover:Bool = isPixelStage && (customSkin == null || customSkin.trim().length == 0) && Paths.fileExists('images/pixelUI/pixelNoteHoldCover.png', IMAGE);
+		if(usePixelCover)
+		{
+			frames = Paths.getSparrowAtlas('pixelUI/pixelNoteHoldCover');
+			animation.addByPrefix('hold', 'loop', 24, true);
+			animation.addByPrefix('end', 'explode', 24, false);
+		}
+		else
+		{
+			frames = Paths.getSparrowAtlas(path);
+			animation.addByPrefix('hold', 'holdCoverRGB', 24, true);
+			animation.addByPrefix('end', 'holdCoverEndRGB', 24, false);
+		}
 		
 		visible = false;
 		cameras = [camera];
@@ -42,8 +52,16 @@ class HoldCover extends FlxSprite
 		{
 			setGraphicSize(Std.int(width * 6));
 			updateHitbox();
-			animation.addByPrefix('hold', 'holdCoverRGB', 33, true);
-			animation.addByPrefix('end', 'holdCoverEndRGB', 33, false);
+			if(usePixelCover)
+			{
+				animation.addByPrefix('hold', 'loop', 24, true);
+				animation.addByPrefix('end', 'explode', 16, false);
+			}
+			else
+			{
+				animation.addByPrefix('hold', 'holdCoverRGB', 33, true);
+				animation.addByPrefix('end', 'holdCoverEndRGB', 33, false);
+			}
 			antialiasing = false;
 		}
 		else

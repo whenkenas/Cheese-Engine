@@ -337,7 +337,7 @@ class StickerSubState extends MusicBeatSubstate
 		var xPos:Float = -100;
 		var yPos:Float = -100;
 		
-		while (xPos <= FlxG.width)
+		while (xPos <= FlxG.width + 100)
 		{
 			var randomStickerData:StickerData = FlxG.random.getObject(stickerFiles);
 			var sticky:StickerSprite = new StickerSprite(0, 0, randomStickerData.path, randomStickerData.scale);
@@ -354,9 +354,9 @@ class StickerSubState extends MusicBeatSubstate
 			sticky.y = yPos;
 			xPos += sticky.frameWidth * 0.5;
 
-			if (xPos >= FlxG.width)
+			if (xPos >= FlxG.width + 100)
 			{
-				if (yPos <= FlxG.height)
+				if (yPos <= FlxG.height + 100)
 				{
 					xPos = -100;
 					yPos += FlxG.random.float(70, 120);

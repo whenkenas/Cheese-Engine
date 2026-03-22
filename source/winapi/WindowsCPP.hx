@@ -630,4 +630,23 @@ class WindowsCPP
 	public static function resetWindowBorderColor()
 	{
 	}
+	@:functionCode('
+        HWND window = GetForegroundWindow();
+        char exePath[MAX_PATH];
+        GetModuleFileNameA(NULL, exePath, MAX_PATH);
+        HICON hIconBig = NULL;
+        HICON hIconSmall = NULL;
+        ExtractIconExA(exePath, 0, &hIconBig, &hIconSmall, 1);
+        if (hIconBig != NULL) {
+            SetClassLongPtrA(window, GCLP_HICON, (LONG_PTR)hIconBig);
+            SendMessageA(window, WM_SETICON, ICON_BIG, (LPARAM)hIconBig);
+        }
+        if (hIconSmall != NULL) {
+            SetClassLongPtrA(window, GCLP_HICONSM, (LONG_PTR)hIconSmall);
+            SendMessageA(window, WM_SETICON, ICON_SMALL, (LPARAM)hIconSmall);
+        }
+    ')
+	public static function resetWindowIconFromExe()
+	{
+	}
 }

@@ -109,7 +109,7 @@ class HScriptStateLoader
 			modMode = save.data.modMode;
 		}
 		
-		if(modMode == 'DISABLE MODS')
+		if(modMode == 'DISABLE MODS' || modMode == 'MODS + FNF SONGS' || modMode == 'ALL MODS')
 		{
 			return null;
 		}
