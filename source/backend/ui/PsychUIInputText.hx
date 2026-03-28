@@ -4,6 +4,7 @@ import flixel.FlxObject;
 import flixel.input.keyboard.FlxKey;
 import flixel.util.FlxDestroyUtil;
 import flash.events.KeyboardEvent;
+import flash.events.TextEvent;
 import lime.system.Clipboard;
 
 enum abstract AccentCode(Int) from Int from UInt to Int to UInt
@@ -86,6 +87,7 @@ class PsychUIInputText extends FlxSpriteGroup
 		this.text = text;
 
 		FlxG.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+		FlxG.stage.addEventListener(TextEvent.TEXT_INPUT, onTextInput);
 	}
 	
 	public var selectIndex:Int = -1;
@@ -93,10 +95,24 @@ class PsychUIInputText extends FlxSpriteGroup
 	var _caretTime:Float = 0;
 
 	var _nextAccent:AccentCode = NONE;
+	var _handledByKeyDown:Bool = false;
 	public var inInsertMode:Bool = false;
+
+	function onTextInput(e:TextEvent)
+	{
+		if(focusOn != this) return;
+		if(_handledByKeyDown) return;
+		if(e.text == null || e.text.length == 0) return;
+		for(i in 0...e.text.length)
+			_typeLetter(e.text.charCodeAt(i));
+		updateCaret();
+	}
+
 	function onKeyDown(e:KeyboardEvent)
 	{
 		if(focusOn != this) return;
+
+		_handledByKeyDown = false;
 
 		var keyCode:Int = e.keyCode;
 		var charCode:Int = e.charCode;
@@ -110,18 +126,21 @@ class PsychUIInputText extends FlxSpriteGroup
 		}
 
 		// Control key actions
-		if(e.controlKey)
+		if(e.controlKey && !e.altKey)
 		{
+			_handledByKeyDown = true;
 			switch(flxKey)
 			{
 				case A: //select all text
-					selectIndex = Std.int(Math.min(0, text.length - 1));
+					selectIndex = 0;
 					caretIndex = text.length;
 
 				case X, C: //cut/copy selected text to clipboard
-					if(caretIndex >= 0 && selectIndex != 0 && caretIndex != selectIndex)
+					if(caretIndex >= 0 && selectIndex != -1 && caretIndex != selectIndex)
 					{
-						Clipboard.text = text.substring(caretIndex, selectIndex);
+						var minIdx = Std.int(Math.min(caretIndex, selectIndex));
+						var maxIdx = Std.int(Math.max(caretIndex, selectIndex));
+						Clipboard.text = text.substring(minIdx, maxIdx);
 						if(flxKey == X)
 							deleteSelection();
 					}
@@ -165,8 +184,6 @@ class PsychUIInputText extends FlxSpriteGroup
 				case DELETE:
 					if(selectIndex < 0 || selectIndex == caretIndex)
 					{
-						// This is| a test
-						// This is test
 						var deletedText:String = text.substring(caretIndex);
 						var spc:Int = 0;
 						var space:Int = deletedText.indexOf(' ');
@@ -195,7 +212,6 @@ class PsychUIInputText extends FlxSpriteGroup
 							caretIndex--;
 							var a:String = text.substr(caretIndex-1, 1);
 							var b:String = text.substr(caretIndex, 1);
-							//trace(a, b);
 							if(a == ' ' && b != ' ') break;
 						}
 						while(caretIndex > 0);
@@ -209,7 +225,6 @@ class PsychUIInputText extends FlxSpriteGroup
 							caretIndex++;
 							var a:String = text.substr(caretIndex-1, 1);
 							var b:String = text.substr(caretIndex, 1);
-							//trace(a, b);
 							if(a != ' ' && b == ' ') break;
 						}
 						while(caretIndex < text.length);
@@ -229,41 +244,48 @@ class PsychUIInputText extends FlxSpriteGroup
 		{
 			case KEY_TILDE:
 				_nextAccent = !e.shiftKey ? TILDE : CIRCUMFLEX;
+				_handledByKeyDown = true;
 				if(lastAccent == NONE) return;
 			case KEY_ACUTE:
 				_nextAccent = !e.shiftKey ? ACUTE : GRAVE;
+				_handledByKeyDown = true;
 				if(lastAccent == NONE) return;
 			default:
 				lastAccent = NONE;
 		}
 
-		//trace(keyCode, charCode, flxKey);
 		switch(flxKey)
 		{
 			case LEFT: //move caret to left
+				_handledByKeyDown = true;
 				if(!FlxG.keys.pressed.SHIFT) selectIndex = -1;
 				else if(selectIndex == -1) selectIndex = caretIndex;
 				caretIndex = Std.int(Math.max(0, caretIndex - 1));
 
 			case RIGHT: //move caret to right
+				_handledByKeyDown = true;
 				if(!FlxG.keys.pressed.SHIFT) selectIndex = -1;
 				else if(selectIndex == -1) selectIndex = caretIndex;
 				caretIndex = Std.int(Math.min(text.length, caretIndex + 1));
 
 			case HOME: //move caret to the begin
+				_handledByKeyDown = true;
 				if(!FlxG.keys.pressed.SHIFT) selectIndex = -1;
 				else if(selectIndex == -1) selectIndex = caretIndex;
 				caretIndex = 0;
 
 			case END: //move caret to the end
+				_handledByKeyDown = true;
 				if(!FlxG.keys.pressed.SHIFT) selectIndex = -1;
 				else if(selectIndex == -1) selectIndex = caretIndex;
 				caretIndex = text.length;
 
 			case INSERT: //change to insert mode
+				_handledByKeyDown = true;
 				inInsertMode = !inInsertMode;
 
 			case BACKSPACE: //Delete letter to the left of caret
+				_handledByKeyDown = true;
 				if(caretIndex <= 0) return;
 
 				if(selectIndex > -1 && selectIndex != caretIndex)
@@ -279,6 +301,7 @@ class PsychUIInputText extends FlxSpriteGroup
 				_nextAccent = NONE;
 
 			case DELETE: //Delete letter to the right of caret
+				_handledByKeyDown = true;
 				if(selectIndex > -1 && selectIndex != caretIndex)
 				{
 					deleteSelection();
@@ -300,6 +323,7 @@ class PsychUIInputText extends FlxSpriteGroup
 				if(broadcastInputTextEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
 			
 			case SPACE: //space or last accent pressed
+				_handledByKeyDown = true;
 				if(_nextAccent != NONE) _typeLetter(getAccentCharCode(_nextAccent));
 				else _typeLetter(charCode);
 				_nextAccent = NONE;
@@ -318,9 +342,11 @@ class PsychUIInputText extends FlxSpriteGroup
 					default:
 				}
 				if(_nextAccent != NONE)
+				{
+					_handledByKeyDown = true;
 					charCode += grave - capital + _nextAccent;
-
-				_typeLetter(charCode);
+					_typeLetter(charCode);
+				}
 				_nextAccent = NONE;
 
 			case E, I, U: //these support grave, acute and circumflex
@@ -339,38 +365,59 @@ class PsychUIInputText extends FlxSpriteGroup
 						capital = 0x55;
 					default:
 				}
-				if(_nextAccent == GRAVE || _nextAccent == ACUTE || _nextAccent == CIRCUMFLEX) //Supported accents
+				if(_nextAccent == GRAVE || _nextAccent == ACUTE || _nextAccent == CIRCUMFLEX)
+				{
+					_handledByKeyDown = true;
 					charCode += grave - capital + _nextAccent;
-				else if(_nextAccent == TILDE) //Unsupported accent
+					_typeLetter(charCode);
+				}
+				else if(_nextAccent == TILDE)
+				{
 					_typeLetter(getAccentCharCode(_nextAccent));
-
-				_typeLetter(charCode);
+					// TEXT_INPUT handles the actual letter
+				}
 				_nextAccent = NONE;
 
 			case N: //it only supports tilde
 				if(_nextAccent == TILDE)
+				{
+					_handledByKeyDown = true;
 					charCode += 0xD1 - 0x4E;
-				else
+					_typeLetter(charCode);
+				}
+				else if(_nextAccent != NONE)
+				{
+					_handledByKeyDown = true;
 					_typeLetter(getAccentCharCode(_nextAccent));
-
-				_typeLetter(charCode);
+					_typeLetter(charCode);
+				}
+				// If no accent, TEXT_INPUT handles 'n'
 				_nextAccent = NONE;
 
 			case ESCAPE:
+				_handledByKeyDown = true;
 				focusOn = null;
 
 			case ENTER:
+				_handledByKeyDown = true;
 				onPressEnter(e);
 
 			default:
 				if(charCode < 1)
-					if((charCode = getAccentCharCode(_nextAccent)) < 1)
-						return;
-
-				if(lastAccent != NONE) _typeLetter(getAccentCharCode(lastAccent));
-				else if(_nextAccent != NONE) _typeLetter(getAccentCharCode(_nextAccent));
-				_typeLetter(charCode);
-				_nextAccent = NONE;
+				{
+					charCode = getAccentCharCode(_nextAccent);
+					_nextAccent = NONE;
+					if(charCode < 1) return;
+					_handledByKeyDown = true;
+					_typeLetter(charCode);
+				}
+				else
+				{
+					// Type any pending accent char, let TEXT_INPUT handle actual character
+					if(lastAccent != NONE) _typeLetter(getAccentCharCode(lastAccent));
+					else if(_nextAccent != NONE) _typeLetter(getAccentCharCode(_nextAccent));
+					_nextAccent = NONE;
+				}
 		}
 		updateCaret();
 	}
@@ -420,8 +467,6 @@ class PsychUIInputText extends FlxSpriteGroup
 			}
 			else if(focusOn == this)
 				focusOn = null;
-
-			//trace('changed focus to: ' + this);
 		}
 
 		if(focusOn == this)
@@ -542,6 +587,7 @@ class PsychUIInputText extends FlxSpriteGroup
 		_boundaries = null;
 		if(focusOn == this) focusOn = null;
 		FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+		FlxG.stage.removeEventListener(TextEvent.TEXT_INPUT, onTextInput);
 		super.destroy();
 	}
 
@@ -663,7 +709,6 @@ class PsychUIInputText extends FlxSpriteGroup
 		if(letter.length > 0 && (maxLength == 0 || (text.length + letter.length) <= maxLength))
 		{
 			var lastText = text;
-			//trace('Drawing character: $letter');
 			if(!inInsertMode)
 				text = text.substring(0, caretIndex) + letter + text.substring(caretIndex);
 			else
@@ -676,7 +721,6 @@ class PsychUIInputText extends FlxSpriteGroup
 		_caretTime = 0;
 	}
 
-	// from FlxInputText
 	function set_forceCase(v:CaseMode)
 	{
 		forceCase = v;

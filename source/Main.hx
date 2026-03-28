@@ -168,6 +168,10 @@ class Main extends Sprite
 		
 		Highscore.load();
 
+		#if (MODS_ALLOWED && DISCORD_ALLOWED)
+		backend.DiscordClient.loadModRPC();
+		#end
+
 		#if HSCRIPT_ALLOWED
 		Iris.warn = function(x, ?pos:haxe.PosInfos) {
 			Iris.logLevel(WARN, x, pos);

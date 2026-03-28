@@ -3571,7 +3571,6 @@ class PlayState extends MusicBeatState
 			else
 				{
 					trace('WENT BACK TO FREEPLAY??');
-					Mods.loadTopMod();
 					#if DISCORD_ALLOWED
 					DiscordClient.clearSongImageKey();
 					#if MODS_ALLOWED
@@ -3581,6 +3580,7 @@ class PlayState extends MusicBeatState
 					#end
 					DiscordClient.changePresence("In the Menus", null);
 					#end
+					Mods.loadTopMod();
 
 					canResync = false;
 					

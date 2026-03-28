@@ -94,13 +94,13 @@ class TitleState extends MusicBeatState
 			FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
 
 		#if DISCORD_ALLOWED
+		#if MODS_ALLOWED
+		DiscordClient.loadModRPC();
+		#end
 		if(!DiscordClient.isInitialized)
 		{
 			DiscordClient.prepare();
 		}
-		#if MODS_ALLOWED
-		DiscordClient.loadModRPC();
-		#end
 		DiscordClient.changePresence("In the Menus", null);
 		#end
 

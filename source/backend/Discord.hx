@@ -19,6 +19,7 @@ class DiscordClient
 	@:unreflective private static var __thread:Thread;
 	private static var _modDefaultImage:String = 'icon';
 	private static var currentSongImageKey:String = null;
+	private static var _pendingReinit:Bool = false;
 
 	public static function check()
 	{
@@ -104,9 +105,35 @@ class DiscordClient
 
 	public static function changePresence(details:String = 'In the Menus', ?state:String, ?smallImageKey:String, ?hasStartTimestamp:Bool, ?endTimestamp:Float, ?largeImageKey:String, ?songName:String)
 	{
+		#if MODS_ALLOWED
+		var pack:Dynamic = Mods.getPack();
+		var modRPC:String = (pack != null && pack.discordRPC != null) ? pack.discordRPC : _defaultID;
+		var modImage:String = (pack != null && pack.discordImage != null) ? pack.discordImage : 'icon';
+		_modDefaultImage = modImage;
+		if (modRPC != clientID)
+		{
+			@:bypassAccessor clientID = modRPC;
+			_pendingReinit = true;
+		}
+		if (_pendingReinit && isInitialized)
+		{
+			_pendingReinit = false;
+			shutdown();
+			initialize();
+		}
+		#end
+
 		var startTimestamp:Float = 0;
 		if (hasStartTimestamp) startTimestamp = Date.now().getTime();
 		if (endTimestamp > 0) endTimestamp = startTimestamp + endTimestamp;
+
+		#if MODS_ALLOWED
+		var pack:Dynamic = Mods.getPack();
+		if (pack != null && pack.discordImage != null)
+			_modDefaultImage = pack.discordImage;
+		else
+			_modDefaultImage = 'icon';
+		#end
 
 		var finalLargeImageKey:String = _modDefaultImage;
 		
@@ -193,18 +220,18 @@ class DiscordClient
 	public static function loadModRPC()
 	{
 		var pack:Dynamic = Mods.getPack();
-		if(pack != null && pack.discordRPC != null && pack.discordRPC != clientID)
+		if(pack != null && pack.discordRPC != null)
 		{
-			clientID = pack.discordRPC;
+			if(!isInitialized)
+				@:bypassAccessor clientID = pack.discordRPC;
+			else if(pack.discordRPC != clientID)
+				clientID = pack.discordRPC;
 		}
-		if(pack != null && pack.discordImage != null)
+		else if(!isInitialized)
 		{
-			_modDefaultImage = pack.discordImage;
+			@:bypassAccessor clientID = _defaultID;
 		}
-		else
-		{
-			_modDefaultImage = 'icon';
-		}
+		_modDefaultImage = (pack != null && pack.discordImage != null) ? pack.discordImage : 'icon';
 		currentSongImageKey = null;
 	}
 	#end

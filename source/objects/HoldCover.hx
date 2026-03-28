@@ -15,6 +15,13 @@ class HoldCover extends FlxSprite
 	public var disabled:Bool = false;
 	public var invisible:Bool = false;
 	public var forceHide:Bool = false;
+
+	public var configOffsetNormal:Array<Float> = [-105, -100];
+	public var configOffsetPixel:Array<Float> = [-385, -125];
+	public var configAnimPrefixes:Map<String, String> = new Map();
+	public var configAnimFps:Map<String, Array<Int>> = new Map();
+	public var configAnimLoop:Map<String, Bool> = new Map();
+	public var configAnimOffsets:Map<String, Array<Float>> = new Map();
 	
 	private static var colors:Array<String> = ['Purple', 'Blue', 'Green', 'Red'];
 	
@@ -41,8 +48,15 @@ class HoldCover extends FlxSprite
 		else
 		{
 			frames = Paths.getSparrowAtlas(path);
-			animation.addByPrefix('hold', 'holdCoverRGB', 24, true);
-			animation.addByPrefix('end', 'holdCoverEndRGB', 24, false);
+			loadCoverConfig(path);
+			var holdPrefix = configAnimPrefixes.exists('hold_$noteData') ? configAnimPrefixes.get('hold_$noteData') : 'holdCoverRGB';
+			var endPrefix = configAnimPrefixes.exists('end_$noteData') ? configAnimPrefixes.get('end_$noteData') : 'holdCoverEndRGB';
+			var holdFps = configAnimFps.exists('hold_$noteData') ? configAnimFps.get('hold_$noteData')[1] : 24;
+			var endFps = configAnimFps.exists('end_$noteData') ? configAnimFps.get('end_$noteData')[1] : 24;
+			var holdLoop = configAnimLoop.exists('hold_$noteData') ? configAnimLoop.get('hold_$noteData') : true;
+			var endLoop = configAnimLoop.exists('end_$noteData') ? configAnimLoop.get('end_$noteData') : false;
+			animation.addByPrefix('hold', holdPrefix, holdFps, holdLoop);
+			animation.addByPrefix('end', endPrefix, endFps, endLoop);
 		}
 		
 		visible = false;
@@ -59,8 +73,14 @@ class HoldCover extends FlxSprite
 			}
 			else
 			{
-				animation.addByPrefix('hold', 'holdCoverRGB', 33, true);
-				animation.addByPrefix('end', 'holdCoverEndRGB', 33, false);
+				var holdPrefix = configAnimPrefixes.exists('hold_$noteData') ? configAnimPrefixes.get('hold_$noteData') : 'holdCoverRGB';
+				var endPrefix = configAnimPrefixes.exists('end_$noteData') ? configAnimPrefixes.get('end_$noteData') : 'holdCoverEndRGB';
+				var holdFps = configAnimFps.exists('hold_$noteData') ? configAnimFps.get('hold_$noteData')[1] : 33;
+				var endFps = configAnimFps.exists('end_$noteData') ? configAnimFps.get('end_$noteData')[1] : 33;
+				var holdLoop = configAnimLoop.exists('hold_$noteData') ? configAnimLoop.get('hold_$noteData') : true;
+				var endLoop = configAnimLoop.exists('end_$noteData') ? configAnimLoop.get('end_$noteData') : false;
+				animation.addByPrefix('hold', holdPrefix, holdFps, holdLoop);
+				animation.addByPrefix('end', endPrefix, endFps, endLoop);
 			}
 			antialiasing = false;
 		}
@@ -143,13 +163,17 @@ class HoldCover extends FlxSprite
 		visible = true;
 		angle = strum.angle;
 		
-		var offsetX:Float = -105;
-		var offsetY:Float = -100;
-		
-		if(isPixelStage)
+		var offsetX:Float = isPixelStage ? configOffsetPixel[0] : configOffsetNormal[0];
+		var offsetY:Float = isPixelStage ? configOffsetPixel[1] : configOffsetNormal[1];
+
+		if(animation.curAnim != null)
 		{
-			offsetX = -385;
-			offsetY = -125;
+			var animKey:String = animation.curAnim.name + '_' + noteData;
+			if(configAnimOffsets.exists(animKey))
+			{
+				offsetX = configAnimOffsets.get(animKey)[0];
+				offsetY = configAnimOffsets.get(animKey)[1];
+			}
 		}
 		
 		setPosition(strum.x + offsetX, strum.y + offsetY);
@@ -167,5 +191,37 @@ class HoldCover extends FlxSprite
 	public static function getColorName(noteData:Int):String
 	{
 		return colors[noteData];
+	}
+
+	private function loadCoverConfig(path:String):Void
+	{
+		var jsonPath:String = Paths.getPath('images/$path.json', TEXT);
+		if(!Paths.fileExists('images/$path.json', TEXT)) return;
+
+		try
+		{
+			var raw:Dynamic = haxe.Json.parse(sys.io.File.getContent(jsonPath));
+
+			if(raw.offsetNormal != null)
+				configOffsetNormal = raw.offsetNormal;
+			if(raw.offsetPixel != null)
+				configOffsetPixel = raw.offsetPixel;
+
+			if(raw.animations != null)
+			{
+				for(k in Reflect.fields(raw.animations))
+				{
+					var a:Dynamic = Reflect.field(raw.animations, k);
+					if(a.prefix != null) configAnimPrefixes.set(k, a.prefix);
+					if(a.fps != null) configAnimFps.set(k, a.fps);
+					if(a.loop != null) configAnimLoop.set(k, a.loop);
+					if(a.offsets != null) configAnimOffsets.set(k, a.offsets);
+				}
+			}
+		}
+		catch(e:Dynamic)
+		{
+			trace('HoldCover: Failed to load config for $path: $e');
+		}
 	}
 }

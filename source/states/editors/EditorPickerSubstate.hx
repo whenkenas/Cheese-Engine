@@ -60,6 +60,11 @@ class EditorPickerSubstate extends MusicBeatSubstate {
 			name: "Note Splash Editor",
 			id: "notesplash",
 			state: NoteSplashEditorState
+		},
+		{
+			name: "Hold Cover Editor",
+			id: "holdcover",
+			state: HoldCoverEditorState
 		}
 	];
 	
