@@ -12,14 +12,36 @@ class FunkinSoundTray extends FlxSoundTray
 	var alphaTarget:Float = 0;
 
 	var volumeMaxSound:String;
+	var _lastMod:String = '';
 
 	public function new()
 	{
 		super();
-		
+		_buildGraphics();
+		trace("Custom sound tray initialized!");
+	}
+
+	function _getImageData(file:String):BitmapData
+	{
+		#if MODS_ALLOWED
+		var modPath:String = Paths.mods(Mods.currentModDirectory + '/images/soundtray/' + file + '.png');
+		if (sys.FileSystem.exists(modPath))
+			return BitmapData.fromFile(modPath);
+		for (mod in Mods.getGlobalMods())
+		{
+			var globalPath:String = Paths.mods(mod + '/images/soundtray/' + file + '.png');
+			if (sys.FileSystem.exists(globalPath))
+				return BitmapData.fromFile(globalPath);
+		}
+		#end
+		return Assets.getBitmapData(Paths.getPath('images/soundtray/' + file + '.png', IMAGE));
+	}
+
+	function _buildGraphics()
+	{
 		removeChildren();
 
-		var bg:Bitmap = new Bitmap(Assets.getBitmapData(Paths.getPath('images/soundtray/volumebox.png', IMAGE)));
+		var bg:Bitmap = new Bitmap(_getImageData('volumebox'));
 		bg.scaleX = graphicScale;
 		bg.scaleY = graphicScale;
 		bg.smoothing = ClientPrefs.data.antialiasing;
@@ -28,7 +50,7 @@ class FunkinSoundTray extends FlxSoundTray
 		y = -height;
 		visible = false;
 
-		var backingBar:Bitmap = new Bitmap(Assets.getBitmapData(Paths.getPath('images/soundtray/bars_10.png', IMAGE)));
+		var backingBar:Bitmap = new Bitmap(_getImageData('bars_10'));
 		backingBar.x = 9;
 		backingBar.y = 5;
 		backingBar.scaleX = graphicScale;
@@ -41,7 +63,7 @@ class FunkinSoundTray extends FlxSoundTray
 
 		for (i in 1...11)
 		{
-			var bar:Bitmap = new Bitmap(Assets.getBitmapData(Paths.getPath('images/soundtray/bars_' + i + '.png', IMAGE)));
+			var bar:Bitmap = new Bitmap(_getImageData('bars_' + i));
 			bar.x = 9;
 			bar.y = 5;
 			bar.scaleX = graphicScale;
@@ -58,7 +80,7 @@ class FunkinSoundTray extends FlxSoundTray
 		volumeDownSound = Paths.getPath('sounds/soundtray/Voldown.ogg', SOUND);
 		volumeMaxSound = Paths.getPath('sounds/soundtray/VolMAX.ogg', SOUND);
 
-		trace("Custom sound tray initialized!");
+		_lastMod = Mods.currentModDirectory;
 	}
 
 	override public function update(MS:Float):Void
@@ -97,6 +119,9 @@ class FunkinSoundTray extends FlxSoundTray
 
 	override public function show(up:Bool = false):Void
 	{
+		if (Mods.currentModDirectory != _lastMod)
+			_buildGraphics();
+
 		_timer = 1;
 		lerpYPos = 10;
 		visible = true;
