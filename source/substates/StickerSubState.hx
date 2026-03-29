@@ -334,10 +334,10 @@ class StickerSubState extends MusicBeatSubstate
 			return;
 		}
 
-		var xPos:Float = -100;
-		var yPos:Float = -100;
+		var xPos:Float = -200;
+		var yPos:Float = -200;
 		
-		while (xPos <= FlxG.width + 100)
+		while (xPos <= FlxG.width + 200)
 		{
 			var randomStickerData:StickerData = FlxG.random.getObject(stickerFiles);
 			var sticky:StickerSprite = new StickerSprite(0, 0, randomStickerData.path, randomStickerData.scale);
@@ -354,11 +354,11 @@ class StickerSubState extends MusicBeatSubstate
 			sticky.y = yPos;
 			xPos += sticky.frameWidth * 0.5;
 
-			if (xPos >= FlxG.width + 100)
+			if (xPos >= FlxG.width + 200)
 			{
-				if (yPos <= FlxG.height + 100)
+				if (yPos <= FlxG.height + 200)
 				{
-					xPos = -100;
+					xPos = -200;
 					yPos += FlxG.random.float(70, 120);
 				}
 			}

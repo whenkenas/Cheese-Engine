@@ -101,6 +101,8 @@ class FunkinSoundTray extends FlxSoundTray
 		lerpYPos = 10;
 		visible = true;
 		active = true;
+		if (parent != null)
+			parent.setChildIndex(this, parent.numChildren - 1);
 		var globalVolume:Int = Math.round(FlxG.sound.volume * 10);
 
 		if (FlxG.sound.muted)
