@@ -4095,8 +4095,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			#if HSCRIPT_ALLOWED exts.push('.hx'); #end
 			noteTypes = loadFileList('custom_notetypes/', exts);
 			
-			// Asegurar que los tipos por defecto estÃƒÆ’Ã‚Â©n en el orden correcto
-			var defaultTypes:Array<String> = ['', 'Alt Animation', 'Hey!', 'Hurt Note', 'GF Sing', 'Opponent Sing', 'No Animation', 'GF + BF Note', 'Opponent + GF Note', 'Boyfriend SING'];
+			var defaultTypes:Array<String> = ['', 'Alt Animation', 'Hey!', 'Hurt Note', 'GF Sing', 'Opponent Sing', 'No Animation', 'GF + BF Note', 'Opponent + GF Note', 'Boyfriend SING', 'Opponent + BF + GF'];
 			for (id => noteType in defaultTypes)
 				if(!noteTypes.contains(noteType))
 					noteTypes.insert(id, noteType);

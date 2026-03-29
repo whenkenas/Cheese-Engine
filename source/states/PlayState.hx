@@ -4182,7 +4182,9 @@ class PlayState extends MusicBeatState
 				var animToPlay:String = singAnimations[Std.int(Math.abs(Math.min(singAnimations.length-1, note.noteData)))] + note.animSuffix;
 				
 				var char:Character = boyfriend;
-				if(note.gfNote && gf != null && note.noteType != 'Boyfriend SING')
+				if(note.noteType == 'Opponent Sing')
+					char = dad;
+				else if(note.gfNote && gf != null && note.noteType != 'Boyfriend SING')
 					char = gf;
 
 				var canPlay:Bool = true;
@@ -4319,6 +4321,45 @@ class PlayState extends MusicBeatState
 					
 					if(bfCanPlay) boyfriend.playAnim(animToPlay, true);
 					boyfriend.holdTimer = 0;
+				}
+			}
+			else if(note.noteType == 'Opponent + BF + GF')
+			{
+				if(dad != null)
+				{
+					var dadCanPlay:Bool = true;
+					if(note.isSustainNote)
+					{
+						var holdAnim:String = animToPlay + '-hold';
+						if(dad.animation.exists(holdAnim)) animToPlay = holdAnim;
+						if(dad.getAnimationName() == holdAnim || dad.getAnimationName() == holdAnim + '-loop') dadCanPlay = false;
+					}
+					if(dadCanPlay) dad.playAnim(animToPlay, true);
+					dad.holdTimer = 0;
+				}
+				if(boyfriend != null)
+				{
+					var bfCanPlay:Bool = true;
+					if(note.isSustainNote)
+					{
+						var holdAnim:String = animToPlay + '-hold';
+						if(boyfriend.animation.exists(holdAnim)) animToPlay = holdAnim;
+						if(boyfriend.getAnimationName() == holdAnim || boyfriend.getAnimationName() == holdAnim + '-loop') bfCanPlay = false;
+					}
+					if(bfCanPlay) boyfriend.playAnim(animToPlay, true);
+					boyfriend.holdTimer = 0;
+				}
+				if(gf != null)
+				{
+					var gfCanPlay:Bool = true;
+					if(note.isSustainNote)
+					{
+						var holdAnim:String = animToPlay + '-hold';
+						if(gf.animation.exists(holdAnim)) animToPlay = holdAnim;
+						if(gf.getAnimationName() == holdAnim || gf.getAnimationName() == holdAnim + '-loop') gfCanPlay = false;
+					}
+					if(gfCanPlay) gf.playAnim(animToPlay, true);
+					gf.holdTimer = 0;
 				}
 			}
 			else
@@ -4476,6 +4517,46 @@ class PlayState extends MusicBeatState
 							if(gf.getAnimationName() == holdAnim || gf.getAnimationName() == holdAnim + '-loop') gfCanPlay = false;
 						}
 						
+						if(gfCanPlay) gf.playAnim(animToPlay, true);
+						gf.holdTimer = 0;
+					}
+				}
+				
+				if(note.noteType == 'Opponent + BF + GF')
+				{
+					if(dad != null)
+					{
+						var dadCanPlay:Bool = true;
+						if(note.isSustainNote)
+						{
+							var holdAnim:String = animToPlay + '-hold';
+							if(dad.animation.exists(holdAnim)) animToPlay = holdAnim;
+							if(dad.getAnimationName() == holdAnim || dad.getAnimationName() == holdAnim + '-loop') dadCanPlay = false;
+						}
+						if(dadCanPlay) dad.playAnim(animToPlay, true);
+						dad.holdTimer = 0;
+					}
+					if(boyfriend != null)
+					{
+						var bfCanPlay:Bool = true;
+						if(note.isSustainNote)
+						{
+							var holdAnim:String = animToPlay + '-hold';
+							if(boyfriend.animation.exists(holdAnim)) animToPlay = holdAnim;
+							if(boyfriend.getAnimationName() == holdAnim || boyfriend.getAnimationName() == holdAnim + '-loop') bfCanPlay = false;
+						}
+						if(bfCanPlay) boyfriend.playAnim(animToPlay, true);
+						boyfriend.holdTimer = 0;
+					}
+					if(gf != null)
+					{
+						var gfCanPlay:Bool = true;
+						if(note.isSustainNote)
+						{
+							var holdAnim:String = animToPlay + '-hold';
+							if(gf.animation.exists(holdAnim)) animToPlay = holdAnim;
+							if(gf.getAnimationName() == holdAnim || gf.getAnimationName() == holdAnim + '-loop') gfCanPlay = false;
+						}
 						if(gfCanPlay) gf.playAnim(animToPlay, true);
 						gf.holdTimer = 0;
 					}
