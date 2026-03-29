@@ -6,6 +6,7 @@ import flixel.util.FlxDestroyUtil;
 import flash.events.KeyboardEvent;
 import flash.events.TextEvent;
 import lime.system.Clipboard;
+import flixel.util.FlxSpriteUtil;
 
 enum abstract AccentCode(Int) from Int from UInt to Int to UInt
 {
@@ -64,18 +65,31 @@ class PsychUIInputText extends FlxSpriteGroup
 	public function new(x:Float = 0, y:Float = 0, wid:Int = 100, ?text:String = '', size:Int = 8)
 	{
 		super(x, y);
-		this.bg = new FlxSprite().makeGraphic(1, 1, FlxColor.BLACK);
-		this.behindText = new FlxSprite(1, 1).makeGraphic(1, 1, FlxColor.WHITE);
-		this.selection = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
-		this.textObj = new FlxText(1, 1, Math.max(1, wid - 2), '', size);
-		this.caret = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
+
+		var isCheese:Bool = (ClientPrefs.data.uiTheme == 'Cheese');
+		if(isCheese)
+		{
+			this.bg = new FlxSprite().makeGraphic(1, 1, FlxColor.TRANSPARENT);
+			this.behindText = new FlxSprite(1, 1).makeGraphic(1, 1, FlxColor.TRANSPARENT);
+			this.selection = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
+			this.textObj = new FlxText(3, 3, Math.max(1, wid - 6), '', size);
+			this.caret = new FlxSprite().makeGraphic(1, 1, 0xFF3D2800);
+		}
+		else
+		{
+			this.bg = new FlxSprite().makeGraphic(1, 1, FlxColor.BLACK);
+			this.behindText = new FlxSprite(1, 1).makeGraphic(1, 1, FlxColor.WHITE);
+			this.selection = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
+			this.textObj = new FlxText(1, 1, Math.max(1, wid - 2), '', size);
+			this.caret = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
+		}
 		add(this.bg);
 		add(this.behindText);
 		add(this.selection);
 		add(this.textObj);
 		add(this.caret);
 
-		this.textObj.color = FlxColor.BLACK;
+		this.textObj.color = isCheese ? 0xFF3D2800 : FlxColor.BLACK;
 		this.textObj.textField.selectable = false;
 		this.textObj.textField.wordWrap = false;
 		this.textObj.textField.multiline = false;
@@ -600,26 +614,66 @@ class PsychUIInputText extends FlxSpriteGroup
 
 	override public function setGraphicSize(width:Float = 0, height:Float = 0)
 	{
-		super.setGraphicSize(width, height);
-		bg.setGraphicSize(width, height);
-		behindText.setGraphicSize(width - 2, height - 2);
-		if(textObj != null && textObj.exists)
+		var isCheese:Bool = (ClientPrefs.data.uiTheme == 'Cheese');
+		if(isCheese)
 		{
-			textObj.scale.x = 1;
-			textObj.scale.y = 1;
-			if(caret != null && caret.exists) caret.setGraphicSize(1, textObj.height - 4);
+			var w:Int = Std.int(width);
+			var h:Int = Std.int(height);
+			if(w > 0 && h > 0)
+			{
+				bg.makeGraphic(w, h, FlxColor.TRANSPARENT, true);
+				FlxSpriteUtil.drawRoundRect(bg, 0, 0, w, h, 8, 8, FlxColor.TRANSPARENT, {thickness: 2, color: 0xFFE8A800});
+				FlxSpriteUtil.drawRoundRect(bg, 2, 2, w - 4, h - 4, 6, 6, FlxColor.WHITE, {thickness: 0, color: FlxColor.TRANSPARENT});
+				bg.updateHitbox();
+				behindText.makeGraphic(w - 4, h - 4, FlxColor.TRANSPARENT, true);
+				behindText.updateHitbox();
+			}
+			if(textObj != null && textObj.exists)
+			{
+				textObj.scale.x = 1;
+				textObj.scale.y = 1;
+				if(caret != null && caret.exists) caret.makeGraphic(1, Std.int(textObj.height) - 4, 0xFF3D2800, true);
+			}
+		}
+		else
+		{
+			super.setGraphicSize(width, height);
+			bg.setGraphicSize(width, height);
+			behindText.setGraphicSize(width - 2, height - 2);
+			if(textObj != null && textObj.exists)
+			{
+				textObj.scale.x = 1;
+				textObj.scale.y = 1;
+				if(caret != null && caret.exists) caret.setGraphicSize(1, textObj.height - 4);
+			}
 		}
 	}
 	
 	override public function updateHitbox()
 	{
-		super.updateHitbox();
-		bg.updateHitbox();
-		behindText.updateHitbox();
-		if(textObj != null && textObj.exists)
+		var isCheese:Bool = (ClientPrefs.data.uiTheme == 'Cheese');
+		if(isCheese)
 		{
-			textObj.updateHitbox();
-			if(caret != null && caret.exists) caret.updateHitbox();
+			bg.updateHitbox();
+			behindText.updateHitbox();
+			if(textObj != null && textObj.exists)
+			{
+				textObj.updateHitbox();
+				if(caret != null && caret.exists) caret.updateHitbox();
+			}
+			width = bg.width;
+			height = bg.height;
+		}
+		else
+		{
+			super.updateHitbox();
+			bg.updateHitbox();
+			behindText.updateHitbox();
+			if(textObj != null && textObj.exists)
+			{
+				textObj.updateHitbox();
+				if(caret != null && caret.exists) caret.updateHitbox();
+			}
 		}
 	}
 

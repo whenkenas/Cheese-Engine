@@ -5,6 +5,7 @@ import objects.StrumNote;
 import objects.NoteSplash;
 import objects.Alphabet;
 import flixel.FlxSprite;
+import backend.ui.PsychUITheme;
 
 class VisualsSettingsSubState extends BaseOptionsMenu
 {
@@ -270,6 +271,14 @@ class VisualsSettingsSubState extends BaseOptionsMenu
 		addOption(option);
 		option.onChange = onChangeWindowColor;
 		#end
+
+		var option:Option = new Option('UI Theme:',
+			'Select the color scheme for the Editors interface.',
+			'uiTheme',
+			STRING,
+			['Default', 'Cheese']);
+		addOption(option);
+		option.onChange = onChangeUITheme;
 
 		super();
 		add(notes);
@@ -606,5 +615,9 @@ class VisualsSettingsSubState extends BaseOptionsMenu
 		}
 		#end
 		return splashes;
+	}
+	function onChangeUITheme()
+	{
+		PsychUITheme.applyTheme(ClientPrefs.data.uiTheme);
 	}
 }

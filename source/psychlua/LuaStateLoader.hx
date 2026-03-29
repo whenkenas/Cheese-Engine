@@ -155,7 +155,11 @@ class LuaState extends MusicBeatState
 		});
 		Lua_helper.add_callback(lua, "openSubState", function(substate:Dynamic) {
 			if(Std.isOfType(substate, String)) {
-				var cls = Type.resolveClass(substate);
+				var shortNames:Map<String, String> = [
+					'EditorPickerSubstate' => 'states.editors.EditorPickerSubstate'
+				];
+				var resolved:String = shortNames.exists(substate) ? shortNames.get(substate) : substate;
+				var cls = Type.resolveClass(resolved);
 				if(cls != null) openSubState(Type.createInstance(cls, []));
 			} else {
 				openSubState(substate);

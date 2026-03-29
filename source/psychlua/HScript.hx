@@ -192,6 +192,7 @@ class HScript extends Iris
 		});
 		set('LoadingState', states.LoadingState);
 		set('ClientPrefs', ClientPrefs);
+		set('Mods', Mods);
 		#if ACHIEVEMENTS_ALLOWED
 		set('Achievements', Achievements);
 		#end

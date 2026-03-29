@@ -1,5 +1,7 @@
 package backend.ui;
 
+import flixel.util.FlxSpriteUtil;
+
 typedef UIStyleData = {
 	var bgColor:FlxColor;
 	var textColor:FlxColor;
@@ -52,10 +54,22 @@ class PsychUIBox extends FlxSpriteGroup
 	public function new(x:Float, y:Float, width:Int, height:Int, tabs:Array<String> = null)
 	{
 		super(x, y);
-		
-		bg = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
-		bg.color = FlxColor.BLACK;
-		bg.alpha = 0.6;
+
+		var isCheese:Bool = (ClientPrefs.data.uiTheme == 'Cheese');
+		if(isCheese)
+		{
+			bg = new FlxSprite();
+			bg.alpha = 0.5;
+			selectedStyle = {bgColor: 0xFFFFF8E7, textColor: 0xFF7A3D00, bgAlpha: 1};
+			hoverStyle    = {bgColor: 0xFFFFD580, textColor: 0xFF7A3D00, bgAlpha: 1};
+			unselectedStyle = {bgColor: 0xFFE8A000, textColor: 0xFF7A3D00, bgAlpha: 0.75};
+		}
+		else
+		{
+			bg = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
+			bg.color = FlxColor.BLACK;
+			bg.alpha = 0.6;
+		}
 		add(bg);
 
 		if(tabs != null)
@@ -86,6 +100,8 @@ class PsychUIBox extends FlxSpriteGroup
 	{
 		super.update(elapsed);
 
+		var isCheese:Bool = (ClientPrefs.data.uiTheme == 'Cheese');
+
 		if(_animating)
 		{
 			_currentHeight = FlxMath.lerp(_currentHeight, _targetHeight, elapsed * (1 / animationDuration) * 10);
@@ -94,8 +110,13 @@ class PsychUIBox extends FlxSpriteGroup
 				_currentHeight = _targetHeight;
 				_animating = false;
 			}
-			bg.scale.y = _currentHeight;
-			bg.updateHitbox();
+			if(isCheese)
+				_redrawBg(Std.int(bg.width), Std.int(_currentHeight));
+			else
+			{
+				bg.scale.y = _currentHeight;
+				bg.updateHitbox();
+			}
 			updateTabsAlpha();
 		}
 
@@ -149,9 +170,12 @@ class PsychUIBox extends FlxSpriteGroup
 			{
 				if(FlxG.mouse.overlaps(tab, camera))
 				{
-					tab.color = hoverStyle.bgColor;
-					tab.alpha = hoverStyle.bgAlpha;
-					tab.text.color = hoverStyle.textColor;
+					if(!isCheese)
+					{
+						tab.color = hoverStyle.bgColor;
+						tab.alpha = hoverStyle.bgAlpha;
+						tab.text.color = hoverStyle.textColor;
+					}
 	
 					if(FlxG.mouse.justPressed)
 						_pressedBox = true;
@@ -187,10 +211,22 @@ class PsychUIBox extends FlxSpriteGroup
 					else if(selectedTab != tab) continue;
 				}
 				
-				var style:UIStyleData = (selectedTab == tab) ? selectedStyle : unselectedStyle;
-				tab.color = style.bgColor;
-				tab.alpha = style.bgAlpha;
-				tab.text.color = style.textColor;
+				if(isCheese)
+				{
+					var isSelected:Bool = (selectedTab == tab);
+					var style:UIStyleData = isSelected ? selectedStyle : unselectedStyle;
+					if(tab._isSelected != isSelected)
+						tab._redrawTab(Std.int(tab.width), tabHeight, isSelected);
+					tab.alpha = style.bgAlpha;
+					tab.text.color = style.textColor;
+				}
+				else
+				{
+					var style:UIStyleData = (selectedTab == tab) ? selectedStyle : unselectedStyle;
+					tab.color = style.bgColor;
+					tab.alpha = style.bgAlpha;
+					tab.text.color = style.textColor;
+				}
 			}
 		}
 
@@ -255,9 +291,12 @@ class PsychUIBox extends FlxSpriteGroup
 		for (num => tab in tabs)
 		{
 			tab.x = x + wid * num;
-			tab.resize(wid, tabHeight);
+			var tabWid:Int = (num == tabs.length - 1) ? Std.int(bg.width) - wid * num : wid;
+			tab.resize(tabWid, tabHeight);
 			tab.cameras = cameras;
 		}
+		if(ClientPrefs.data.uiTheme == 'Cheese')
+			_redrawBg(Std.int(bg.width), Std.int(_currentHeight));
 	}
 
 	public function updateTabsAlpha()
@@ -288,9 +327,36 @@ class PsychUIBox extends FlxSpriteGroup
 			_originalHeight = height;
 		_targetHeight = height;
 		_currentHeight = height;
-		bg.setGraphicSize(width, height);
-		bg.updateHitbox();
+		if(ClientPrefs.data.uiTheme == 'Cheese')
+		{
+			bg.makeGraphic(width, height, FlxColor.TRANSPARENT, true);
+			bg.updateHitbox();
+			_redrawBg(width, height);
+		}
+		else
+		{
+			bg.setGraphicSize(width, height);
+			bg.updateHitbox();
+		}
 		updateTabs();
+	}
+
+	function _redrawBg(width:Int, height:Int)
+	{
+		if(width <= 0 || height <= 0 || tabHeight <= 0) return;
+		var bodyH:Int = height - tabHeight;
+		if(bodyH <= 2)
+		{
+			bg.makeGraphic(width, tabHeight > 0 ? tabHeight : 1, FlxColor.TRANSPARENT, true);
+			bg.updateHitbox();
+			return;
+		}
+		bg.makeGraphic(width, height, FlxColor.TRANSPARENT, true);
+		FlxSpriteUtil.drawRoundRect(bg, 0, tabHeight - 2, width, bodyH + 2, 18, 18, 0xFFD47A00, {thickness: 0, color: FlxColor.TRANSPARENT});
+		FlxSpriteUtil.drawRoundRect(bg, 1, tabHeight - 1, width - 2, bodyH, 16, 16, 0xFFFFF0D0, {thickness: 0, color: FlxColor.TRANSPARENT});
+		FlxSpriteUtil.drawRect(bg, 1, tabHeight - 1, width - 2, 14, 0xFFFFF0D0);
+		FlxSpriteUtil.drawRoundRect(bg, 0, tabHeight - 2, width, bodyH + 2, 18, 18, FlxColor.TRANSPARENT, {thickness: 2, color: 0xFFD47A00});
+		bg.updateHitbox();
 	}
 
 	private function set_selectedTab(v:PsychUITab)
@@ -374,8 +440,13 @@ class PsychUIBox extends FlxSpriteGroup
 			_currentHeight = tabHeight;
 			_targetHeight = _originalHeight;
 			_animating = true;
-			bg.scale.y = _currentHeight;
-			bg.updateHitbox();
+			if(ClientPrefs.data.uiTheme == 'Cheese')
+				_redrawBg(Std.int(bg.width), Std.int(_currentHeight));
+			else
+			{
+				bg.scale.y = _currentHeight;
+				bg.updateHitbox();
+			}
 		}
 		else if(!v && visible)
 		{

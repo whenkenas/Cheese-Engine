@@ -22,6 +22,8 @@ class PsychUICheckBox extends FlxSpriteGroup
 
 		text = new FlxText(box.width + 4, 0, textWid, label);
 		text.y += box.height/2 - text.height/2;
+		if(ClientPrefs.data.uiTheme == 'Cheese')
+			text.color = 0xFFFFFFFF;
 		add(text);
 
 		this.onClick = callback;
@@ -29,7 +31,9 @@ class PsychUICheckBox extends FlxSpriteGroup
 
 	public function boxGraphic()
 	{
-		box.loadGraphic(Paths.image('psych-ui/checkbox', 'embed'), true, 16, 16);
+		var isCheese:Bool = (ClientPrefs.data.uiTheme == 'Cheese');
+		var checkPath:String = isCheese ? 'psych-ui/themes/cheese/checkbox' : 'psych-ui/checkbox';
+		box.loadGraphic(Paths.image(checkPath, 'embed'), true, 16, 16);
 		box.animation.add('false', [0]);
 		box.animation.add('true', [1]);
 		box.animation.play('false');

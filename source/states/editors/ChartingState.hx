@@ -4976,7 +4976,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var noteTypeLabelsButton:PsychUIButton;
 	var vortexEditorButton:PsychUIButton;
 	var toysButton:PsychUIButton;
-	var enableScriptsDuringPlaytest:Bool = true;
 	function addViewTab()
 	{
 		var tab = upperBox.getTab('View');
@@ -5383,17 +5382,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}, btnWid);
 		btn.text.alignment = LEFT;
 		tab_group.add(btn);
-
-		btnY++;
-		btnY += 20;
-		var btn:PsychUIButton = new PsychUIButton(btnX, btnY, enableScriptsDuringPlaytest ? '  Enable Scripts ON' : '  Enable Scripts OFF', function()
-		{
-			enableScriptsDuringPlaytest = !enableScriptsDuringPlaytest;
-			btn.text.text = enableScriptsDuringPlaytest ? '  Enable Scripts ON' : '  Enable Scripts OFF';
-		}, btnWid);
-		btn.text.alignment = LEFT;
-		tab_group.add(btn);
-	}
+		}
 
 	function updateChartData()
 	{
