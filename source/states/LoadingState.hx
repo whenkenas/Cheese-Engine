@@ -30,6 +30,10 @@ import crowplexus.hscript.Expr.Error as IrisError;
 import crowplexus.hscript.Printer;
 #end
 
+#if LUA_ALLOWED
+import psychlua.LuaStateLoader;
+#end
+
 #if cpp
 @:headerCode('
 #include <iostream>
@@ -61,7 +65,7 @@ class LoadingState extends MusicBeatState
 	var stopMusic:Bool = false;
 	var dontUpdate:Bool = false;
 
-	var barGroup:FlxSpriteGroup;
+	public var barGroup:FlxSpriteGroup;
 	var bar:FlxSprite;
 	var barWidth:Int = 0;
 	var intendedPercent:Float = 0;
@@ -88,6 +92,9 @@ class LoadingState extends MusicBeatState
 
 	#if HSCRIPT_ALLOWED
 	var hscript:HScript;
+	#end
+	#if LUA_ALLOWED
+	var loadingLua:LoadingLuaScript;
 	#end
 	override function create()
 	{
@@ -148,6 +155,28 @@ class LoadingState extends MusicBeatState
 		}
 		#end
 
+		#if LUA_ALLOWED
+		if(hscript == null)
+		{
+			loadingLua = LuaStateLoader.createLoadingScript(barBack, bar, this);
+			if(loadingLua != null)
+			{
+				if(loadingLua.funcExists('onCreate'))
+				{
+					loadingLua.call('onCreate', []);
+					trace('initialized lua loading script successfully');
+					return super.create();
+				}
+				else
+				{
+					trace('LoadingScreen.lua contains no "onCreate" function, stopping script.');
+					loadingLua.destroy();
+					loadingLua = null;
+				}
+			}
+		}
+		#end
+
 		#if PSYCH_WATERMARKS // PSYCH LOADING SCREEN
 		var bg = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
 		bg.antialiasing = ClientPrefs.data.antialiasing;
@@ -192,7 +221,7 @@ class LoadingState extends MusicBeatState
 		}
 	}
 
-	function addBehindBar(obj:flixel.FlxBasic)
+	public function addBehindBar(obj:flixel.FlxBasic)
 	{
 		insert(members.indexOf(barGroup), obj);
 	}
@@ -241,6 +270,14 @@ class LoadingState extends MusicBeatState
 		if(hscript != null)
 		{
 			if(hscript.exists('onUpdate')) hscript.call('onUpdate', [elapsed]);
+			return;
+		}
+		#end
+
+		#if LUA_ALLOWED
+		if(loadingLua != null)
+		{
+			loadingLua.call('onUpdate', [elapsed]);
 			return;
 		}
 		#end
@@ -317,15 +354,25 @@ class LoadingState extends MusicBeatState
 		#end
 	}
 
-	#if HSCRIPT_ALLOWED
+	#if (HSCRIPT_ALLOWED || LUA_ALLOWED)
 	override function destroy()
 	{
+		#if HSCRIPT_ALLOWED
 		if(hscript != null)
 		{
 			if(hscript.exists('onDestroy')) hscript.call('onDestroy');
 			hscript.destroy();
 		}
 		hscript = null;
+		#end
+		#if LUA_ALLOWED
+		if(loadingLua != null)
+		{
+			loadingLua.call('onDestroy', []);
+			loadingLua.destroy();
+		}
+		loadingLua = null;
+		#end
 		super.destroy();
 	}
 	#end
@@ -333,6 +380,9 @@ class LoadingState extends MusicBeatState
 	var finishedLoading:Bool = false;
 	function onLoad()
 	{
+		#if LUA_ALLOWED
+		if(loadingLua != null) loadingLua.call('onLoad', []);
+		#end
 		_loaded();
 
 		if (stopMusic && FlxG.sound.music != null)
