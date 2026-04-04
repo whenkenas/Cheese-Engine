@@ -1893,7 +1893,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 							trace('Added event at time: $strumTime');
 							var didAdd:Bool = false;
 
-							var eventAdded:EventMetaNote = createEvent([strumTime, [[eventsList[Std.int(Math.max(eventDropDown.selectedIndex, 0))][0], value1InputText.text, value2InputText.text, value3InputText.text, value4InputText.text]]]);
+							var _val2Create:String = (easeDropDown != null && easeDropDown.visible) ? (value3InputText.text.trim().length > 0 ? value2InputText.text + ', ' + value3InputText.text.trim() : value2InputText.text) : value2InputText.text;
+					var eventAdded:EventMetaNote = createEvent([strumTime, [[eventsList[Std.int(Math.max(eventDropDown.selectedIndex, 0))][0], value1InputText.text, _val2Create, (easeDropDown != null && easeDropDown.visible) ? '' : value3InputText.text, value4InputText.text]]]);
 							for (num in sectionFirstEventID...events.length)
 							{
 								var event = events[num];
@@ -2497,9 +2498,20 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					}
 				}
 				value1InputText.text = (myEvent[1] != null) ? myEvent[1] : '';
-				value2InputText.text = (myEvent[2] != null) ? myEvent[2] : '';
-				value3InputText.text = (myEvent[3] != null) ? myEvent[3] : '';
+				if(eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos')
+				{
+					var rawVal2:String = (myEvent[2] != null) ? myEvent[2] : '';
+					var parts:Array<String> = rawVal2.split(',');
+					value2InputText.text = parts[0].trim();
+					value3InputText.text = parts.length > 1 ? parts[1].trim() : '';
+				}
+				else
+				{
+					value2InputText.text = (myEvent[2] != null) ? myEvent[2] : '';
+					value3InputText.text = (myEvent[3] != null) ? myEvent[3] : '';
+				}
 				value4InputText.text = (myEvent[4] != null) ? myEvent[4] : '';
+				updateEventSpecialUI(eventName);
 			}
 		}
 		else selectedEventText.visible = false;
@@ -3469,12 +3481,17 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	}
 
 	var eventDropDown:PsychUIDropDownMenu;
+	var easeDropDown:PsychUIDropDownMenu;
 	var value1InputText:PsychUIInputText;
 	var value2InputText:PsychUIInputText;
 	var value3InputText:PsychUIInputText;
 	var value4InputText:PsychUIInputText;
 	var selectedEventText:FlxText;
 	var eventDescriptionText:FlxText;
+	var value1Label:FlxText;
+	var value2Label:FlxText;
+	var value3Label:FlxText;
+	var value4Label:FlxText;
 
 	var eventsList:Array<Array<String>>;
 	var curEventSelected:Int = 0;
@@ -3494,6 +3511,35 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			infoBox.setPosition(infoBoxPosition.x, newInfoY);
 		}
 	}
+
+	function updateEventSpecialUI(eventName:String)
+	{
+		if(easeDropDown == null) return;
+		var useEaseDropDown:Bool = (eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos');
+		var isSetCamZoom:Bool = (eventName == 'Set Cam Zoom');
+		var isTargetCamera:Bool = (eventName == 'Target Camera');
+		var isTargetFollow:Bool = (eventName == 'Target Follow Pos');
+		value1Label.text = isSetCamZoom ? 'New Zoom:' : (isTargetCamera ? 'Target:' : (isTargetFollow ? 'Target:' : 'Value 1:'));
+		value2Label.text = useEaseDropDown ? 'Seconds:' : 'Value 2:';
+		value3Label.text = useEaseDropDown ? 'Ease:' : 'Value 3:';
+		value3InputText.visible = value3InputText.active = !useEaseDropDown;
+		value4InputText.visible = value4InputText.active = !useEaseDropDown;
+		value4Label.visible = !useEaseDropDown;
+		easeDropDown.visible = easeDropDown.active = useEaseDropDown;
+		if(useEaseDropDown)
+		{
+			var easeVal:String = value3InputText.text.trim();
+			var prevOnChange = easeDropDown.onChange;
+			easeDropDown.onChange = null;
+			if(easeVal.length > 0 && easeDropDown.list.contains(easeVal))
+				easeDropDown.selectedLabel = easeVal;
+			else
+				easeDropDown.selectedLabel = '';
+			easeDropDown.showDropDown(false);
+			easeDropDown.onChange = prevOnChange;
+		}
+	}
+
 	function addEventsTab()
 	{
 		var tab_group = mainBox.getTab('Events').menu;
@@ -3507,6 +3553,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var description:String = eventSelected[1];
 			eventDescriptionText.text = description;
 			updateEventDescriptionHeight();
+			var _useEase:Bool = (eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos');
+			if(!_useEase) value3InputText.text = '';
+			updateEventSpecialUI(eventName);
 			if(selectedNotes.length > 1)
 			{
 				for (note in selectedNotes)
@@ -3570,7 +3619,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		{
 			genericEventButton(function(event:EventMetaNote)
 			{
-				event.events.push([eventsList[Std.int(Math.max(eventDropDown.selectedIndex, 0))][0], value1InputText.text, value2InputText.text, value3InputText.text, value4InputText.text]);
+				var val2Push:String = (easeDropDown != null && easeDropDown.visible) ? (value3InputText.text.trim().length > 0 ? value2InputText.text + ', ' + value3InputText.text.trim() : value2InputText.text) : value2InputText.text;
+			event.events.push([eventsList[Std.int(Math.max(eventDropDown.selectedIndex, 0))][0], value1InputText.text, val2Push, (easeDropDown != null && easeDropDown.visible) ? '' : value3InputText.text, value4InputText.text]);
 				event.updateEventText();
 				curEventSelected++;
 			});
@@ -3616,25 +3666,73 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		value1InputText = new PsychUIInputText(objX, objY, 120, '', 8);
 		value1InputText.onChange = function(old:String, cur:String) changeEventsValue(cur, 1);
 		value2InputText = new PsychUIInputText(objX + 150, objY, 120, '', 8);
-		value2InputText.onChange = function(old:String, cur:String) changeEventsValue(cur, 2);
+		value2InputText.onChange = function(old:String, cur:String)
+		{
+			if(easeDropDown != null && easeDropDown.visible)
+			{
+				var ease:String = value3InputText.text.trim();
+				var combined:String = ease.length > 0 ? cur + ', ' + ease : cur;
+				changeEventsValue(combined, 2);
+			}
+			else
+				changeEventsValue(cur, 2);
+		};
 
 		objY += 40;
 		value3InputText = new PsychUIInputText(objX, objY, 120, '', 8);
-		value3InputText.onChange = function(old:String, cur:String) changeEventsValue(cur, 3);
+		value3InputText.onChange = function(old:String, cur:String)
+		{
+			if(easeDropDown == null || !easeDropDown.visible)
+				changeEventsValue(cur, 3);
+		};
 		value4InputText = new PsychUIInputText(objX + 150, objY, 120, '', 8);
 		value4InputText.onChange = function(old:String, cur:String) changeEventsValue(cur, 4);
 
 		objY += 40;
 		eventDescriptionText = new FlxText(objX, objY, 280, defaultEvents[0][1]);
 
+		var easeList:Array<String> = [
+			'',
+			'instant',
+			'backIn', 'backInOut', 'backOut',
+			'bounceIn', 'bounceInOut', 'bounceOut',
+			'circIn', 'circInOut', 'circOut',
+			'cubeIn', 'cubeInOut', 'cubeOut',
+			'elasticIn', 'elasticInOut', 'elasticOut',
+			'expoIn', 'expoInOut', 'expoOut',
+			'linear',
+			'quadIn', 'quadInOut', 'quadOut',
+			'quartIn', 'quartInOut', 'quartOut',
+			'quintIn', 'quintInOut', 'quintOut',
+			'sineIn', 'sineInOut', 'sineOut',
+			'smoothStepIn', 'smoothStepInOut', 'smoothStepOut',
+			'smootherStepIn', 'smootherStepInOut', 'smootherStepOut'
+		];
+		easeDropDown = new PsychUIDropDownMenu(value3InputText.x, value3InputText.y, easeList, function(id:Int, ease:String)
+		{
+			value3InputText.text = ease;
+			if(easeDropDown != null && easeDropDown.visible)
+			{
+				var seconds:String = value2InputText.text.trim();
+				var combined:String = ease.length > 0 ? seconds + ', ' + ease : seconds;
+				changeEventsValue(combined, 2);
+				changeEventsValue('', 3);
+			}
+		}, eventDropDown.width);
+		easeDropDown.selectedLabel = '';
+		easeDropDown.visible = easeDropDown.active = false;
+
+		value1Label = new FlxText(value1InputText.x, value1InputText.y - 15, 80, 'Value 1:');
+		value2Label = new FlxText(value2InputText.x, value2InputText.y - 15, 80, 'Value 2:');
+		value3Label = new FlxText(value3InputText.x, value3InputText.y - 15, 80, 'Value 3:');
+		value4Label = new FlxText(value4InputText.x, value4InputText.y - 15, 80, 'Value 4:');
+
 		tab_group.add(new FlxText(eventDropDown.x, eventDropDown.y - 15, 80, 'Event:'));
-		tab_group.add(new FlxText(value1InputText.x, value1InputText.y - 15, 80, 'Value 1:'));
-		tab_group.add(new FlxText(value2InputText.x, value2InputText.y - 15, 80, 'Value 2:'));
 		tab_group.add(new FlxText(eventDropDown.x, eventDropDown.y - 15, 80, 'Event:'));
-		tab_group.add(new FlxText(value1InputText.x, value1InputText.y - 15, 80, 'Value 1:'));
-		tab_group.add(new FlxText(value2InputText.x, value2InputText.y - 15, 80, 'Value 2:'));
-		tab_group.add(new FlxText(value3InputText.x, value3InputText.y - 15, 80, 'Value 3:'));
-		tab_group.add(new FlxText(value4InputText.x, value4InputText.y - 15, 80, 'Value 4:'));
+		tab_group.add(value1Label);
+		tab_group.add(value2Label);
+		tab_group.add(value3Label);
+		tab_group.add(value4Label);
 
 		tab_group.add(removeButton);
 		tab_group.add(addButton);
@@ -3647,7 +3745,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(value3InputText);
 		tab_group.add(value4InputText);
 		tab_group.add(eventDescriptionText);
-		
+		tab_group.add(easeDropDown);
+
 		tab_group.add(eventDropDown); //lowest priority to display properly
 	}
 
@@ -4072,6 +4171,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			for (id => event in defaultEvents)
 				if(!eventsList.contains(event))
 					eventsList.insert(id, event);
+			
+			var eventsSlice:Array<Array<String>> = eventsList.slice(1);
+			eventsSlice.sort((a, b) -> a[0].toLowerCase() < b[0].toLowerCase() ? -1 : 1);
+			for (i in 0...eventsSlice.length)
+				eventsList[i + 1] = eventsSlice[i];
 			
 			var displayEventsList:Array<String> = [];
 			for (id => data in eventsList)

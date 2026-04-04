@@ -2670,7 +2670,11 @@ class PlayState extends MusicBeatState
 							cameraFollowPosTween = null;
 						}
 						
-						if(value2 == null || value2.trim().length == 0 || value2.trim().toLowerCase() == 'instant')
+						if(value2 == null || value2.trim().length == 0)
+						{
+							camFollow.setPosition(targetX, targetY);
+						}
+						else if(value2.trim().toLowerCase() == 'instant')
 						{
 							FlxG.camera.follow(null);
 							camFollow.setPosition(targetX, targetY);
@@ -3086,12 +3090,17 @@ class PlayState extends MusicBeatState
 				var zoomValue:Float = Std.parseFloat(value1);
 				if(Math.isNaN(zoomValue)) zoomValue = defaultCamZoom;
 
-				if(value2 == null || value2.trim().length == 0 || value2.trim().toLowerCase() == 'instant')
-					{
-						defaultCamZoom = zoomValue;
-						FlxG.camera.zoom = zoomValue;
-						camZooming = true;
-					}
+				if(value2 == null || value2.trim().length == 0)
+				{
+					defaultCamZoom = zoomValue;
+					camZooming = true;
+				}
+				else if(value2.trim().toLowerCase() == 'instant')
+				{
+					defaultCamZoom = zoomValue;
+					FlxG.camera.zoom = zoomValue;
+					camZooming = true;
+				}
 				else
 				{
 					var params:Array<String> = value2.split(',');
@@ -3282,7 +3291,11 @@ class PlayState extends MusicBeatState
 					targetCameraEventTween = null;
 				}
 				
-				if(value2 == null || value2.trim().length == 0 || value2.trim().toLowerCase() == 'instant')
+				if(value2 == null || value2.trim().length == 0)
+				{
+					camFollow.setPosition(targetX, targetY);
+				}
+				else if(value2.trim().toLowerCase() == 'instant')
 				{
 					FlxG.camera.follow(null);
 					camFollow.setPosition(targetX, targetY);
@@ -3295,54 +3308,67 @@ class PlayState extends MusicBeatState
 					var easeFunc:Float->Float = FlxEase.sineInOut;
 					
 					var tweenParts:Array<String> = value2.split(',');
+					var _easeName:String = '';
+					var _durationStr:String = '';
 					if(tweenParts.length > 0)
 					{
-						var easeName:String = tweenParts[0].trim().toLowerCase();
-						switch(easeName)
+						var firstToken:String = tweenParts[0].trim();
+						var firstAsFloat:Null<Float> = Std.parseFloat(firstToken);
+						var firstIsNumber:Bool = (firstAsFloat != null && !Math.isNaN(firstAsFloat));
+						if(firstIsNumber)
 						{
-							case 'linear': easeFunc = FlxEase.linear;
-							case 'quadin': easeFunc = FlxEase.quadIn;
-							case 'quadout': easeFunc = FlxEase.quadOut;
-							case 'quadinout': easeFunc = FlxEase.quadInOut;
-							case 'cubein': easeFunc = FlxEase.cubeIn;
-							case 'cubeout': easeFunc = FlxEase.cubeOut;
-							case 'cubeinout': easeFunc = FlxEase.cubeInOut;
-							case 'quartin': easeFunc = FlxEase.quartIn;
-							case 'quartout': easeFunc = FlxEase.quartOut;
-							case 'quartinout': easeFunc = FlxEase.quartInOut;
-							case 'quintin': easeFunc = FlxEase.quintIn;
-							case 'quintout': easeFunc = FlxEase.quintOut;
-							case 'quintinout': easeFunc = FlxEase.quintInOut;
-							case 'sinein': easeFunc = FlxEase.sineIn;
-							case 'sineout': easeFunc = FlxEase.sineOut;
-							case 'sineinout': easeFunc = FlxEase.sineInOut;
-							case 'expoin': easeFunc = FlxEase.expoIn;
-							case 'expoout': easeFunc = FlxEase.expoOut;
-							case 'expoinout': easeFunc = FlxEase.expoInOut;
-							case 'backin': easeFunc = FlxEase.backIn;
-							case 'backout': easeFunc = FlxEase.backOut;
-							case 'backinout': easeFunc = FlxEase.backInOut;
-							case 'bouncein': easeFunc = FlxEase.bounceIn;
-							case 'bounceout': easeFunc = FlxEase.bounceOut;
-							case 'bounceinout': easeFunc = FlxEase.bounceInOut;
-							case 'circin': easeFunc = FlxEase.circIn;
-							case 'circout': easeFunc = FlxEase.circOut;
-							case 'circinout': easeFunc = FlxEase.circInOut;
-							case 'elasticin': easeFunc = FlxEase.elasticIn;
-							case 'elasticout': easeFunc = FlxEase.elasticOut;
-							case 'elasticinout': easeFunc = FlxEase.elasticInOut;
-							case 'smoothstepin': easeFunc = FlxEase.smoothStepIn;
-							case 'smoothstepout': easeFunc = FlxEase.smoothStepOut;
-							case 'smoothstepinout': easeFunc = FlxEase.smoothStepInOut;
-							case 'smootherstepin': easeFunc = FlxEase.smootherStepIn;
-							case 'smootherstepout': easeFunc = FlxEase.smootherStepOut;
-							case 'smootherstepinout': easeFunc = FlxEase.smootherStepInOut;
+							_durationStr = firstToken;
+							if(tweenParts.length > 1) _easeName = tweenParts[1].trim().toLowerCase();
+						}
+						else
+						{
+							_easeName = firstToken.toLowerCase();
+							if(tweenParts.length > 1) _durationStr = tweenParts[1].trim();
 						}
 					}
-					
-					if(tweenParts.length > 1)
+					switch(_easeName)
 					{
-						var durationVal:Null<Float> = Std.parseFloat(tweenParts[1].trim());
+						case 'linear': easeFunc = FlxEase.linear;
+						case 'quadin': easeFunc = FlxEase.quadIn;
+						case 'quadout': easeFunc = FlxEase.quadOut;
+						case 'quadinout': easeFunc = FlxEase.quadInOut;
+						case 'cubein': easeFunc = FlxEase.cubeIn;
+						case 'cubeout': easeFunc = FlxEase.cubeOut;
+						case 'cubeinout': easeFunc = FlxEase.cubeInOut;
+						case 'quartin': easeFunc = FlxEase.quartIn;
+						case 'quartout': easeFunc = FlxEase.quartOut;
+						case 'quartinout': easeFunc = FlxEase.quartInOut;
+						case 'quintin': easeFunc = FlxEase.quintIn;
+						case 'quintout': easeFunc = FlxEase.quintOut;
+						case 'quintinout': easeFunc = FlxEase.quintInOut;
+						case 'sinein': easeFunc = FlxEase.sineIn;
+						case 'sineout': easeFunc = FlxEase.sineOut;
+						case 'sineinout': easeFunc = FlxEase.sineInOut;
+						case 'expoin': easeFunc = FlxEase.expoIn;
+						case 'expoout': easeFunc = FlxEase.expoOut;
+						case 'expoinout': easeFunc = FlxEase.expoInOut;
+						case 'backin': easeFunc = FlxEase.backIn;
+						case 'backout': easeFunc = FlxEase.backOut;
+						case 'backinout': easeFunc = FlxEase.backInOut;
+						case 'bouncein': easeFunc = FlxEase.bounceIn;
+						case 'bounceout': easeFunc = FlxEase.bounceOut;
+						case 'bounceinout': easeFunc = FlxEase.bounceInOut;
+						case 'circin': easeFunc = FlxEase.circIn;
+						case 'circout': easeFunc = FlxEase.circOut;
+						case 'circinout': easeFunc = FlxEase.circInOut;
+						case 'elasticin': easeFunc = FlxEase.elasticIn;
+						case 'elasticout': easeFunc = FlxEase.elasticOut;
+						case 'elasticinout': easeFunc = FlxEase.elasticInOut;
+						case 'smoothstepin': easeFunc = FlxEase.smoothStepIn;
+						case 'smoothstepout': easeFunc = FlxEase.smoothStepOut;
+						case 'smoothstepinout': easeFunc = FlxEase.smoothStepInOut;
+						case 'smootherstepin': easeFunc = FlxEase.smootherStepIn;
+						case 'smootherstepout': easeFunc = FlxEase.smootherStepOut;
+						case 'smootherstepinout': easeFunc = FlxEase.smootherStepInOut;
+					}
+					if(_durationStr.length > 0)
+					{
+						var durationVal:Null<Float> = Std.parseFloat(_durationStr);
 						if(durationVal != null && !Math.isNaN(durationVal) && durationVal > 0)
 							duration = durationVal;
 					}

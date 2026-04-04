@@ -306,10 +306,21 @@ class PsychUIDropDownMenu extends PsychUIInputText
 
 		_items = [];
 		list = [];
-		for (option in v)
+
+		var nonEmpty:Array<String> = v.filter(s -> s.length > 0);
+		var hasEmpty:Bool = v.contains('');
+		var isNumbered:Bool = nonEmpty.length > 0 && ~/^\d+\./.match(nonEmpty[0]);
+		if(!isNumbered)
+			nonEmpty.sort((a, b) -> a.toLowerCase() < b.toLowerCase() ? -1 : 1);
+		var sorted:Array<String> = hasEmpty ? [''].concat(nonEmpty) : nonEmpty;
+
+		for (option in sorted)
 			addOption(option);
 
-		if(selectedLabel != null) selectedLabel = selected;
+		if(selected != null && selected.length > 0 && list.contains(selected))
+			selectedLabel = selected;
+		else
+			selectedIndex = 0;
 		return v;
 	}
 }
