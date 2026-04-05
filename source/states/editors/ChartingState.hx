@@ -102,7 +102,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		['Flash Camera', "Value 1: Duration in seconds (Default: 1)\nValue 2: Color name or hex code (#FFFFFF)\nSupported colors: white, black, red, green, blue, yellow, cyan, magenta, purple, orange, pink, lime, gray, brown"],
 		['Video Player', "Plays a video file.\n\nValue 1: Video Name, Camera, Layer\n- Format: videoName, camera, layer\n- Example: cutscene1, hud, 0\n- Camera options: game, hud, other (default: other)\n- Layer: number (0 = bottom, leave empty for default)\n\nValue 2: Can Skip, Mid-Song, Loop, Play On Load\n- Format: true/false, true/false, true/false, true/false\n- Example: false, true, false, true\n- Can Skip: allows skipping (default: false)\n- Mid-Song: continues music during video (default: true)\n- Loop: repeats video (default: false)\n- Play On Load: auto-play (default: true)"],
 		['Set Cam Zoom', "Value 1: Camera zoom level\n- Example: 1.05\n\nValue 2: Tween settings or instant\n- Leave empty or 'instant' for instant zoom\n- Format: duration, easeName\n- Example: 1.5, cubeInOut\n- Available eases: linear, quadIn, quadOut, quadInOut, cubeIn, cubeOut, cubeInOut, sineIn, sineOut, sineInOut, etc."],
-		['Target Camera', "Moves camera to a specific target or position.\n\nValue 1: Target\n- BF, GF, Dad\n- Or absolute position: X, Y (e.g., 400, 800)\n- Or target + offset: BF, 300 (character + X offset)\n\nValue 2: Tween settings\n- Format: easeName, duration\n- Example: sineInOut, 0.3\n- Available eases: linear, quadIn, quadOut, quadInOut, cubeIn, cubeOut, cubeInOut, sineIn, sineOut, sineInOut, elasticIn, elasticOut, elasticInOut, etc.\n\nNote: Overrides mustHitSection until tween completes"]
+		['Target Camera', "Moves camera to a specific target or position.\n\nValue 1: Target\n- BF, GF, Dad\n- Or absolute position: X, Y (e.g., 400, 800)\n- Or target + offset: BF, 300 (character + X offset)\n\nValue 2: Tween settings\n- Format: easeName, duration\n- Example: sineInOut, 0.3\n- Available eases: linear, quadIn, quadOut, quadInOut, cubeIn, cubeOut, cubeInOut, sineIn, sineOut, sineInOut, elasticIn, elasticOut, elasticInOut, etc.\n\nNote: Overrides mustHitSection until tween completes"],
+		['(STEPS) Set Cam Zoom', "Like Set Cam Zoom, but the tween duration uses steps instead of seconds.\n\nValue 1: Camera zoom level\n- Example: 1.05\n\nValue 2: Tween settings or instant\n- Leave empty or 'instant' for instant zoom\n- Format: steps, easeName\n- Example: 16, cubeInOut"],
+		['(STEPS) Target Camera', "Like Target Camera, but the tween duration uses steps instead of seconds.\n\nValue 1: Target\n- BF, GF, Dad\n- Or absolute position: X, Y (e.g., 400, 800)\n- Or target + offset: BF, 300 (character + X offset)\n\nValue 2: Tween settings\n- Format: easeName, steps\n- Example: sineInOut, 8\n\nNote: Overrides mustHitSection until tween completes"],
+		['(STEPS) Target Follow Pos', "Like Target Follow Pos, but the tween duration uses steps instead of seconds.\n\nValue 1: Position or Target\n- BF, GF, Dad (follows character)\n- Or absolute position: X, Y (e.g., 400, 800)\n- Leave empty to unlock and return to normal\n\nValue 2: Tween settings or instant\n- Leave empty or 'instant' for instant movement\n- Format: steps, easeName\n- Example: 8, sineInOut\n\nNote: Camera stays locked until you clear it (empty Value 1) or use Target Camera event"]
 	];
 	
 	public static var keysArray:Array<FlxKey> = [ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT]; //Used for Vortex Editor
@@ -1945,9 +1948,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			else if(!mainBox.isMinimized && lastMainBoxTab == 'Events')
 			{
 				if(selectedNotes.length > 0 && selectedNotes[0].isEvent)
-					updateEventDescriptionHeight();
+					updateSelectedEventText();
 				else
-					mainBox.resize(300, mainBoxOriginalHeight, false);
+				{
+					var currentEventName:String = (eventDropDown != null && eventDropDown.selectedIndex >= 0 && eventDropDown.selectedIndex < eventsList.length) ? eventsList[eventDropDown.selectedIndex][0] : '';
+					updateEventSpecialUI(currentEventName);
+					updateEventDescriptionHeight();
+				}
 			}
 		}
 
@@ -2503,7 +2510,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					}
 				}
 				valueInputTexts[0].text = (myEvent[1] != null) ? myEvent[1] : '';
-				if(eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos')
+				if(eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos' || eventName == '(STEPS) Set Cam Zoom' || eventName == '(STEPS) Target Camera' || eventName == '(STEPS) Target Follow Pos')
 				{
 					var rawVal2:String = (myEvent[2] != null) ? myEvent[2] : '';
 					var parts:Array<String> = rawVal2.split(',');
@@ -3516,10 +3523,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	function updateEventSpecialUI(eventName:String)
 	{
 		if(easeDropDown == null) return;
-		var useEaseDropDown:Bool = (eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos');
-		var isSetCamZoom:Bool = (eventName == 'Set Cam Zoom');
-		var isTargetCamera:Bool = (eventName == 'Target Camera');
-		var isTargetFollow:Bool = (eventName == 'Target Follow Pos');
+		var useEaseDropDown:Bool = (eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos' || eventName == '(STEPS) Set Cam Zoom' || eventName == '(STEPS) Target Camera' || eventName == '(STEPS) Target Follow Pos');
+		var isSetCamZoom:Bool = (eventName == 'Set Cam Zoom' || eventName == '(STEPS) Set Cam Zoom');
+		var isTargetCamera:Bool = (eventName == 'Target Camera' || eventName == '(STEPS) Target Camera');
+		var isTargetFollow:Bool = (eventName == 'Target Follow Pos' || eventName == '(STEPS) Target Follow Pos');
+		var useSteps:Bool = (eventName == '(STEPS) Set Cam Zoom' || eventName == '(STEPS) Target Camera' || eventName == '(STEPS) Target Follow Pos');
 
 		var defaultValueCounts:Map<String, Int> = [
 			'' => 1,
@@ -3543,7 +3551,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			'Flash Camera' => 2,
 			'Video Player' => 2,
 			'Set Cam Zoom' => 2,
-			'Target Camera' => 2
+			'Target Camera' => 2,
+			'(STEPS) Set Cam Zoom' => 2,
+			'(STEPS) Target Camera' => 2,
+			'(STEPS) Target Follow Pos' => 2
 		];
 
 		var detectedValues:Int = MAX_EVENT_VALUES;
@@ -3569,7 +3580,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var isEaseType:Bool = useEaseDropDown && i == 2;
 			var show:Bool = n <= detectedValues && !(useEaseDropDown && i >= 2);
 
-			valueLabels[i].text = (i == 0) ? (isSetCamZoom ? 'New Zoom:' : (isTargetCamera ? 'Target:' : (isTargetFollow ? 'Target:' : 'Value 1:'))) : (isEaseSeconds ? 'Seconds:' : (isEaseType ? 'Ease:' : 'Value $n:'));
+			valueLabels[i].text = (i == 0) ? (isSetCamZoom ? 'New Zoom:' : (isTargetCamera ? 'Target:' : (isTargetFollow ? 'Target:' : 'Value 1:'))) : (isEaseSeconds ? (useSteps ? 'Steps:' : 'Seconds:') : (isEaseType ? 'Ease:' : 'Value $n:'));
 			valueLabels[i].visible = show || isEaseSeconds || isEaseType;
 			valueInputTexts[i].visible = valueInputTexts[i].active = show;
 
@@ -3619,7 +3630,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var eventName:String = eventSelected[0];
 			var description:String = eventSelected[1];
 			eventDescriptionText.text = description;
-			var _useEase:Bool = (eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos');
+			var _useEase:Bool = (eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos' || eventName == '(STEPS) Set Cam Zoom' || eventName == '(STEPS) Target Camera' || eventName == '(STEPS) Target Follow Pos');
 			if(!_useEase) valueInputTexts[2].text = '';
 			updateEventSpecialUI(eventName);
 			updateEventDescriptionHeight();

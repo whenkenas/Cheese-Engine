@@ -485,7 +485,11 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y - 1, "Should it Loop?", 100);
 
 		animationDropDown = new PsychUIDropDownMenu(15, animationInputText.y - 55, [''], function(selectedAnimation:Int, pressed:String) {
-			var anim:AnimArray = character.animationsArray[selectedAnimation];
+			var selectedName:String = animationDropDown.list[selectedAnimation];
+			var anim:AnimArray = null;
+			for(a in character.animationsArray)
+				if(a.anim == selectedName) { anim = a; break; }
+			if(anim == null) return;
 			animationInputText.text = anim.anim;
 			animationNameInputText.text = anim.name;
 			animationLoopCheckBox.checked = anim.loop;
@@ -1261,8 +1265,22 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 	var characterList:Array<String> = [];
 	function reloadCharacterDropDown() {
-		characterList = Mods.mergeAllTextsNamed('data/characterList.txt');
-		var foldersToCheck:Array<String> = Mods.directoriesWithFile(Paths.getSharedPath(), 'characters/');
+		characterList = [];
+
+		var foldersToCheck:Array<String> = [];
+		var sharedPath:String = Paths.getSharedPath('characters/');
+		if(FileSystem.exists(sharedPath))
+			foldersToCheck.push(sharedPath);
+
+		#if MODS_ALLOWED
+		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+		{
+			var modPath:String = Paths.mods(Mods.currentModDirectory + '/characters/');
+			if(FileSystem.exists(modPath) && !foldersToCheck.contains(modPath))
+				foldersToCheck.push(modPath);
+		}
+		#end
+
 		for (folder in foldersToCheck)
 			for (file in FileSystem.readDirectory(folder))
 				if(file.toLowerCase().endsWith('.json'))
@@ -1272,6 +1290,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 						characterList.push(charToCheck);
 				}
 
+		characterList.sort(function(a, b) return a.toLowerCase() < b.toLowerCase() ? -1 : 1);
 		if(characterList.length < 1) characterList.push('');
 		charDropDown.list = characterList;
 		charDropDown.selectedLabel = _char;

@@ -3392,6 +3392,541 @@ class PlayState extends MusicBeatState
 						}
 					});
 				}
+				case '(STEPS) Set Cam Zoom':
+				var zoomValue:Float = Std.parseFloat(value1);
+				if(Math.isNaN(zoomValue)) zoomValue = defaultCamZoom;
+
+				if(value2 == null || value2.trim().length == 0)
+				{
+					defaultCamZoom = zoomValue;
+					camZooming = true;
+				}
+				else if(value2.trim().toLowerCase() == 'instant')
+				{
+					defaultCamZoom = zoomValue;
+					FlxG.camera.zoom = zoomValue;
+					camZooming = true;
+				}
+				else
+				{
+					var params:Array<String> = value2.split(',');
+					var duration:Float = 1;
+					var easeName:String = 'linear';
+
+					if(params.length > 0)
+					{
+						var firstParam:String = params[0].trim();
+						var parsedDuration:Null<Float> = Std.parseFloat(firstParam);
+						if(parsedDuration != null && !Math.isNaN(parsedDuration) && parsedDuration > 0)
+						{
+							duration = parsedDuration * (Conductor.stepCrochet / 1000);
+						}
+						else
+						{
+							easeName = firstParam.toLowerCase();
+						}
+					}
+
+					if(params.length > 1)
+					{
+						var secondParam:String = params[1].trim();
+						var parsedDuration:Null<Float> = Std.parseFloat(secondParam);
+						if(parsedDuration != null && !Math.isNaN(parsedDuration) && parsedDuration > 0)
+						{
+							duration = parsedDuration * (Conductor.stepCrochet / 1000);
+						}
+						else
+						{
+							easeName = secondParam.toLowerCase();
+						}
+					}
+
+					var easeFunc:Float->Float = FlxEase.linear;
+					switch(easeName)
+					{
+						case 'linear': easeFunc = FlxEase.linear;
+						case 'quadin': easeFunc = FlxEase.quadIn;
+						case 'quadout': easeFunc = FlxEase.quadOut;
+						case 'quadinout': easeFunc = FlxEase.quadInOut;
+						case 'cubein': easeFunc = FlxEase.cubeIn;
+						case 'cubeout': easeFunc = FlxEase.cubeOut;
+						case 'cubeinout': easeFunc = FlxEase.cubeInOut;
+						case 'quartin': easeFunc = FlxEase.quartIn;
+						case 'quartout': easeFunc = FlxEase.quartOut;
+						case 'quartinout': easeFunc = FlxEase.quartInOut;
+						case 'quintin': easeFunc = FlxEase.quintIn;
+						case 'quintout': easeFunc = FlxEase.quintOut;
+						case 'quintinout': easeFunc = FlxEase.quintInOut;
+						case 'sinein': easeFunc = FlxEase.sineIn;
+						case 'sineout': easeFunc = FlxEase.sineOut;
+						case 'sineinout': easeFunc = FlxEase.sineInOut;
+						case 'expoin': easeFunc = FlxEase.expoIn;
+						case 'expoout': easeFunc = FlxEase.expoOut;
+						case 'expoinout': easeFunc = FlxEase.expoInOut;
+						case 'backin': easeFunc = FlxEase.backIn;
+						case 'backout': easeFunc = FlxEase.backOut;
+						case 'backinout': easeFunc = FlxEase.backInOut;
+						case 'bouncein': easeFunc = FlxEase.bounceIn;
+						case 'bounceout': easeFunc = FlxEase.bounceOut;
+						case 'bounceinout': easeFunc = FlxEase.bounceInOut;
+						case 'circin': easeFunc = FlxEase.circIn;
+						case 'circout': easeFunc = FlxEase.circOut;
+						case 'circinout': easeFunc = FlxEase.circInOut;
+						case 'elasticin': easeFunc = FlxEase.elasticIn;
+						case 'elasticout': easeFunc = FlxEase.elasticOut;
+						case 'elasticinout': easeFunc = FlxEase.elasticInOut;
+						case 'smoothstepin': easeFunc = FlxEase.smoothStepIn;
+						case 'smoothstepout': easeFunc = FlxEase.smoothStepOut;
+						case 'smoothstepinout': easeFunc = FlxEase.smoothStepInOut;
+						case 'smootherstepin': easeFunc = FlxEase.smootherStepIn;
+						case 'smootherstepout': easeFunc = FlxEase.smootherStepOut;
+						case 'smootherstepinout': easeFunc = FlxEase.smootherStepInOut;
+					}
+
+					for(t in camZoomTweens) { t.cancel(); }
+					camZoomTweens = [];
+					camZoomTween = null;
+					FlxTween.cancelTweensOf(FlxG.camera);
+
+					camZooming = false;
+					var newTween:FlxTween = FlxTween.tween(FlxG.camera, {zoom: zoomValue}, duration / playbackRate, {
+						ease: easeFunc,
+						onComplete: function(twn:FlxTween)
+						{
+							if(twn != camZoomTween) return;
+							defaultCamZoom = FlxG.camera.zoom;
+							camZoomTween = null;
+							camZoomTweenEndTime = haxe.Timer.stamp();
+							camZooming = true;
+						}
+					});
+					camZoomTween = newTween;
+					camZoomTweens.push(newTween);
+				}
+
+			case '(STEPS) Target Camera':
+				if(cameraFollowPosTween != null)
+				{
+					cameraFollowPosTween.cancel();
+					cameraFollowPosTween = null;
+				}
+				targetCameraEventInstant = false;
+				isCameraOnForcedPos = false;
+				
+				var targetX:Float = 0;
+				var targetY:Float = 0;
+				
+				var value1Parts:Array<String> = value1.split(',');
+				var target:String = value1Parts[0].trim().toLowerCase();
+				
+				switch(target)
+				{
+					case 'bf' | 'boyfriend':
+						if(boyfriend != null)
+						{
+							targetX = boyfriend.getMidpoint().x - 100;
+							targetY = boyfriend.getMidpoint().y - 100;
+							targetX -= boyfriend.cameraPosition[0] - boyfriendCameraOffset[0];
+							targetY += boyfriend.cameraPosition[1] + boyfriendCameraOffset[1];
+						}
+					case 'dad' | 'opponent':
+						if(dad != null)
+						{
+							targetX = dad.getMidpoint().x + 150;
+							targetY = dad.getMidpoint().y - 100;
+							targetX += dad.cameraPosition[0] + opponentCameraOffset[0];
+							targetY += dad.cameraPosition[1] + opponentCameraOffset[1];
+						}
+					case 'gf' | 'girlfriend':
+						if(gf != null)
+						{
+							targetX = gf.getMidpoint().x;
+							targetY = gf.getMidpoint().y;
+							targetX += gf.cameraPosition[0] + girlfriendCameraOffset[0];
+							targetY += gf.cameraPosition[1] + girlfriendCameraOffset[1];
+						}
+					default:
+						var xVal:Null<Float> = Std.parseFloat(target);
+						if(xVal != null && !Math.isNaN(xVal))
+						{
+							targetX = xVal;
+							if(value1Parts.length > 1)
+							{
+								var yVal:Null<Float> = Std.parseFloat(value1Parts[1].trim());
+								if(yVal != null && !Math.isNaN(yVal))
+									targetY = yVal;
+							}
+						}
+						else
+						{
+							var char:Character = null;
+							switch(target)
+							{
+								case 'bf' | 'boyfriend': char = boyfriend;
+								case 'dad' | 'opponent': char = dad;
+								case 'gf' | 'girlfriend': char = gf;
+							}
+							
+							if(char != null)
+							{
+								targetX = char.getMidpoint().x;
+								targetY = char.getMidpoint().y;
+								
+								if(value1Parts.length > 1)
+								{
+									var offsetVal:Null<Float> = Std.parseFloat(value1Parts[1].trim());
+									if(offsetVal != null && !Math.isNaN(offsetVal))
+										targetX += offsetVal;
+								}
+							}
+						}
+				}
+				
+				if(targetCameraEventTween != null)
+				{
+					targetCameraEventTween.cancel();
+					targetCameraEventTween = null;
+				}
+				
+				if(value2 == null || value2.trim().length == 0)
+				{
+					camFollow.setPosition(targetX, targetY);
+				}
+				else if(value2.trim().toLowerCase() == 'instant')
+				{
+					FlxG.camera.follow(null);
+					camFollow.setPosition(targetX, targetY);
+					FlxG.camera.focusOn(camFollow.getPosition());
+					FlxG.camera.follow(camFollow, LOCKON, 0);
+				}
+				else
+				{
+					var duration:Float = 0.3;
+					var easeFunc:Float->Float = FlxEase.sineInOut;
+					
+					var tweenParts:Array<String> = value2.split(',');
+					var _easeName:String = '';
+					var _durationStr:String = '';
+					if(tweenParts.length > 0)
+					{
+						var firstToken:String = tweenParts[0].trim();
+						var firstAsFloat:Null<Float> = Std.parseFloat(firstToken);
+						var firstIsNumber:Bool = (firstAsFloat != null && !Math.isNaN(firstAsFloat));
+						if(firstIsNumber)
+						{
+							_durationStr = firstToken;
+							if(tweenParts.length > 1) _easeName = tweenParts[1].trim().toLowerCase();
+						}
+						else
+						{
+							_easeName = firstToken.toLowerCase();
+							if(tweenParts.length > 1) _durationStr = tweenParts[1].trim();
+						}
+					}
+					switch(_easeName)
+					{
+						case 'linear': easeFunc = FlxEase.linear;
+						case 'quadin': easeFunc = FlxEase.quadIn;
+						case 'quadout': easeFunc = FlxEase.quadOut;
+						case 'quadinout': easeFunc = FlxEase.quadInOut;
+						case 'cubein': easeFunc = FlxEase.cubeIn;
+						case 'cubeout': easeFunc = FlxEase.cubeOut;
+						case 'cubeinout': easeFunc = FlxEase.cubeInOut;
+						case 'quartin': easeFunc = FlxEase.quartIn;
+						case 'quartout': easeFunc = FlxEase.quartOut;
+						case 'quartinout': easeFunc = FlxEase.quartInOut;
+						case 'quintin': easeFunc = FlxEase.quintIn;
+						case 'quintout': easeFunc = FlxEase.quintOut;
+						case 'quintinout': easeFunc = FlxEase.quintInOut;
+						case 'sinein': easeFunc = FlxEase.sineIn;
+						case 'sineout': easeFunc = FlxEase.sineOut;
+						case 'sineinout': easeFunc = FlxEase.sineInOut;
+						case 'expoin': easeFunc = FlxEase.expoIn;
+						case 'expoout': easeFunc = FlxEase.expoOut;
+						case 'expoinout': easeFunc = FlxEase.expoInOut;
+						case 'backin': easeFunc = FlxEase.backIn;
+						case 'backout': easeFunc = FlxEase.backOut;
+						case 'backinout': easeFunc = FlxEase.backInOut;
+						case 'bouncein': easeFunc = FlxEase.bounceIn;
+						case 'bounceout': easeFunc = FlxEase.bounceOut;
+						case 'bounceinout': easeFunc = FlxEase.bounceInOut;
+						case 'circin': easeFunc = FlxEase.circIn;
+						case 'circout': easeFunc = FlxEase.circOut;
+						case 'circinout': easeFunc = FlxEase.circInOut;
+						case 'elasticin': easeFunc = FlxEase.elasticIn;
+						case 'elasticout': easeFunc = FlxEase.elasticOut;
+						case 'elasticinout': easeFunc = FlxEase.elasticInOut;
+						case 'smoothstepin': easeFunc = FlxEase.smoothStepIn;
+						case 'smoothstepout': easeFunc = FlxEase.smoothStepOut;
+						case 'smoothstepinout': easeFunc = FlxEase.smoothStepInOut;
+						case 'smootherstepin': easeFunc = FlxEase.smootherStepIn;
+						case 'smootherstepout': easeFunc = FlxEase.smootherStepOut;
+						case 'smootherstepinout': easeFunc = FlxEase.smootherStepInOut;
+					}
+					if(_durationStr.length > 0)
+					{
+						var durationVal:Null<Float> = Std.parseFloat(_durationStr);
+						if(durationVal != null && !Math.isNaN(durationVal) && durationVal > 0)
+							duration = durationVal * (Conductor.stepCrochet / 1000);
+					}
+					
+					targetCameraEventTween = FlxTween.tween(camFollow, {x: targetX, y: targetY}, duration / playbackRate, {
+						ease: easeFunc,
+						onComplete: function(twn:FlxTween)
+						{
+							targetCameraEventTween = null;
+						}
+					});
+				}
+
+			case '(STEPS) Target Follow Pos':
+				if(camFollow != null)
+				{
+					if(targetCameraEventTween != null)
+					{
+						targetCameraEventTween.cancel();
+						targetCameraEventTween = null;
+					}
+					targetCameraEventInstant = false;
+					
+					var targetX:Float = 0;
+					var targetY:Float = 0;
+					
+					if(value1 == null || value1.trim().length == 0)
+					{
+						if(cameraFollowPosTween != null)
+						{
+							cameraFollowPosTween.cancel();
+							cameraFollowPosTween = null;
+						}
+						isCameraOnForcedPos = false;
+					}
+					else
+					{
+						isCameraOnForcedPos = true;
+						
+						var value1Parts:Array<String> = value1.split(',');
+						var target:String = value1Parts[0].trim().toLowerCase();
+						
+						switch(target)
+						{
+							case 'bf' | 'boyfriend':
+								if(boyfriend != null)
+								{
+									targetX = boyfriend.getMidpoint().x - 100;
+									targetY = boyfriend.getMidpoint().y - 100;
+									targetX -= boyfriend.cameraPosition[0] - boyfriendCameraOffset[0];
+									targetY += boyfriend.cameraPosition[1] + boyfriendCameraOffset[1];
+									
+									if(value1Parts.length > 1)
+									{
+										var xOffset:Null<Float> = Std.parseFloat(value1Parts[1].trim());
+										if(xOffset != null && !Math.isNaN(xOffset))
+											targetX += xOffset;
+									}
+									if(value1Parts.length > 2)
+									{
+										var yOffset:Null<Float> = Std.parseFloat(value1Parts[2].trim());
+										if(yOffset != null && !Math.isNaN(yOffset))
+											targetY += yOffset;
+									}
+								}
+							case 'dad' | 'opponent':
+								if(dad != null)
+								{
+									targetX = dad.getMidpoint().x + 150;
+									targetY = dad.getMidpoint().y - 100;
+									targetX += dad.cameraPosition[0] + opponentCameraOffset[0];
+									targetY += dad.cameraPosition[1] + opponentCameraOffset[1];
+									
+									if(value1Parts.length > 1)
+									{
+										var xOffset:Null<Float> = Std.parseFloat(value1Parts[1].trim());
+										if(xOffset != null && !Math.isNaN(xOffset))
+											targetX += xOffset;
+									}
+									if(value1Parts.length > 2)
+									{
+										var yOffset:Null<Float> = Std.parseFloat(value1Parts[2].trim());
+										if(yOffset != null && !Math.isNaN(yOffset))
+											targetY += yOffset;
+									}
+								}
+							case 'gf' | 'girlfriend':
+								if(gf != null)
+								{
+									targetX = gf.getMidpoint().x;
+									targetY = gf.getMidpoint().y;
+									targetX += gf.cameraPosition[0] + girlfriendCameraOffset[0];
+									targetY += gf.cameraPosition[1] + girlfriendCameraOffset[1];
+									
+									if(value1Parts.length > 1)
+									{
+										var xOffset:Null<Float> = Std.parseFloat(value1Parts[1].trim());
+										if(xOffset != null && !Math.isNaN(xOffset))
+											targetX += xOffset;
+									}
+									if(value1Parts.length > 2)
+									{
+										var yOffset:Null<Float> = Std.parseFloat(value1Parts[2].trim());
+										if(yOffset != null && !Math.isNaN(yOffset))
+											targetY += yOffset;
+									}
+								}
+							default:
+								var xVal:Null<Float> = Std.parseFloat(target);
+								if(xVal != null && !Math.isNaN(xVal))
+								{
+									targetX = xVal;
+									if(value1Parts.length > 1)
+									{
+										var yVal:Null<Float> = Std.parseFloat(value1Parts[1].trim());
+										if(yVal != null && !Math.isNaN(yVal))
+											targetY = yVal;
+									}
+								}
+						}
+						
+						if(cameraFollowPosTween != null)
+						{
+							cameraFollowPosTween.cancel();
+							cameraFollowPosTween = null;
+						}
+						
+						if(value2 == null || value2.trim().length == 0)
+						{
+							camFollow.setPosition(targetX, targetY);
+						}
+						else if(value2.trim().toLowerCase() == 'instant')
+						{
+							FlxG.camera.follow(null);
+							camFollow.setPosition(targetX, targetY);
+							FlxG.camera.focusOn(camFollow.getPosition());
+							FlxG.camera.follow(camFollow, LOCKON, 0);
+						}
+						else
+						{
+							var duration:Float = 0.3;
+							var easeFunc:Float->Float = FlxEase.sineInOut;
+							
+							var tweenParts:Array<String> = value2.split(',');
+							if(tweenParts.length > 0)
+							{
+								var firstParam:String = tweenParts[0].trim().toLowerCase();
+								var parsedDuration:Null<Float> = Std.parseFloat(firstParam);
+								if(parsedDuration != null && !Math.isNaN(parsedDuration) && parsedDuration > 0)
+								{
+									duration = parsedDuration * (Conductor.stepCrochet / 1000);
+								}
+								else
+								{
+									switch(firstParam)
+									{
+										case 'linear': easeFunc = FlxEase.linear;
+										case 'quadin': easeFunc = FlxEase.quadIn;
+										case 'quadout': easeFunc = FlxEase.quadOut;
+										case 'quadinout': easeFunc = FlxEase.quadInOut;
+										case 'cubein': easeFunc = FlxEase.cubeIn;
+										case 'cubeout': easeFunc = FlxEase.cubeOut;
+										case 'cubeinout': easeFunc = FlxEase.cubeInOut;
+										case 'quartin': easeFunc = FlxEase.quartIn;
+										case 'quartout': easeFunc = FlxEase.quartOut;
+										case 'quartinout': easeFunc = FlxEase.quartInOut;
+										case 'quintin': easeFunc = FlxEase.quintIn;
+										case 'quintout': easeFunc = FlxEase.quintOut;
+										case 'quintinout': easeFunc = FlxEase.quintInOut;
+										case 'sinein': easeFunc = FlxEase.sineIn;
+										case 'sineout': easeFunc = FlxEase.sineOut;
+										case 'sineinout': easeFunc = FlxEase.sineInOut;
+										case 'expoin': easeFunc = FlxEase.expoIn;
+										case 'expoout': easeFunc = FlxEase.expoOut;
+										case 'expoinout': easeFunc = FlxEase.expoInOut;
+										case 'backin': easeFunc = FlxEase.backIn;
+										case 'backout': easeFunc = FlxEase.backOut;
+										case 'backinout': easeFunc = FlxEase.backInOut;
+										case 'bouncein': easeFunc = FlxEase.bounceIn;
+										case 'bounceout': easeFunc = FlxEase.bounceOut;
+										case 'bounceinout': easeFunc = FlxEase.bounceInOut;
+										case 'circin': easeFunc = FlxEase.circIn;
+										case 'circout': easeFunc = FlxEase.circOut;
+										case 'circinout': easeFunc = FlxEase.circInOut;
+										case 'elasticin': easeFunc = FlxEase.elasticIn;
+										case 'elasticout': easeFunc = FlxEase.elasticOut;
+										case 'elasticinout': easeFunc = FlxEase.elasticInOut;
+										case 'smoothstepin': easeFunc = FlxEase.smoothStepIn;
+										case 'smoothstepout': easeFunc = FlxEase.smoothStepOut;
+										case 'smoothstepinout': easeFunc = FlxEase.smoothStepInOut;
+										case 'smootherstepin': easeFunc = FlxEase.smootherStepIn;
+										case 'smootherstepout': easeFunc = FlxEase.smootherStepOut;
+										case 'smootherstepinout': easeFunc = FlxEase.smootherStepInOut;
+									}
+								}
+							}
+							
+							if(tweenParts.length > 1)
+							{
+								var secondParam:String = tweenParts[1].trim();
+								var parsedDuration:Null<Float> = Std.parseFloat(secondParam);
+								if(parsedDuration != null && !Math.isNaN(parsedDuration) && parsedDuration > 0)
+								{
+									duration = parsedDuration * (Conductor.stepCrochet / 1000);
+								}
+								else
+								{
+									var easeName:String = secondParam.toLowerCase();
+									switch(easeName)
+									{
+										case 'linear': easeFunc = FlxEase.linear;
+										case 'quadin': easeFunc = FlxEase.quadIn;
+										case 'quadout': easeFunc = FlxEase.quadOut;
+										case 'quadinout': easeFunc = FlxEase.quadInOut;
+										case 'cubein': easeFunc = FlxEase.cubeIn;
+										case 'cubeout': easeFunc = FlxEase.cubeOut;
+										case 'cubeinout': easeFunc = FlxEase.cubeInOut;
+										case 'quartin': easeFunc = FlxEase.quartIn;
+										case 'quartout': easeFunc = FlxEase.quartOut;
+										case 'quartinout': easeFunc = FlxEase.quartInOut;
+										case 'quintin': easeFunc = FlxEase.quintIn;
+										case 'quintout': easeFunc = FlxEase.quintOut;
+										case 'quintinout': easeFunc = FlxEase.quintInOut;
+										case 'sinein': easeFunc = FlxEase.sineIn;
+										case 'sineout': easeFunc = FlxEase.sineOut;
+										case 'sineinout': easeFunc = FlxEase.sineInOut;
+										case 'expoin': easeFunc = FlxEase.expoIn;
+										case 'expoout': easeFunc = FlxEase.expoOut;
+										case 'expoinout': easeFunc = FlxEase.expoInOut;
+										case 'backin': easeFunc = FlxEase.backIn;
+										case 'backout': easeFunc = FlxEase.backOut;
+										case 'backinout': easeFunc = FlxEase.backInOut;
+										case 'bouncein': easeFunc = FlxEase.bounceIn;
+										case 'bounceout': easeFunc = FlxEase.bounceOut;
+										case 'bounceinout': easeFunc = FlxEase.bounceInOut;
+										case 'circin': easeFunc = FlxEase.circIn;
+										case 'circout': easeFunc = FlxEase.circOut;
+										case 'circinout': easeFunc = FlxEase.circInOut;
+										case 'elasticin': easeFunc = FlxEase.elasticIn;
+										case 'elasticout': easeFunc = FlxEase.elasticOut;
+										case 'elasticinout': easeFunc = FlxEase.elasticInOut;
+										case 'smoothstepin': easeFunc = FlxEase.smoothStepIn;
+										case 'smoothstepout': easeFunc = FlxEase.smoothStepOut;
+										case 'smoothstepinout': easeFunc = FlxEase.smoothStepInOut;
+										case 'smootherstepin': easeFunc = FlxEase.smootherStepIn;
+										case 'smootherstepout': easeFunc = FlxEase.smootherStepOut;
+										case 'smootherstepinout': easeFunc = FlxEase.smootherStepInOut;
+									}
+								}
+							}
+							
+							cameraFollowPosTween = FlxTween.tween(camFollow, {x: targetX, y: targetY}, duration / playbackRate, {
+								ease: easeFunc,
+								onComplete: function(twn:FlxTween)
+								{
+									cameraFollowPosTween = null;
+								}
+							});
+						}
+					}
+				}
 		}
 
 		stagesFunc(function(stage:BaseStage) stage.eventCalled(eventName, value1, value2, flValue1, flValue2, strumTime));
