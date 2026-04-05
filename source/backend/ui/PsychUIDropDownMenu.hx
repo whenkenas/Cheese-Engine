@@ -274,6 +274,7 @@ class PsychUIDropDownMenu extends PsychUIInputText
 	}
 
 	public var broadcastDropDownEvent:Bool = true;
+	public var autoSort:Bool = true;
 	function clickedOn(num:Int, label:String)
 	{
 		selectedIndex = num;
@@ -310,7 +311,7 @@ class PsychUIDropDownMenu extends PsychUIInputText
 		var nonEmpty:Array<String> = v.filter(s -> s.length > 0);
 		var hasEmpty:Bool = v.contains('');
 		var isNumbered:Bool = nonEmpty.length > 0 && ~/^\d+\./.match(nonEmpty[0]);
-		if(!isNumbered)
+		if(!isNumbered && autoSort)
 			nonEmpty.sort((a, b) -> a.toLowerCase() < b.toLowerCase() ? -1 : 1);
 		var sorted:Array<String> = hasEmpty ? [''].concat(nonEmpty) : nonEmpty;
 

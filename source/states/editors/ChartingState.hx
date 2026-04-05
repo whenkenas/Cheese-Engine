@@ -3494,6 +3494,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	var eventDropDown:PsychUIDropDownMenu;
 	var easeDropDown:PsychUIDropDownMenu;
+	var easeInOutDropDown:PsychUIDropDownMenu;
+	var easeInOutLabel:FlxText;
 	var valueInputTexts:Array<PsychUIInputText> = [];
 	var valueLabels:Array<FlxText> = [];
 	static inline var MAX_EVENT_VALUES:Int = 10;
@@ -3557,16 +3559,57 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			'(STEPS) Target Follow Pos' => 2
 		];
 
-		var detectedValues:Int = MAX_EVENT_VALUES;
+		var detectedIndices:Array<Int> = [];
+		var detectedNames:Array<String> = [];
 		if(defaultValueCounts.exists(eventName))
 		{
-			detectedValues = defaultValueCounts.get(eventName);
+			var count:Int = defaultValueCounts.get(eventName);
+			for(n in 1...count + 1)
+			{
+				detectedIndices.push(n);
+				detectedNames.push(null);
+			}
 		}
 		else
 		{
 			for(ev in eventsList)
-				if(ev[0] == eventName && ev.length > 2) { detectedValues = Std.parseInt(ev[2]); break; }
+			{
+				if(ev[0] == eventName && ev.length > 2)
+				{
+					for(part in ev[2].split(','))
+					{
+						var trimmed:String = part.trim();
+						if(trimmed.indexOf(':') >= 0)
+						{
+							var colonPos:Int = trimmed.indexOf(':');
+							var n:Int = Std.parseInt(trimmed.substr(0, colonPos));
+							var name:String = trimmed.substr(colonPos + 1).trim();
+							if(n > 0)
+							{
+								detectedIndices.push(n);
+								detectedNames.push(name.length > 0 ? name : null);
+							}
+						}
+						else
+						{
+							var n:Int = Std.parseInt(trimmed);
+							if(n > 0)
+							{
+								detectedIndices.push(n);
+								detectedNames.push(null);
+							}
+						}
+					}
+					break;
+				}
+			}
 		}
+		if(detectedIndices.length == 0)
+		{
+			detectedIndices = [1, 2];
+			detectedNames = [null, null];
+		}
+		var detectedValues:Int = detectedIndices.length;
 
 		var baseX:Float = valueInputTexts[0].x;
 		var baseX2:Float = valueInputTexts[0].x + 150;
@@ -3580,7 +3623,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var isEaseType:Bool = useEaseDropDown && i == 2;
 			var show:Bool = n <= detectedValues && !(useEaseDropDown && i >= 2);
 
-			valueLabels[i].text = (i == 0) ? (isSetCamZoom ? 'New Zoom:' : (isTargetCamera ? 'Target:' : (isTargetFollow ? 'Target:' : 'Value 1:'))) : (isEaseSeconds ? (useSteps ? 'Steps:' : 'Seconds:') : (isEaseType ? 'Ease:' : 'Value $n:'));
+			var labelN:Int = (detectedIndices.length > i) ? detectedIndices[i] : n;
+			var customName:String = (detectedNames.length > i) ? detectedNames[i] : null;
+			if(customName != null && customName.length > 0)
+				customName = customName.charAt(0).toUpperCase() + customName.substr(1);
+			valueLabels[i].text = (i == 0) ? (isSetCamZoom ? 'New Zoom:' : (isTargetCamera ? 'Target:' : (isTargetFollow ? 'Target:' : (customName != null ? '$customName:' : 'Value ${detectedIndices[0]}:')))) : (isEaseSeconds ? (useSteps ? 'Steps:' : 'Seconds:') : (isEaseType ? 'Ease:' : (customName != null ? '$customName:' : 'Value $labelN:')));
 			valueLabels[i].visible = show || isEaseSeconds || isEaseType;
 			valueInputTexts[i].visible = valueInputTexts[i].active = show;
 
@@ -3595,10 +3642,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 
 		easeDropDown.visible = easeDropDown.active = useEaseDropDown;
+		easeInOutDropDown.visible = easeInOutDropDown.active = useEaseDropDown;
+		if(easeInOutLabel != null) easeInOutLabel.visible = useEaseDropDown;
 		if(useEaseDropDown)
 		{
 			easeDropDown.x = valueInputTexts[2].x;
 			easeDropDown.y = valueInputTexts[2].y;
+			easeInOutDropDown.x = valueInputTexts[3].x;
+			easeInOutDropDown.y = valueInputTexts[3].y;
 		}
 
 		var lastRow:Int = useEaseDropDown ? 1 : Std.int(Math.max(0, detectedValues - 1) / 2);
@@ -3607,14 +3658,28 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(useEaseDropDown)
 		{
 			var easeVal:String = valueInputTexts[2].text.trim();
+			var baseEase:String = easeVal;
+			var direction:String = 'In';
+			if(easeVal.endsWith('InOut')) { direction = 'InOut'; baseEase = easeVal.substr(0, easeVal.length - 5); }
+			else if(easeVal.endsWith('In')) { direction = 'In'; baseEase = easeVal.substr(0, easeVal.length - 2); }
+			else if(easeVal.endsWith('Out')) { direction = 'Out'; baseEase = easeVal.substr(0, easeVal.length - 3); }
+
 			var prevOnChange = easeDropDown.onChange;
 			easeDropDown.onChange = null;
-			if(easeVal.length > 0 && easeDropDown.list.contains(easeVal))
-				easeDropDown.selectedLabel = easeVal;
+			if(baseEase.length > 0 && easeDropDown.list.contains(baseEase))
+				easeDropDown.selectedLabel = baseEase;
 			else
 				easeDropDown.selectedLabel = '';
 			easeDropDown.showDropDown(false);
 			easeDropDown.onChange = prevOnChange;
+
+			var prevOnChange2 = easeInOutDropDown.onChange;
+			easeInOutDropDown.onChange = null;
+			var _noDir:Bool = (baseEase == '' || baseEase == 'instant' || baseEase == 'linear');
+			easeInOutDropDown.list = _noDir ? [''] : ['In', 'Out', 'InOut'];
+			easeInOutDropDown.selectedLabel = _noDir ? '' : direction;
+			easeInOutDropDown.showDropDown(false);
+			easeInOutDropDown.onChange = prevOnChange2;
 		}
 	}
 
@@ -3772,23 +3837,23 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var easeList:Array<String> = [
 			'',
 			'instant',
-			'backIn', 'backInOut', 'backOut',
-			'bounceIn', 'bounceInOut', 'bounceOut',
-			'circIn', 'circInOut', 'circOut',
-			'cubeIn', 'cubeInOut', 'cubeOut',
-			'elasticIn', 'elasticInOut', 'elasticOut',
-			'expoIn', 'expoInOut', 'expoOut',
 			'linear',
-			'quadIn', 'quadInOut', 'quadOut',
-			'quartIn', 'quartInOut', 'quartOut',
-			'quintIn', 'quintInOut', 'quintOut',
-			'sineIn', 'sineInOut', 'sineOut',
-			'smoothStepIn', 'smoothStepInOut', 'smoothStepOut',
-			'smootherStepIn', 'smootherStepInOut', 'smootherStepOut'
+			'back', 'bounce', 'circ', 'cube', 'elastic', 'expo',
+			'quad', 'quart', 'quint', 'sine', 'smoothStep', 'smootherStep'
 		];
-		easeDropDown = new PsychUIDropDownMenu(valueInputTexts[2].x, valueInputTexts[2].y, easeList, function(id:Int, ease:String)
+		easeDropDown = new PsychUIDropDownMenu(valueInputTexts[2].x, valueInputTexts[2].y, easeList, function(id:Int, base:String)
 		{
+			var noDir:Bool = (base == '' || base == 'instant' || base == 'linear');
+			var dir:String = (easeInOutDropDown != null && !noDir) ? easeInOutDropDown.selectedLabel : '';
+			var ease:String = noDir ? base : base + dir;
 			valueInputTexts[2].text = ease;
+			if(easeInOutDropDown != null)
+			{
+				easeInOutDropDown.list = noDir ? [''] : ['In', 'Out', 'InOut'];
+				var validDir:String = (dir == 'In' || dir == 'Out' || dir == 'InOut') ? dir : 'In';
+				easeInOutDropDown.selectedLabel = noDir ? '' : validDir;
+				easeInOutDropDown.showDropDown(false);
+			}
 			if(easeDropDown != null && easeDropDown.visible)
 			{
 				var seconds:String = valueInputTexts[1].text.trim();
@@ -3796,9 +3861,27 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				changeEventsValue(combined, 2);
 				changeEventsValue('', 3);
 			}
-		}, eventDropDown.width);
+		}, 100);
 		easeDropDown.selectedLabel = '';
 		easeDropDown.visible = easeDropDown.active = false;
+
+		easeInOutDropDown = new PsychUIDropDownMenu(valueInputTexts[3].x, valueInputTexts[3].y, ['In', 'Out', 'InOut'], function(id:Int, dir:String)
+		{
+			var base:String = (easeDropDown != null) ? easeDropDown.selectedLabel : '';
+			var noDir:Bool = (base == '' || base == 'instant' || base == 'linear');
+			var ease:String = noDir ? base : base + dir;
+			valueInputTexts[2].text = ease;
+			if(easeInOutDropDown != null && easeInOutDropDown.visible)
+			{
+				var seconds:String = valueInputTexts[1].text.trim();
+				var combined:String = ease.length > 0 ? seconds + ', ' + ease : seconds;
+				changeEventsValue(combined, 2);
+				changeEventsValue('', 3);
+			}
+		}, 100);
+		easeInOutDropDown.autoSort = false;
+		easeInOutDropDown.selectedLabel = 'In';
+		easeInOutDropDown.visible = easeInOutDropDown.active = false;
 
 		for(i in 0...MAX_EVENT_VALUES)
 		{
@@ -3820,6 +3903,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		for(inp in valueInputTexts) tab_group.add(inp);
 		tab_group.add(eventDescriptionText);
 		tab_group.add(easeDropDown);
+		easeInOutLabel = new FlxText(easeInOutDropDown.x, easeInOutDropDown.y - 15, 80, 'Direction:');
+		easeInOutLabel.visible = false;
+		tab_group.add(easeInOutLabel);
+		tab_group.add(easeInOutDropDown);
 
 		tab_group.add(eventDropDown); //lowest priority to display properly
 
@@ -4231,7 +4318,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(mirrorNotesButton);
 	}
 
-	function detectEventValueCount(eventName:String):Int
+	function detectEventValues(eventName:String):Array<String>
 	{
 		var content:String = null;
 		#if LUA_ALLOWED
@@ -4248,7 +4335,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			if(hxPath != null && hxPath.length > 0) content = hxPath;
 		}
 		#end
-		if(content == null) return 2;
+		if(content == null) return ['1', '2'];
 
 		var stripped:String = '';
 		var lines:Array<String> = content.split('\n');
@@ -4283,13 +4370,52 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var blockCommentRegex:EReg = ~/\/\*[\s\S]*?\*\//g;
 		stripped = blockCommentRegex.replace(stripped, '');
 
-		var max:Int = 0;
+		var result:Array<String> = [];
 		for(n in 1...MAX_EVENT_VALUES + 1)
 		{
 			var r:EReg = new EReg('value$n', 'i');
-			if(r.match(stripped) && n > max) max = n;
+			if(r.match(stripped)) result.push(Std.string(n));
 		}
-		return max > 0 ? max : 2;
+
+		var sigRegex:EReg = ~/function\s+onEvent\s*\(([^)]*)\)/i;
+		if(sigRegex.match(stripped))
+		{
+			var rawParams:Array<String> = sigRegex.matched(1).split(',');
+			var isDefaultName:EReg = ~/^value\d+$/i;
+
+			if(result.length == 0)
+			{
+				var valueCounter:Int = 1;
+				for(pi in 1...rawParams.length)
+				{
+					if(pi == 3) continue;
+					var paramName:String = rawParams[pi].trim();
+					if(paramName.length == 0) break;
+					if(isDefaultName.match(paramName))
+						result.push(Std.string(valueCounter));
+					else
+						result.push('$valueCounter:$paramName');
+					valueCounter++;
+				}
+			}
+			else
+			{
+				for(ri in 0...result.length)
+				{
+					var valueIdx:Int = Std.parseInt(result[ri].split(':')[0]);
+					if(valueIdx < 1) continue;
+					var paramPos:Int = (valueIdx <= 2) ? valueIdx : valueIdx + 1;
+					if(paramPos < rawParams.length)
+					{
+						var paramName:String = rawParams[paramPos].trim();
+						if(paramName.length > 0 && !isDefaultName.match(paramName))
+							result[ri] = '$valueIdx:$paramName';
+					}
+				}
+			}
+		}
+
+		return result.length > 0 ? result : ['1', '2'];
 	}
 
 	function reloadNotesDropdowns()
@@ -4302,8 +4428,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			for (file in eventFiles)
 			{
 				var desc:String = Paths.getTextFromFile('custom_events/$file.txt');
-				var numValues:Int = detectEventValueCount(file);
-				eventsList.push([file, desc, Std.string(numValues)]);
+				var detectedVals:Array<String> = detectEventValues(file);
+				eventsList.push([file, desc, detectedVals.join(',')]);
 			}
 
 			for (id => event in defaultEvents)
