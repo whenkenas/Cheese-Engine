@@ -40,7 +40,7 @@ class CreditsState extends MusicBeatState
 
 		var defaultList:Array<Array<String>> = [ //Name - Icon name - Description - Link - BG Color
 			["Cheese Engine Team"],
-			["Chris",				"missing_icon",		"Coder of Cheese Engine",									"https://x.com/cheesebased1",		"FFC200"],
+			["Chris",				"chris",		"Owner and Coder of Cheese Engine",									"https://x.com/cheesebased1",		"FFC200"],
 			["Risk",				"missing_icon",		"Menu Designer and Artist",									"https://x.com/RiskZtuff",			"FFC200"],
 			["FrankArt",			"frank",			"Chart Editor Toys and Stickers",							"https://x.com/vsMandePal",			"FFC200"],
 			["Gatix",				"gatix",			"Sticker Artist\nChoripan Sticker and Editor Icons",		"https://x.com/gatidin_W",			"FFC200"],
