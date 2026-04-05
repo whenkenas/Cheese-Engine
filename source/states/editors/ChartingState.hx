@@ -155,7 +155,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var chartEditorSave:FlxSave;
 	var mainBox:PsychUIBox;
 	var mainBoxPosition:FlxPoint = FlxPoint.get(FlxG.width - 300, 24);
-	var mainBoxOriginalHeight:Int = 280;
+	var mainBoxOriginalHeight:Int = 300;
 	var lastMainBoxTab:String = '';
 	var lastMainBoxMinimized:Bool = false;
 	var infoBox:PsychUIBox;
@@ -1893,8 +1893,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 							trace('Added event at time: $strumTime');
 							var didAdd:Bool = false;
 
-							var _val2Create:String = (easeDropDown != null && easeDropDown.visible) ? (value3InputText.text.trim().length > 0 ? value2InputText.text + ', ' + value3InputText.text.trim() : value2InputText.text) : value2InputText.text;
-					var eventAdded:EventMetaNote = createEvent([strumTime, [[eventsList[Std.int(Math.max(eventDropDown.selectedIndex, 0))][0], value1InputText.text, _val2Create, (easeDropDown != null && easeDropDown.visible) ? '' : value3InputText.text, value4InputText.text]]]);
+							var _useEase:Bool = (easeDropDown != null && easeDropDown.visible);
+							var _val2Create:String = _useEase ? (valueInputTexts[2].text.trim().length > 0 ? valueInputTexts[1].text + ', ' + valueInputTexts[2].text.trim() : valueInputTexts[1].text) : valueInputTexts[1].text;
+							var _evData:Array<Dynamic> = [eventsList[Std.int(Math.max(eventDropDown.selectedIndex, 0))][0], valueInputTexts[0].text, _val2Create, _useEase ? '' : valueInputTexts[2].text];
+							for(_i in 3...valueInputTexts.length) _evData.push(valueInputTexts[_i].text);
+							var eventAdded:EventMetaNote = createEvent([strumTime, [_evData]]);
 							for (num in sectionFirstEventID...events.length)
 							{
 								var event = events[num];
@@ -1941,7 +1944,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			}
 			else if(!mainBox.isMinimized && lastMainBoxTab == 'Events')
 			{
-				updateEventDescriptionHeight();
+				if(selectedNotes.length > 0 && selectedNotes[0].isEvent)
+					updateEventDescriptionHeight();
+				else
+					mainBox.resize(300, mainBoxOriginalHeight, false);
 			}
 		}
 
@@ -2440,10 +2446,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			strumTimeStepper.value = selectedNotes[0].strumTime;
 			noteTypeDropDown.selectedLabel = '';
 			eventDropDown.selectedLabel = '';
-			value1InputText.text = '';
-			value2InputText.text = '';
-			value3InputText.text = '';
-			value4InputText.text = '';
+			for(inp in valueInputTexts) inp.text = '';
 			altAnimInputText.visible = altAnimDescText.visible = altAnimLabelText.visible = false;
 		}
 		forceDataUpdate = true;
@@ -2494,24 +2497,26 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					if(event[0] == eventName)
 					{
 						eventDropDown.selectedIndex = num;
+						if(eventDescriptionText != null)
+							eventDescriptionText.text = event[1];
 						break;
 					}
 				}
-				value1InputText.text = (myEvent[1] != null) ? myEvent[1] : '';
+				valueInputTexts[0].text = (myEvent[1] != null) ? myEvent[1] : '';
 				if(eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos')
 				{
 					var rawVal2:String = (myEvent[2] != null) ? myEvent[2] : '';
 					var parts:Array<String> = rawVal2.split(',');
-					value2InputText.text = parts[0].trim();
-					value3InputText.text = parts.length > 1 ? parts[1].trim() : '';
+					valueInputTexts[1].text = parts[0].trim();
+					valueInputTexts[2].text = parts.length > 1 ? parts[1].trim() : '';
 				}
 				else
 				{
-					value2InputText.text = (myEvent[2] != null) ? myEvent[2] : '';
-					value3InputText.text = (myEvent[3] != null) ? myEvent[3] : '';
+					for(i in 1...valueInputTexts.length)
+						valueInputTexts[i].text = (myEvent[i + 1] != null) ? myEvent[i + 1] : '';
 				}
-				value4InputText.text = (myEvent[4] != null) ? myEvent[4] : '';
 				updateEventSpecialUI(eventName);
+				updateEventDescriptionHeight();
 			}
 		}
 		else selectedEventText.visible = false;
@@ -3482,16 +3487,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	var eventDropDown:PsychUIDropDownMenu;
 	var easeDropDown:PsychUIDropDownMenu;
-	var value1InputText:PsychUIInputText;
-	var value2InputText:PsychUIInputText;
-	var value3InputText:PsychUIInputText;
-	var value4InputText:PsychUIInputText;
+	var valueInputTexts:Array<PsychUIInputText> = [];
+	var valueLabels:Array<FlxText> = [];
+	static inline var MAX_EVENT_VALUES:Int = 10;
 	var selectedEventText:FlxText;
 	var eventDescriptionText:FlxText;
-	var value1Label:FlxText;
-	var value2Label:FlxText;
-	var value3Label:FlxText;
-	var value4Label:FlxText;
 
 	var eventsList:Array<Array<String>>;
 	var curEventSelected:Int = 0;
@@ -3501,11 +3501,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		{
 			eventDescriptionText.autoSize = true;
 			var textHeight:Float = eventDescriptionText.height;
-			var neededHeight:Int = Std.int(textHeight + 215);
-			
+			var contentBottom:Float = eventDescriptionText.y + textHeight;
+			var neededHeight:Int = Std.int(contentBottom + mainBox.tabHeight + 10);
+
 			if(neededHeight < mainBoxOriginalHeight)
 				neededHeight = mainBoxOriginalHeight;
-			
+
 			mainBox.resize(300, neededHeight, false);
 			var newInfoY:Float = mainBoxPosition.y + neededHeight + 0;
 			infoBox.setPosition(infoBoxPosition.x, newInfoY);
@@ -3519,16 +3520,82 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var isSetCamZoom:Bool = (eventName == 'Set Cam Zoom');
 		var isTargetCamera:Bool = (eventName == 'Target Camera');
 		var isTargetFollow:Bool = (eventName == 'Target Follow Pos');
-		value1Label.text = isSetCamZoom ? 'New Zoom:' : (isTargetCamera ? 'Target:' : (isTargetFollow ? 'Target:' : 'Value 1:'));
-		value2Label.text = useEaseDropDown ? 'Seconds:' : 'Value 2:';
-		value3Label.text = useEaseDropDown ? 'Ease:' : 'Value 3:';
-		value3InputText.visible = value3InputText.active = !useEaseDropDown;
-		value4InputText.visible = value4InputText.active = !useEaseDropDown;
-		value4Label.visible = !useEaseDropDown;
+
+		var defaultValueCounts:Map<String, Int> = [
+			'' => 1,
+			'Dadbattle Spotlight' => 1,
+			'Hey!' => 2,
+			'Set GF Speed' => 1,
+			'Philly Glow' => 1,
+			'Kill Henchmen' => 0,
+			'Add Camera Zoom' => 2,
+			'BG Freaks Expression' => 0,
+			'Trigger BG Ghouls' => 0,
+			'Play Animation' => 2,
+			'Target Follow Pos' => 2,
+			'Camera Follow Pos' => 2,
+			'Alt Idle Animation' => 2,
+			'Screen Shake' => 2,
+			'Change Character' => 2,
+			'Change Scroll Speed' => 2,
+			'Set Property' => 2,
+			'Play Sound' => 2,
+			'Flash Camera' => 2,
+			'Video Player' => 2,
+			'Set Cam Zoom' => 2,
+			'Target Camera' => 2
+		];
+
+		var detectedValues:Int = MAX_EVENT_VALUES;
+		if(defaultValueCounts.exists(eventName))
+		{
+			detectedValues = defaultValueCounts.get(eventName);
+		}
+		else
+		{
+			for(ev in eventsList)
+				if(ev[0] == eventName && ev.length > 2) { detectedValues = Std.parseInt(ev[2]); break; }
+		}
+
+		var baseX:Float = valueInputTexts[0].x;
+		var baseX2:Float = valueInputTexts[0].x + 150;
+		var rowY:Float = valueInputTexts[0].y;
+		var rowH:Float = 40;
+
+		for(i in 0...valueInputTexts.length)
+		{
+			var n:Int = i + 1;
+			var isEaseSeconds:Bool = useEaseDropDown && i == 1;
+			var isEaseType:Bool = useEaseDropDown && i == 2;
+			var show:Bool = n <= detectedValues && !(useEaseDropDown && i >= 2);
+
+			valueLabels[i].text = (i == 0) ? (isSetCamZoom ? 'New Zoom:' : (isTargetCamera ? 'Target:' : (isTargetFollow ? 'Target:' : 'Value 1:'))) : (isEaseSeconds ? 'Seconds:' : (isEaseType ? 'Ease:' : 'Value $n:'));
+			valueLabels[i].visible = show || isEaseSeconds || isEaseType;
+			valueInputTexts[i].visible = valueInputTexts[i].active = show;
+
+			var col:Int = i % 2;
+			var row:Int = Std.int(i / 2);
+			var x:Float = col == 0 ? baseX : baseX2;
+			var y:Float = rowY + row * rowH;
+			valueLabels[i].x = x;
+			valueLabels[i].y = y - 15;
+			valueInputTexts[i].x = x;
+			valueInputTexts[i].y = y;
+		}
+
 		easeDropDown.visible = easeDropDown.active = useEaseDropDown;
 		if(useEaseDropDown)
 		{
-			var easeVal:String = value3InputText.text.trim();
+			easeDropDown.x = valueInputTexts[2].x;
+			easeDropDown.y = valueInputTexts[2].y;
+		}
+
+		var lastRow:Int = useEaseDropDown ? 1 : Std.int(Math.max(0, detectedValues - 1) / 2);
+		eventDescriptionText.y = rowY + (lastRow + 1) * rowH;
+
+		if(useEaseDropDown)
+		{
+			var easeVal:String = valueInputTexts[2].text.trim();
 			var prevOnChange = easeDropDown.onChange;
 			easeDropDown.onChange = null;
 			if(easeVal.length > 0 && easeDropDown.list.contains(easeVal))
@@ -3552,10 +3619,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var eventName:String = eventSelected[0];
 			var description:String = eventSelected[1];
 			eventDescriptionText.text = description;
-			updateEventDescriptionHeight();
 			var _useEase:Bool = (eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos');
-			if(!_useEase) value3InputText.text = '';
+			if(!_useEase) valueInputTexts[2].text = '';
 			updateEventSpecialUI(eventName);
+			updateEventDescriptionHeight();
 			if(selectedNotes.length > 1)
 			{
 				for (note in selectedNotes)
@@ -3619,8 +3686,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		{
 			genericEventButton(function(event:EventMetaNote)
 			{
-				var val2Push:String = (easeDropDown != null && easeDropDown.visible) ? (value3InputText.text.trim().length > 0 ? value2InputText.text + ', ' + value3InputText.text.trim() : value2InputText.text) : value2InputText.text;
-			event.events.push([eventsList[Std.int(Math.max(eventDropDown.selectedIndex, 0))][0], value1InputText.text, val2Push, (easeDropDown != null && easeDropDown.visible) ? '' : value3InputText.text, value4InputText.text]);
+				var _useEase:Bool = (easeDropDown != null && easeDropDown.visible);
+			var val2Push:String = _useEase ? (valueInputTexts[2].text.trim().length > 0 ? valueInputTexts[1].text + ', ' + valueInputTexts[2].text.trim() : valueInputTexts[1].text) : valueInputTexts[1].text;
+			var _evData:Array<String> = [eventsList[Std.int(Math.max(eventDropDown.selectedIndex, 0))][0], valueInputTexts[0].text, val2Push, _useEase ? '' : valueInputTexts[2].text];
+			for(_i in 3...valueInputTexts.length) _evData.push(valueInputTexts[_i].text);
+			event.events.push(_evData);
 				event.updateEventText();
 				curEventSelected++;
 			});
@@ -3663,32 +3733,29 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 
 		objY += 70;
-		value1InputText = new PsychUIInputText(objX, objY, 120, '', 8);
-		value1InputText.onChange = function(old:String, cur:String) changeEventsValue(cur, 1);
-		value2InputText = new PsychUIInputText(objX + 150, objY, 120, '', 8);
-		value2InputText.onChange = function(old:String, cur:String)
+		for(i in 0...MAX_EVENT_VALUES)
 		{
-			if(easeDropDown != null && easeDropDown.visible)
+			var inp:PsychUIInputText = new PsychUIInputText(objX + (i % 2 == 0 ? 0 : 150), objY + Std.int(i / 2) * 40, 120, '', 8);
+			var idx:Int = i;
+			inp.onChange = function(old:String, cur:String)
 			{
-				var ease:String = value3InputText.text.trim();
-				var combined:String = ease.length > 0 ? cur + ', ' + ease : cur;
-				changeEventsValue(combined, 2);
-			}
-			else
-				changeEventsValue(cur, 2);
-		};
-
-		objY += 40;
-		value3InputText = new PsychUIInputText(objX, objY, 120, '', 8);
-		value3InputText.onChange = function(old:String, cur:String)
-		{
-			if(easeDropDown == null || !easeDropDown.visible)
-				changeEventsValue(cur, 3);
-		};
-		value4InputText = new PsychUIInputText(objX + 150, objY, 120, '', 8);
-		value4InputText.onChange = function(old:String, cur:String) changeEventsValue(cur, 4);
-
-		objY += 40;
+				if(idx == 1 && easeDropDown != null && easeDropDown.visible)
+				{
+					var ease:String = valueInputTexts[2].text.trim();
+					var combined:String = ease.length > 0 ? cur + ', ' + ease : cur;
+					changeEventsValue(combined, 2);
+				}
+				else if(idx == 2)
+				{
+					if(easeDropDown == null || !easeDropDown.visible)
+						changeEventsValue(cur, idx + 1);
+				}
+				else
+					changeEventsValue(cur, idx + 1);
+			};
+			valueInputTexts.push(inp);
+		}
+		objY += Std.int(MAX_EVENT_VALUES / 2) * 40;
 		eventDescriptionText = new FlxText(objX, objY, 280, defaultEvents[0][1]);
 
 		var easeList:Array<String> = [
@@ -3708,12 +3775,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			'smoothStepIn', 'smoothStepInOut', 'smoothStepOut',
 			'smootherStepIn', 'smootherStepInOut', 'smootherStepOut'
 		];
-		easeDropDown = new PsychUIDropDownMenu(value3InputText.x, value3InputText.y, easeList, function(id:Int, ease:String)
+		easeDropDown = new PsychUIDropDownMenu(valueInputTexts[2].x, valueInputTexts[2].y, easeList, function(id:Int, ease:String)
 		{
-			value3InputText.text = ease;
+			valueInputTexts[2].text = ease;
 			if(easeDropDown != null && easeDropDown.visible)
 			{
-				var seconds:String = value2InputText.text.trim();
+				var seconds:String = valueInputTexts[1].text.trim();
 				var combined:String = ease.length > 0 ? seconds + ', ' + ease : seconds;
 				changeEventsValue(combined, 2);
 				changeEventsValue('', 3);
@@ -3722,17 +3789,16 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		easeDropDown.selectedLabel = '';
 		easeDropDown.visible = easeDropDown.active = false;
 
-		value1Label = new FlxText(value1InputText.x, value1InputText.y - 15, 80, 'Value 1:');
-		value2Label = new FlxText(value2InputText.x, value2InputText.y - 15, 80, 'Value 2:');
-		value3Label = new FlxText(value3InputText.x, value3InputText.y - 15, 80, 'Value 3:');
-		value4Label = new FlxText(value4InputText.x, value4InputText.y - 15, 80, 'Value 4:');
+		for(i in 0...MAX_EVENT_VALUES)
+		{
+			var lbl:FlxText = new FlxText(valueInputTexts[i].x, valueInputTexts[i].y - 15, 80, 'Value ${i + 1}:');
+			lbl.visible = false;
+			valueLabels.push(lbl);
+		}
 
 		tab_group.add(new FlxText(eventDropDown.x, eventDropDown.y - 15, 80, 'Event:'));
 		tab_group.add(new FlxText(eventDropDown.x, eventDropDown.y - 15, 80, 'Event:'));
-		tab_group.add(value1Label);
-		tab_group.add(value2Label);
-		tab_group.add(value3Label);
-		tab_group.add(value4Label);
+		for(lbl in valueLabels) tab_group.add(lbl);
 
 		tab_group.add(removeButton);
 		tab_group.add(addButton);
@@ -3740,14 +3806,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(rightButton);
 		tab_group.add(selectedEventText);
 
-		tab_group.add(value1InputText);
-		tab_group.add(value2InputText);
-		tab_group.add(value3InputText);
-		tab_group.add(value4InputText);
+		for(inp in valueInputTexts) tab_group.add(inp);
 		tab_group.add(eventDescriptionText);
 		tab_group.add(easeDropDown);
 
 		tab_group.add(eventDropDown); //lowest priority to display properly
+
+		updateEventSpecialUI('');
 	}
 
 	var susLengthLastVal:Float = 0; //used for multiple notes selected
@@ -4155,6 +4220,67 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(mirrorNotesButton);
 	}
 
+	function detectEventValueCount(eventName:String):Int
+	{
+		var content:String = null;
+		#if LUA_ALLOWED
+		if(content == null)
+		{
+			var luaPath:String = Paths.getTextFromFile('custom_events/$eventName.lua');
+			if(luaPath != null && luaPath.length > 0) content = luaPath;
+		}
+		#end
+		#if HSCRIPT_ALLOWED
+		if(content == null)
+		{
+			var hxPath:String = Paths.getTextFromFile('custom_events/$eventName.hx');
+			if(hxPath != null && hxPath.length > 0) content = hxPath;
+		}
+		#end
+		if(content == null) return 2;
+
+		var stripped:String = '';
+		var lines:Array<String> = content.split('\n');
+		for (line in lines)
+		{
+			var singleComment:Int = -1;
+			var inString:Bool = false;
+			var strChar:String = '';
+			var i:Int = 0;
+			while(i < line.length)
+			{
+				var c:String = line.charAt(i);
+				if(inString)
+				{
+					if(c == strChar) inString = false;
+				}
+				else if(c == '"' || c == "'")
+				{
+					inString = true;
+					strChar = c;
+				}
+				else if(line.substr(i, 2) == '--' || line.substr(i, 2) == '//')
+				{
+					singleComment = i;
+					break;
+				}
+				i++;
+			}
+			stripped += (singleComment >= 0 ? line.substr(0, singleComment) : line) + '\n';
+		}
+
+		var blockCommentRegex:EReg = ~/\/\*[\s\S]*?\*\//g;
+		stripped = blockCommentRegex.replace(stripped, '');
+
+		var max:Int = 0;
+		for(n in 1...MAX_EVENT_VALUES + 1)
+		{
+			var r:EReg = new EReg('value$n', 'i');
+			if(r.match(stripped) && n > max) max = n;
+		}
+		return max > 0 ? max : 2;
+	}
+
 	function reloadNotesDropdowns()
 	{
 		// Event drop down
@@ -4165,7 +4291,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			for (file in eventFiles)
 			{
 				var desc:String = Paths.getTextFromFile('custom_events/$file.txt');
-				eventsList.push([file, desc]);
+				var numValues:Int = detectEventValueCount(file);
+				eventsList.push([file, desc, Std.string(numValues)]);
 			}
 
 			for (id => event in defaultEvents)

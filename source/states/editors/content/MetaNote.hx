@@ -175,7 +175,13 @@ class EventMetaNote extends MetaNote
 		if(events.length == 1)
 		{
 			var event = events[0];
-			eventText.text = 'Event: ${event[0]} ($myTime ms)\nValue 1: ${event[1]}\nValue 2: ${event[2]}';
+			var values:Array<String> = [];
+			for(i in 1...event.length)
+				if(event[i] != null && event[i].trim().length > 0)
+					values.push(event[i]);
+			var valLine:String = values.join(' | ');
+			if(valLine.length > 40) valLine = valLine.substr(0, 37) + '...';
+			eventText.text = '${event[0]} ($myTime ms)' + (valLine.length > 0 ? '\n$valLine' : '');
 		}
 		else if(events.length > 1)
 		{

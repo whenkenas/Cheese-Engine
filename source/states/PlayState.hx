@@ -1705,11 +1705,20 @@ class PlayState extends MusicBeatState
 
 	function makeEvent(event:Array<Dynamic>, i:Int)
 	{
+		var rawEvent:Array<Dynamic> = event[1][i];
+		var extraValues:Array<String> = [];
+		var j:Int = 3;
+		while(j < rawEvent.length)
+		{
+			extraValues.push(rawEvent[j] != null ? Std.string(rawEvent[j]) : '');
+			j++;
+		}
 		var subEvent:EventNote = {
 			strumTime: event[0] + ClientPrefs.data.noteOffset,
-			event: event[1][i][0],
-			value1: event[1][i][1],
-			value2: event[1][i][2]
+			event: rawEvent[0],
+			value1: rawEvent[1],
+			value2: rawEvent[2],
+			values: extraValues
 		};
 		eventNotes.push(subEvent);
 		eventPushed(subEvent);
@@ -2454,12 +2463,14 @@ class PlayState extends MusicBeatState
 			if(eventNotes[0].value2 != null)
 				value2 = eventNotes[0].value2;
 
-			triggerEvent(eventNotes[0].event, value1, value2, leStrumTime);
+			var extraValues:Array<String> = (eventNotes[0].values != null) ? eventNotes[0].values : [];
+			triggerEvent(eventNotes[0].event, value1, value2, leStrumTime, extraValues);
 			eventNotes.shift();
 		}
 	}
 
-	public function triggerEvent(eventName:String, value1:String, value2:String, strumTime:Float) {
+	public function triggerEvent(eventName:String, value1:String, value2:String, strumTime:Float, ?extraValues:Array<String>) {
+		if(extraValues == null) extraValues = [];
 		var flValue1:Null<Float> = Std.parseFloat(value1);
 		var flValue2:Null<Float> = Std.parseFloat(value2);
 		if(Math.isNaN(flValue1)) flValue1 = null;
@@ -3384,7 +3395,9 @@ class PlayState extends MusicBeatState
 		}
 
 		stagesFunc(function(stage:BaseStage) stage.eventCalled(eventName, value1, value2, flValue1, flValue2, strumTime));
-		callOnScripts('onEvent', [eventName, value1, value2, strumTime]);
+		var scriptArgs:Array<Dynamic> = [eventName, value1, value2, strumTime];
+		for(ev in extraValues) scriptArgs.push(ev);
+		callOnScripts('onEvent', scriptArgs);
 	}
 
 	public function moveCameraSection(?sec:Null<Int>):Void {
