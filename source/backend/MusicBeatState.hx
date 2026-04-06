@@ -9,6 +9,45 @@ import debug.CMD;
 @:bitmap("assets/embed/images/ui/cursor.png")
 private class FunkinCursor extends BitmapData {}
 
+private class CursorLoader
+{
+	static var _lastMod:String = null;
+	static var _lastData:BitmapData = null;
+
+	public static function load():Void
+	{
+		#if MODS_ALLOWED
+		var curMod:String = Mods.currentModDirectory;
+		if (curMod == _lastMod && FlxG.mouse.cursor != null)
+			return;
+
+		_lastMod = curMod;
+
+		var modPath:String = Paths.mods(curMod + '/images/ui/cursor.png');
+		if (sys.FileSystem.exists(modPath))
+		{
+			_lastData = BitmapData.fromFile(modPath);
+			FlxG.mouse.load(_lastData);
+			return;
+		}
+
+		for (mod in Mods.getGlobalMods())
+		{
+			var globalPath:String = Paths.mods(mod + '/images/ui/cursor.png');
+			if (sys.FileSystem.exists(globalPath))
+			{
+				_lastData = BitmapData.fromFile(globalPath);
+				FlxG.mouse.load(_lastData);
+				return;
+			}
+		}
+		#end
+
+		if (!(FlxG.mouse.cursor?.bitmapData is FunkinCursor))
+			FlxG.mouse.load(new FunkinCursor(0, 0));
+	}
+}
+
 class MusicBeatState extends FlxState
 {
 	private var curSection:Int = 0;
@@ -33,7 +72,7 @@ class MusicBeatState extends FlxState
 
 	override function create() {
 		var skip:Bool = FlxTransitionableState.skipNextTransOut;
-		if(!(FlxG.mouse.cursor?.bitmapData is FunkinCursor)) FlxG.mouse.load(new FunkinCursor(0,0));
+		CursorLoader.load();
 		#if MODS_ALLOWED Mods.updatedOnState = false; #end
 
 		try {
