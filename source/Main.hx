@@ -337,6 +337,16 @@ class Main extends Sprite
 				}
 			}
 		}
+
+		var fullscreenKeys = ClientPrefs.keyBinds.get('fullscreen');
+		if (fullscreenKeys != null) {
+			for (key in fullscreenKeys) {
+				if (event.keyCode == key) {
+					FlxG.fullscreen = !FlxG.fullscreen;
+					break;
+				}
+			}
+		}
 	}
 
 	function takeScreenshot():Void {
