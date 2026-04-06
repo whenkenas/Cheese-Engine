@@ -380,12 +380,19 @@ class StickerSubState extends MusicBeatSubstate
 			lastOne.angle = 0;
 		}
 
+		for (ind => sticker in grpStickers.members)
+		{
+			sticker.timing = FlxMath.remapToRange(ind, 0, totalStickers, 0, 0.9);
+		}
+
+		grpStickers.members.sort((a, b) -> {
+			return FlxSort.byValues(FlxSort.ASCENDING, a.timing, b.timing);
+		});
+
 		transitionSprite.setupStickers(grpStickers);
 
 		for (ind => sticker in grpStickers.members)
 		{
-			sticker.timing = FlxMath.remapToRange(ind, 0, totalStickers, 0, 0.9);
-
 			new FlxTimer().start(sticker.timing, _ -> {
 				if(grpStickers == null) return;
 				
@@ -395,7 +402,8 @@ class StickerSubState extends MusicBeatSubstate
 					FlxG.sound.play(Paths.sound(daSound), 0.6);
 					sticker.visible = true;
 					
-					var frameTimer:Int = (ind == lastStickerIndex ? 2 : FlxG.random.int(0, 2));
+					var isLast:Bool = (ind == lastStickerIndex);
+					var frameTimer:Int = (isLast ? 2 : FlxG.random.int(0, 2));
 					
 					new FlxTimer().start((1 / 24) * frameTimer, _ -> {
 						if(sticker != null && sticker.exists)
@@ -404,7 +412,7 @@ class StickerSubState extends MusicBeatSubstate
 							sticker.scale.x = sticker.scale.y = FlxG.random.float(0.97 * baseScale, 1.02 * baseScale);
 							sticker.updateHitbox();
 							
-							if(ind == lastStickerIndex)
+							if(isLast)
 							{
 								new FlxTimer().start(0.5, _ -> {
 									switchingState = true;
@@ -428,10 +436,6 @@ class StickerSubState extends MusicBeatSubstate
 				}
 			});
 		}
-
-		grpStickers.sort((ord, a, b) -> {
-			return FlxSort.byValues(ord, a.timing, b.timing);
-		});
 	}
 
 	override public function update(elapsed:Float):Void
