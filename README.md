@@ -8,12 +8,11 @@ Attempting to be an engine with V Slice + Codename + Psych Engine features, and 
 
 ## CHANGES:
 
-- **States in HSCRIPT** - Read the readme.txt file in the respective mod folder for more information
-- **Better Chart Editor** - More similar to V Slice
+- **States in HSCRIPT and LUA** - Read the readme.txt file in the respective mod folder for more information
+- **Better Chart Editor** - More similar to V Slice and more PEAK EVENTS!
 ![Chart Editor](docs/img/ChartEditor.png)
-- **V Slice Stickers** - You can add your own stickers (If you want to add stickers by song, create a folder with the song name.)
+- **V Slice Stickers** - You can add your own stickers!
 - **MetaData Pause SubState** - Enhanced pause menu with metadata
-- **Better Camera Follow Pos** - Some scripts that use Camera Follow Pos may bug with this, it will be improved in the next update
 - **V Slice Volume** - Now the volume is more... cooler!
 - **Custom EXE Icon & Name** - Edit with pack.png and pack.json
 - **Mod Selector** - Press Tab in MainMenuState
