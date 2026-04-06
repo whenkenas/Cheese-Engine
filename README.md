@@ -57,7 +57,7 @@ There you can learn how to use the 212+ PlayState functions in your mod!
 ## Credits:
 * Shadow Mario - Main Programmer and Head of Psych Engine
 * Riveren - Main Artist/Animator of Psych Engine
-* **Your Name** - Creator of Cheese Engine
+* **Chris** - Creator of Cheese Engine
 
 ### Special Thanks
 * bbpanzu - Ex-Team Member (Programmer)
