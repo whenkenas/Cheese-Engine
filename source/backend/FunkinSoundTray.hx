@@ -37,6 +37,22 @@ class FunkinSoundTray extends FlxSoundTray
 		return Assets.getBitmapData(Paths.getPath('images/soundtray/' + file + '.png', IMAGE));
 	}
 
+	function _getSoundPath(file:String):String
+	{
+		#if MODS_ALLOWED
+		var modPath:String = Paths.mods(Mods.currentModDirectory + '/sounds/soundtray/' + file + '.ogg');
+		if (sys.FileSystem.exists(modPath))
+			return modPath;
+		for (mod in Mods.getGlobalMods())
+		{
+			var globalPath:String = Paths.mods(mod + '/sounds/soundtray/' + file + '.ogg');
+			if (sys.FileSystem.exists(globalPath))
+				return globalPath;
+		}
+		#end
+		return Paths.getPath('sounds/soundtray/' + file + '.ogg', SOUND);
+	}
+
 	function _buildGraphics()
 	{
 		removeChildren();
@@ -76,9 +92,9 @@ class FunkinSoundTray extends FlxSoundTray
 		y = -height;
 		screenCenter();
 
-		volumeUpSound = Paths.getPath('sounds/soundtray/Volup.ogg', SOUND);
-		volumeDownSound = Paths.getPath('sounds/soundtray/Voldown.ogg', SOUND);
-		volumeMaxSound = Paths.getPath('sounds/soundtray/VolMAX.ogg', SOUND);
+		volumeUpSound = _getSoundPath('Volup');
+		volumeDownSound = _getSoundPath('Voldown');
+		volumeMaxSound = _getSoundPath('VolMAX');
 
 		_lastMod = Mods.currentModDirectory;
 	}
