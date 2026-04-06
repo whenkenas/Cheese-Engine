@@ -53,7 +53,7 @@ class StrumNote extends FlxSprite
 		super(x, y);
 
 		var skin:String = null;
-		var skinPostfix:String = Note.getNoteSkinPostfix();
+		var skinPostfix:String = PlayState.isPixelStage ? '' : Note.getNoteSkinPostfix();
 		var chartSkin:String = PlayState.SONG != null ? PlayState.SONG.arrowSkin : null;
 		var chartHasSkin:Bool = (chartSkin != null && chartSkin.length > 0);
 		

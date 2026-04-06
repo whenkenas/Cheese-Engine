@@ -419,17 +419,8 @@ class Note extends FlxSprite
 		}
 
 		if(PlayState.isPixelStage || PlayState.stageUI == "pixel") {
-		var pixelSkinExists:Bool = false;
-		if(isSustainNote) {
-			pixelSkinExists = Paths.fileExists('images/pixelUI/' + skinPixel + 'ENDS.png', IMAGE);
-		} else {
-			pixelSkinExists = Paths.fileExists('images/pixelUI/' + skinPixel + '.png', IMAGE);
-		}
-		
-		if(!pixelSkinExists) {
-			skinPixel = 'noteSkins/NOTE_assets';
-		}
-		
+		skinPixel = 'noteSkins/NOTE_assets';
+
 		if(isSustainNote) {
 			var graphic = Paths.image('pixelUI/' + skinPixel + 'ENDS');
 			if(graphic != null) {
