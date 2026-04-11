@@ -6,6 +6,30 @@ import flixel.addons.display.FlxRuntimeShader;
 
 class ShaderFunctions
 {
+	#if (!flash && MODS_ALLOWED && sys)
+	public static var cameraShaders:Map<String, FlxRuntimeShader> = new Map<String, FlxRuntimeShader>();
+
+	public static function getCameraByName(name:String):FlxCamera {
+		return switch(name.toLowerCase()) {
+			case 'camgame' | 'game': PlayState.instance.camGame;
+			case 'camhud' | 'hud': PlayState.instance.camHUD;
+			case 'camother' | 'other': PlayState.instance.camOther;
+			default:
+				var cam:Dynamic = MusicBeatState.getVariables().get(name);
+				(cam != null && Std.isOfType(cam, FlxCamera)) ? cast cam : PlayState.instance.camGame;
+		};
+	}
+
+	public static function isCamera(obj:String):Bool {
+		return switch(obj.toLowerCase()) {
+			case 'camgame' | 'game' | 'camhud' | 'hud' | 'camother' | 'other': true;
+			default:
+				var cam:Dynamic = MusicBeatState.getVariables().get(obj);
+				(cam != null && Std.isOfType(cam, FlxCamera));
+		};
+	}
+	#end
+
 	public static function implement(funk:FunkinLua)
 	{
 		var lua = funk.lua;
@@ -31,6 +55,17 @@ class ShaderFunctions
 				return false;
 			}
 
+			#if (!flash && MODS_ALLOWED && sys)
+			if(isCamera(obj)) {
+				var cam:FlxCamera = getCameraByName(obj);
+				var arr:Array<String> = funk.runtimeShaders.get(shader);
+				var rShader:FlxRuntimeShader = new shaders.ErrorHandledShader.ErrorHandledRuntimeShader(shader, arr[0], arr[1]);
+				cameraShaders.set(obj, rShader);
+				cam.setFilters([new openfl.filters.ShaderFilter(cast rShader)]);
+				return true;
+			}
+			#end
+
 			var split:Array<String> = obj.split('.');
 			var leObj:FlxSprite = LuaUtils.getObjectDirectly(split[0]);
 			if(split.length > 1) {
@@ -48,6 +83,15 @@ class ShaderFunctions
 			return false;
 		});
 		Lua_helper.add_callback(lua, "removeSpriteShader", function(obj:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			if(isCamera(obj)) {
+				var cam:FlxCamera = getCameraByName(obj);
+				cameraShaders.remove(obj);
+				cam.setFilters([]);
+				return true;
+			}
+			#end
+
 			var split:Array<String> = obj.split('.');
 			var leObj:FlxSprite = LuaUtils.getObjectDirectly(split[0]);
 			if(split.length > 1) {
@@ -268,6 +312,9 @@ class ShaderFunctions
 	#if (!flash && MODS_ALLOWED && sys)
 	public static function getShader(obj:String):FlxRuntimeShader
 	{
+		if(isCamera(obj))
+			return cameraShaders.get(obj);
+
 		var split:Array<String> = obj.split('.');
 		var target:FlxSprite = null;
 		if(split.length > 1) target = LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length-1]);
