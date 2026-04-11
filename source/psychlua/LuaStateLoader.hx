@@ -18,6 +18,10 @@ import psychlua.ModchartSprite;
 
 import flixel.input.gamepad.FlxGamepadInputID;
 
+#if (!flash && sys)
+import flixel.addons.display.FlxRuntimeShader;
+#end
+
 #if HSCRIPT_ALLOWED
 import crowplexus.iris.Iris;
 import crowplexus.hscript.Expr.Error as IrisError;
@@ -857,6 +861,337 @@ class LuaState extends MusicBeatState
 			if(FlxG.save.data != null) Reflect.setProperty(FlxG.save.data, key, value);
 		});
 		Lua_helper.add_callback(lua, "flushSave", function() FlxG.save.flush());
+
+		Lua_helper.add_callback(lua, "flxRandomInt", function(min:Int, max:Int, ?exclude:Any = null) {
+			var excludeArray:Array<Int> = exclude == null ? [] : exclude;
+			return FlxG.random.int(min, max, excludeArray);
+		});
+		Lua_helper.add_callback(lua, "flxRandomFloat", function(min:Float, max:Float, ?exclude:Any = null) {
+			var excludeArray:Array<Float> = exclude == null ? [] : exclude;
+			return FlxG.random.float(min, max, excludeArray);
+		});
+		Lua_helper.add_callback(lua, "flxRandomBool", function(?chance:Float = 50) {
+			return FlxG.random.bool(chance);
+		});
+
+		Lua_helper.add_callback(lua, "getColorFromName", function(color:String) return FlxColor.fromString(color));
+
+		Lua_helper.add_callback(lua, "getGraphicMidpointX", function(variable:String) {
+			var split:Array<String> = variable.split('.');
+			var obj:FlxSprite = LuaUtils.getObjectDirectly(split[0]);
+			if(split.length > 1)
+				obj = LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1]);
+			if(obj != null) return obj.getGraphicMidpoint().x;
+			return 0;
+		});
+		Lua_helper.add_callback(lua, "getGraphicMidpointY", function(variable:String) {
+			var split:Array<String> = variable.split('.');
+			var obj:FlxSprite = LuaUtils.getObjectDirectly(split[0]);
+			if(split.length > 1)
+				obj = LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1]);
+			if(obj != null) return obj.getGraphicMidpoint().y;
+			return 0;
+		});
+
+		Lua_helper.add_callback(lua, "loadMultipleFrames", function(variable:String, images:Array<String>) {
+			var split:Array<String> = variable.split('.');
+			var spr:FlxSprite = LuaUtils.getObjectDirectly(split[0]);
+			if(split.length > 1)
+				spr = LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1]);
+			if(spr != null && images != null && images.length > 0)
+				spr.frames = Paths.getMultiAtlas(images);
+		});
+
+		Lua_helper.add_callback(lua, "luaSoundExists", function(tag:String) {
+			var obj:FlxSound = MusicBeatState.getVariables().get('sound_$tag');
+			return (obj != null && Std.isOfType(obj, FlxSound));
+		});
+
+		Lua_helper.add_callback(lua, "soundFadeIn", function(tag:String, duration:Float, fromValue:Float = 0, toValue:Float = 1) {
+			if(tag == null || tag.length < 1) {
+				if(FlxG.sound.music != null) FlxG.sound.music.fadeIn(duration, fromValue, toValue);
+			} else {
+				tag = LuaUtils.formatVariable('sound_$tag');
+				var snd:FlxSound = MusicBeatState.getVariables().get(tag);
+				if(snd != null) snd.fadeIn(duration, fromValue, toValue);
+			}
+		});
+		Lua_helper.add_callback(lua, "soundFadeOut", function(tag:String, duration:Float, toValue:Float = 0) {
+			if(tag == null || tag.length < 1) {
+				if(FlxG.sound.music != null) FlxG.sound.music.fadeOut(duration, toValue);
+			} else {
+				tag = LuaUtils.formatVariable('sound_$tag');
+				var snd:FlxSound = MusicBeatState.getVariables().get(tag);
+				if(snd != null) snd.fadeOut(duration, toValue);
+			}
+		});
+		Lua_helper.add_callback(lua, "soundFadeCancel", function(tag:String) {
+			if(tag == null || tag.length < 1) {
+				if(FlxG.sound.music != null && FlxG.sound.music.fadeTween != null)
+					FlxG.sound.music.fadeTween.cancel();
+			} else {
+				tag = LuaUtils.formatVariable('sound_$tag');
+				var snd:FlxSound = MusicBeatState.getVariables().get(tag);
+				if(snd != null && snd.fadeTween != null) snd.fadeTween.cancel();
+			}
+		});
+		Lua_helper.add_callback(lua, "getSoundVolume", function(tag:String) {
+			if(tag == null || tag.length < 1) {
+				if(FlxG.sound.music != null) return FlxG.sound.music.volume;
+			} else {
+				tag = LuaUtils.formatVariable('sound_$tag');
+				var snd:FlxSound = MusicBeatState.getVariables().get(tag);
+				if(snd != null) return snd.volume;
+			}
+			return 0;
+		});
+		Lua_helper.add_callback(lua, "setSoundVolume", function(tag:String, value:Float) {
+			if(tag == null || tag.length < 1) {
+				if(FlxG.sound.music != null) FlxG.sound.music.volume = value;
+			} else {
+				tag = LuaUtils.formatVariable('sound_$tag');
+				var snd:FlxSound = MusicBeatState.getVariables().get(tag);
+				if(snd != null) snd.volume = value;
+			}
+		});
+		Lua_helper.add_callback(lua, "getSoundTime", function(tag:String) {
+			if(tag == null || tag.length < 1)
+				return FlxG.sound.music != null ? FlxG.sound.music.time : 0;
+			tag = LuaUtils.formatVariable('sound_$tag');
+			var snd:FlxSound = MusicBeatState.getVariables().get(tag);
+			return snd != null ? snd.time : 0;
+		});
+		Lua_helper.add_callback(lua, "setSoundTime", function(tag:String, value:Float) {
+			if(tag == null || tag.length < 1) {
+				if(FlxG.sound.music != null) FlxG.sound.music.time = value;
+			} else {
+				tag = LuaUtils.formatVariable('sound_$tag');
+				var snd:FlxSound = MusicBeatState.getVariables().get(tag);
+				if(snd != null) snd.time = value;
+			}
+		});
+		Lua_helper.add_callback(lua, "getSoundPitch", function(tag:String) {
+			#if FLX_PITCH
+			tag = LuaUtils.formatVariable('sound_$tag');
+			var snd:FlxSound = MusicBeatState.getVariables().get(tag);
+			return snd != null ? snd.pitch : 1;
+			#else
+			return 1;
+			#end
+		});
+		Lua_helper.add_callback(lua, "setSoundPitch", function(tag:String, value:Float, ?doPause:Bool = false) {
+			#if FLX_PITCH
+			if(tag == null || tag.length < 1) {
+				if(FlxG.sound.music != null) {
+					var wasResumed:Bool = FlxG.sound.music.playing;
+					if(doPause) FlxG.sound.music.pause();
+					FlxG.sound.music.pitch = value;
+					if(doPause && wasResumed) FlxG.sound.music.play();
+				}
+			} else {
+				tag = LuaUtils.formatVariable('sound_$tag');
+				var snd:FlxSound = MusicBeatState.getVariables().get(tag);
+				if(snd != null) {
+					var wasResumed:Bool = snd.playing;
+					if(doPause) snd.pause();
+					snd.pitch = value;
+					if(doPause && wasResumed) snd.play();
+				}
+			}
+			#end
+		});
+
+		Lua_helper.add_callback(lua, "doTweenZoom", function(tag:String, camera:String, value:Dynamic, duration:Float, ?ease:String = 'linear') {
+			var cam:FlxCamera = FlxG.camera;
+			var camObj:Dynamic = MusicBeatState.getVariables().get(camera);
+			if(camObj != null && Std.isOfType(camObj, FlxCamera)) cam = cast camObj;
+			var variables = MusicBeatState.getVariables();
+			if(tag != null) {
+				var originalTag:String = tag;
+				tag = LuaUtils.formatVariable('tween_$tag');
+				variables.set(tag, FlxTween.tween(cam, {zoom: value}, duration, {
+					ease: LuaUtils.getTweenEaseByString(ease),
+					onComplete: function(twn:FlxTween) {
+						variables.remove(tag);
+						call('onTweenCompleted', [originalTag, camera]);
+					}
+				}));
+				return tag;
+			} else {
+				FlxTween.tween(cam, {zoom: value}, duration, {ease: LuaUtils.getTweenEaseByString(ease)});
+			}
+			return null;
+		});
+
+		Lua_helper.add_callback(lua, "setReturnState", function(stateName:String) {
+			PlayState.returnAfterSongState = stateName;
+		});
+		Lua_helper.add_callback(lua, "getReturnState", function() {
+			return PlayState.returnAfterSongState;
+		});
+
+		Lua_helper.add_callback(lua, "close", function() {
+			closed = true;
+		});
+
+		#if (!flash && sys)
+		var runtimeShaders:Map<String, Array<String>> = new Map<String, Array<String>>();
+
+		Lua_helper.add_callback(lua, "initLuaShader", function(name:String) {
+			if(!ClientPrefs.data.shaders) return false;
+			#if MODS_ALLOWED
+			if(runtimeShaders.exists(name)) {
+				var shaderData:Array<String> = runtimeShaders.get(name);
+				if(shaderData != null && (shaderData[0] != null || shaderData[1] != null))
+					return true;
+			}
+			var foldersToCheck:Array<String> = [Paths.getSharedPath('shaders/')];
+			foldersToCheck.push(Paths.mods('shaders/'));
+			if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+				foldersToCheck.insert(0, Paths.mods(Mods.currentModDirectory + '/shaders/'));
+			for(mod in Mods.getGlobalMods())
+				foldersToCheck.insert(0, Paths.mods(mod + '/shaders/'));
+			for(folder in foldersToCheck) {
+				if(FileSystem.exists(folder)) {
+					var frag:String = folder + name + '.frag';
+					var vert:String = folder + name + '.vert';
+					var found:Bool = false;
+					if(FileSystem.exists(frag)) { frag = File.getContent(frag); found = true; } else frag = null;
+					if(FileSystem.exists(vert)) { vert = File.getContent(vert); found = true; } else vert = null;
+					if(found) { runtimeShaders.set(name, [frag, vert]); return true; }
+				}
+			}
+			#end
+			return false;
+		});
+		Lua_helper.add_callback(lua, "setSpriteShader", function(obj:String, shader:String) {
+			if(!ClientPrefs.data.shaders) return false;
+			if(!runtimeShaders.exists(shader)) return false;
+			var split:Array<String> = obj.split('.');
+			var leObj:FlxSprite = LuaUtils.getObjectDirectly(split[0]);
+			if(split.length > 1)
+				leObj = LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1]);
+			if(leObj != null) {
+				var arr:Array<String> = runtimeShaders.get(shader);
+				leObj.shader = new shaders.ErrorHandledShader.ErrorHandledRuntimeShader(shader, arr[0], arr[1]);
+				return true;
+			}
+			return false;
+		});
+		Lua_helper.add_callback(lua, "removeSpriteShader", function(obj:String) {
+			var split:Array<String> = obj.split('.');
+			var leObj:FlxSprite = LuaUtils.getObjectDirectly(split[0]);
+			if(split.length > 1)
+				leObj = LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1]);
+			if(leObj != null) { leObj.shader = null; return true; }
+			return false;
+		});
+		Lua_helper.add_callback(lua, "setShaderFloat", function(obj:String, prop:String, value:Float) {
+			var split:Array<String> = obj.split('.');
+			var target:FlxSprite = split.length > 1
+				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
+				: LuaUtils.getObjectDirectly(split[0]);
+			if(target == null) return false;
+			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			if(shader == null) return false;
+			shader.setFloat(prop, value);
+			return true;
+		});
+		Lua_helper.add_callback(lua, "getShaderFloat", function(obj:String, prop:String) {
+			var split:Array<String> = obj.split('.');
+			var target:FlxSprite = split.length > 1
+				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
+				: LuaUtils.getObjectDirectly(split[0]);
+			if(target == null) return null;
+			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			return shader == null ? null : shader.getFloat(prop);
+		});
+		Lua_helper.add_callback(lua, "setShaderInt", function(obj:String, prop:String, value:Int) {
+			var split:Array<String> = obj.split('.');
+			var target:FlxSprite = split.length > 1
+				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
+				: LuaUtils.getObjectDirectly(split[0]);
+			if(target == null) return false;
+			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			if(shader == null) return false;
+			shader.setInt(prop, value);
+			return true;
+		});
+		Lua_helper.add_callback(lua, "getShaderInt", function(obj:String, prop:String) {
+			var split:Array<String> = obj.split('.');
+			var target:FlxSprite = split.length > 1
+				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
+				: LuaUtils.getObjectDirectly(split[0]);
+			if(target == null) return null;
+			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			return shader == null ? null : shader.getInt(prop);
+		});
+		Lua_helper.add_callback(lua, "setShaderBool", function(obj:String, prop:String, value:Bool) {
+			var split:Array<String> = obj.split('.');
+			var target:FlxSprite = split.length > 1
+				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
+				: LuaUtils.getObjectDirectly(split[0]);
+			if(target == null) return false;
+			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			if(shader == null) return false;
+			shader.setBool(prop, value);
+			return true;
+		});
+		Lua_helper.add_callback(lua, "getShaderBool", function(obj:String, prop:String) {
+			var split:Array<String> = obj.split('.');
+			var target:FlxSprite = split.length > 1
+				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
+				: LuaUtils.getObjectDirectly(split[0]);
+			if(target == null) return null;
+			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			return shader == null ? null : shader.getBool(prop);
+		});
+		Lua_helper.add_callback(lua, "setShaderFloatArray", function(obj:String, prop:String, values:Dynamic) {
+			var split:Array<String> = obj.split('.');
+			var target:FlxSprite = split.length > 1
+				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
+				: LuaUtils.getObjectDirectly(split[0]);
+			if(target == null) return false;
+			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			if(shader == null) return false;
+			shader.setFloatArray(prop, values);
+			return true;
+		});
+		Lua_helper.add_callback(lua, "setShaderIntArray", function(obj:String, prop:String, values:Dynamic) {
+			var split:Array<String> = obj.split('.');
+			var target:FlxSprite = split.length > 1
+				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
+				: LuaUtils.getObjectDirectly(split[0]);
+			if(target == null) return false;
+			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			if(shader == null) return false;
+			shader.setIntArray(prop, values);
+			return true;
+		});
+		Lua_helper.add_callback(lua, "setShaderBoolArray", function(obj:String, prop:String, values:Dynamic) {
+			var split:Array<String> = obj.split('.');
+			var target:FlxSprite = split.length > 1
+				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
+				: LuaUtils.getObjectDirectly(split[0]);
+			if(target == null) return false;
+			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			if(shader == null) return false;
+			shader.setBoolArray(prop, values);
+			return true;
+		});
+		Lua_helper.add_callback(lua, "setShaderSampler2D", function(obj:String, prop:String, bitmapdataPath:String) {
+			var split:Array<String> = obj.split('.');
+			var target:FlxSprite = split.length > 1
+				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
+				: LuaUtils.getObjectDirectly(split[0]);
+			if(target == null) return false;
+			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			if(shader == null) return false;
+			var value = Paths.image(bitmapdataPath);
+			if(value != null && value.bitmap != null) { shader.setSampler2D(prop, value.bitmap); return true; }
+			return false;
+		});
+		#end
 
 		#if HSCRIPT_ALLOWED
 		Lua_helper.add_callback(lua, "runHaxeCode", function(codeToRun:String, ?varsToBring:Any = null, ?funcToRun:String = null, ?funcArgs:Array<Dynamic> = null):Dynamic {
