@@ -18,9 +18,7 @@ import psychlua.ModchartSprite;
 
 import flixel.input.gamepad.FlxGamepadInputID;
 
-#if (!flash && sys)
 import flixel.addons.display.FlxRuntimeShader;
-#end
 
 #if HSCRIPT_ALLOWED
 import crowplexus.iris.Iris;
@@ -1034,7 +1032,6 @@ class LuaState extends MusicBeatState
 			closed = true;
 		});
 
-		#if (!flash && sys)
 		var runtimeShaders:Map<String, Array<String>> = new Map<String, Array<String>>();
 
 		Lua_helper.add_callback(lua, "initLuaShader", function(name:String) {
@@ -1191,7 +1188,6 @@ class LuaState extends MusicBeatState
 			if(value != null && value.bitmap != null) { shader.setSampler2D(prop, value.bitmap); return true; }
 			return false;
 		});
-		#end
 
 		#if HSCRIPT_ALLOWED
 		Lua_helper.add_callback(lua, "runHaxeCode", function(codeToRun:String, ?varsToBring:Any = null, ?funcToRun:String = null, ?funcArgs:Array<Dynamic> = null):Dynamic {
