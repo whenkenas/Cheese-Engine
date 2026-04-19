@@ -11,14 +11,28 @@ import flixel.tweens.FlxTween;
 import flixel.tweens.FlxEase;
 import flixel.util.FlxTimer;
 import flixel.util.FlxColor;
+import flixel.util.FlxSave;
+import flixel.math.FlxMath;
 
 import psychlua.LuaUtils;
 import psychlua.LuaUtils.LuaTweenOptions;
 import psychlua.ModchartSprite;
+import psychlua.CustomSubstate;
+import psychlua.ShaderFunctions;
 
 import flixel.input.gamepad.FlxGamepadInputID;
 
 import flixel.addons.display.FlxRuntimeShader;
+
+#if DISCORD_ALLOWED
+import backend.Discord.DiscordClient;
+#end
+#if ACHIEVEMENTS_ALLOWED
+import backend.Achievements;
+#end
+#if TRANSLATIONS_ALLOWED
+import backend.Language;
+#end
 
 #if HSCRIPT_ALLOWED
 import crowplexus.iris.Iris;
@@ -144,15 +158,7 @@ class LuaState extends MusicBeatState
 			}
 		});
 		
-        Lua_helper.add_callback(lua, "lerp", function(a:Float, b:Float, t:Float) return a + (b - a) * t);
-		Lua_helper.add_callback(lua, "flxLerp", function(a:Float, b:Float, t:Float) return flixel.math.FlxMath.lerp(a, b, t));
-		Lua_helper.add_callback(lua, "setCameraZoom", function(zoom:Float) FlxG.camera.zoom = zoom);
-		Lua_helper.add_callback(lua, "getCameraZoom", function() return FlxG.camera.zoom);
-		Lua_helper.add_callback(lua, "setCameraScrollX", function(x:Float) FlxG.camera.scroll.x = x);
-		Lua_helper.add_callback(lua, "setCameraScrollY", function(y:Float) FlxG.camera.scroll.y = y);
-		Lua_helper.add_callback(lua, "setMouseVisible", function(visible:Bool) FlxG.mouse.visible = visible);
-		Lua_helper.add_callback(lua, "getMouseVisible", function() return FlxG.mouse.visible);
-		Lua_helper.add_callback(lua, "resetState", function() {
+        Lua_helper.add_callback(lua, "resetState", function() {
 			MusicBeatState.resetState();
 		});
 		Lua_helper.add_callback(lua, "openSubState", function(substate:Dynamic) {
@@ -1033,16 +1039,6 @@ class LuaState extends MusicBeatState
 		});
 
 		var runtimeShaders:Map<String, Array<String>> = new Map<String, Array<String>>();
-		var cameraShaders:Map<String, FlxRuntimeShader> = new Map<String, FlxRuntimeShader>();
-
-		function isCameraName(obj:String):Bool {
-			return switch(obj.toLowerCase()) {
-				case 'camera' | 'cam': true;
-				default:
-					var cam:Dynamic = MusicBeatState.getVariables().get(obj);
-					(cam != null && Std.isOfType(cam, FlxCamera));
-			};
-		}
 
 		Lua_helper.add_callback(lua, "initLuaShader", function(name:String) {
 			if(!ClientPrefs.data.shaders) return false;
@@ -1074,13 +1070,16 @@ class LuaState extends MusicBeatState
 		Lua_helper.add_callback(lua, "setSpriteShader", function(obj:String, shader:String) {
 			if(!ClientPrefs.data.shaders) return false;
 			if(!runtimeShaders.exists(shader)) return false;
-			if(isCameraName(obj)) {
+			#if (!flash && MODS_ALLOWED && sys)
+			if(ShaderFunctions.isCamera(obj)) {
+				var cam:FlxCamera = ShaderFunctions.getCameraByName(obj);
 				var arr:Array<String> = runtimeShaders.get(shader);
 				var rShader:FlxRuntimeShader = new shaders.ErrorHandledShader.ErrorHandledRuntimeShader(shader, arr[0], arr[1]);
-				cameraShaders.set(obj, rShader);
-				FlxG.camera.setFilters([new openfl.filters.ShaderFilter(cast rShader)]);
+				ShaderFunctions.cameraShaders.set(obj, rShader);
+				cam.setFilters([new openfl.filters.ShaderFilter(cast rShader)]);
 				return true;
 			}
+			#end
 			var split:Array<String> = obj.split('.');
 			var leObj:FlxSprite = LuaUtils.getObjectDirectly(split[0]);
 			if(split.length > 1)
@@ -1093,11 +1092,14 @@ class LuaState extends MusicBeatState
 			return false;
 		});
 		Lua_helper.add_callback(lua, "removeSpriteShader", function(obj:String) {
-			if(isCameraName(obj)) {
-				cameraShaders.remove(obj);
-				FlxG.camera.setFilters([]);
+			#if (!flash && MODS_ALLOWED && sys)
+			if(ShaderFunctions.isCamera(obj)) {
+				var cam:FlxCamera = ShaderFunctions.getCameraByName(obj);
+				ShaderFunctions.cameraShaders.remove(obj);
+				cam.setFilters([]);
 				return true;
 			}
+			#end
 			var split:Array<String> = obj.split('.');
 			var leObj:FlxSprite = LuaUtils.getObjectDirectly(split[0]);
 			if(split.length > 1)
@@ -1106,191 +1108,586 @@ class LuaState extends MusicBeatState
 			return false;
 		});
 		Lua_helper.add_callback(lua, "setShaderFloat", function(obj:String, prop:String, value:Float) {
-			if(isCameraName(obj)) {
-				var shader:FlxRuntimeShader = cameraShaders.get(obj);
-				if(shader == null) return false;
-				shader.setFloat(prop, value);
-				return true;
-			}
-			var split:Array<String> = obj.split('.');
-			var target:FlxSprite = split.length > 1
-				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
-				: LuaUtils.getObjectDirectly(split[0]);
-			if(target == null) return false;
-			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
 			if(shader == null) return false;
 			shader.setFloat(prop, value);
 			return true;
+			#else
+			return false;
+			#end
 		});
 		Lua_helper.add_callback(lua, "getShaderFloat", function(obj:String, prop:String) {
-			if(isCameraName(obj)) {
-				var shader:FlxRuntimeShader = cameraShaders.get(obj);
-				return shader == null ? null : shader.getFloat(prop);
-			}
-			var split:Array<String> = obj.split('.');
-			var target:FlxSprite = split.length > 1
-				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
-				: LuaUtils.getObjectDirectly(split[0]);
-			if(target == null) return null;
-			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
 			return shader == null ? null : shader.getFloat(prop);
+			#else
+			return null;
+			#end
 		});
 		Lua_helper.add_callback(lua, "setShaderInt", function(obj:String, prop:String, value:Int) {
-			var split:Array<String> = obj.split('.');
-			var target:FlxSprite = split.length > 1
-				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
-				: LuaUtils.getObjectDirectly(split[0]);
-			if(target == null) return false;
-			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
 			if(shader == null) return false;
 			shader.setInt(prop, value);
 			return true;
+			#else
+			return false;
+			#end
 		});
 		Lua_helper.add_callback(lua, "getShaderInt", function(obj:String, prop:String) {
-			var split:Array<String> = obj.split('.');
-			var target:FlxSprite = split.length > 1
-				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
-				: LuaUtils.getObjectDirectly(split[0]);
-			if(target == null) return null;
-			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
 			return shader == null ? null : shader.getInt(prop);
+			#else
+			return null;
+			#end
 		});
 		Lua_helper.add_callback(lua, "setShaderBool", function(obj:String, prop:String, value:Bool) {
-			var split:Array<String> = obj.split('.');
-			var target:FlxSprite = split.length > 1
-				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
-				: LuaUtils.getObjectDirectly(split[0]);
-			if(target == null) return false;
-			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
 			if(shader == null) return false;
 			shader.setBool(prop, value);
 			return true;
+			#else
+			return false;
+			#end
 		});
 		Lua_helper.add_callback(lua, "getShaderBool", function(obj:String, prop:String) {
-			var split:Array<String> = obj.split('.');
-			var target:FlxSprite = split.length > 1
-				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
-				: LuaUtils.getObjectDirectly(split[0]);
-			if(target == null) return null;
-			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
 			return shader == null ? null : shader.getBool(prop);
+			#else
+			return null;
+			#end
 		});
 		Lua_helper.add_callback(lua, "setShaderFloatArray", function(obj:String, prop:String, values:Dynamic) {
-			var split:Array<String> = obj.split('.');
-			var target:FlxSprite = split.length > 1
-				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
-				: LuaUtils.getObjectDirectly(split[0]);
-			if(target == null) return false;
-			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
 			if(shader == null) return false;
 			shader.setFloatArray(prop, values);
 			return true;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getShaderFloatArray", function(obj:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
+			if(shader == null) { trace('getShaderFloatArray: Shader is not FlxRuntimeShader!'); return null; }
+			return shader.getFloatArray(prop);
+			#else
+			trace('getShaderFloatArray: Platform unsupported for Runtime Shaders!');
+			return null;
+			#end
 		});
 		Lua_helper.add_callback(lua, "setShaderIntArray", function(obj:String, prop:String, values:Dynamic) {
-			var split:Array<String> = obj.split('.');
-			var target:FlxSprite = split.length > 1
-				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
-				: LuaUtils.getObjectDirectly(split[0]);
-			if(target == null) return false;
-			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
 			if(shader == null) return false;
 			shader.setIntArray(prop, values);
 			return true;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getShaderIntArray", function(obj:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
+			if(shader == null) { trace('getShaderIntArray: Shader is not FlxRuntimeShader!'); return null; }
+			return shader.getIntArray(prop);
+			#else
+			trace('getShaderIntArray: Platform unsupported for Runtime Shaders!');
+			return null;
+			#end
 		});
 		Lua_helper.add_callback(lua, "setShaderBoolArray", function(obj:String, prop:String, values:Dynamic) {
-			var split:Array<String> = obj.split('.');
-			var target:FlxSprite = split.length > 1
-				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
-				: LuaUtils.getObjectDirectly(split[0]);
-			if(target == null) return false;
-			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
 			if(shader == null) return false;
 			shader.setBoolArray(prop, values);
 			return true;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getShaderBoolArray", function(obj:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
+			if(shader == null) { trace('getShaderBoolArray: Shader is not FlxRuntimeShader!'); return null; }
+			return shader.getBoolArray(prop);
+			#else
+			trace('getShaderBoolArray: Platform unsupported for Runtime Shaders!');
+			return null;
+			#end
 		});
 		Lua_helper.add_callback(lua, "setShaderSampler2D", function(obj:String, prop:String, bitmapdataPath:String) {
-			var split:Array<String> = obj.split('.');
-			var target:FlxSprite = split.length > 1
-				? LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1])
-				: LuaUtils.getObjectDirectly(split[0]);
-			if(target == null) return false;
-			var shader:FlxRuntimeShader = cast(target.shader, FlxRuntimeShader);
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.getShader(obj);
 			if(shader == null) return false;
 			var value = Paths.image(bitmapdataPath);
 			if(value != null && value.bitmap != null) { shader.setSampler2D(prop, value.bitmap); return true; }
 			return false;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "setCameraShader", function(camera:String, shader:String) {
+			if(!ClientPrefs.data.shaders) return false;
+			if(!runtimeShaders.exists(shader)) return false;
+			#if (!flash && MODS_ALLOWED && sys)
+			var cam:FlxCamera = ShaderFunctions.getCameraByName(camera);
+			var arr:Array<String> = runtimeShaders.get(shader);
+			var rShader:FlxRuntimeShader = new shaders.ErrorHandledShader.ErrorHandledRuntimeShader(shader, arr[0], arr[1]);
+			ShaderFunctions.cameraShaders.set(camera, rShader);
+			cam.setFilters([new openfl.filters.ShaderFilter(cast rShader)]);
+			return true;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "removeCameraShader", function(camera:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var cam:FlxCamera = ShaderFunctions.getCameraByName(camera);
+			ShaderFunctions.cameraShaders.remove(camera);
+			cam.setFilters([]);
+			return true;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "setCameraShaderFloat", function(camera:String, prop:String, value:Float) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.cameraShaders.get(camera);
+			if(shader == null) return false;
+			shader.setFloat(prop, value);
+			return true;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getCameraShaderFloat", function(camera:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.cameraShaders.get(camera);
+			return shader == null ? null : shader.getFloat(prop);
+			#else
+			return null;
+			#end
+		});
+		Lua_helper.add_callback(lua, "setCameraShaderInt", function(camera:String, prop:String, value:Int) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.cameraShaders.get(camera);
+			if(shader == null) return false;
+			shader.setInt(prop, value);
+			return true;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getCameraShaderInt", function(camera:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.cameraShaders.get(camera);
+			return shader == null ? null : shader.getInt(prop);
+			#else
+			return null;
+			#end
+		});
+		Lua_helper.add_callback(lua, "setCameraShaderBool", function(camera:String, prop:String, value:Bool) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.cameraShaders.get(camera);
+			if(shader == null) return false;
+			shader.setBool(prop, value);
+			return true;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getCameraShaderBool", function(camera:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.cameraShaders.get(camera);
+			return shader == null ? null : shader.getBool(prop);
+			#else
+			return null;
+			#end
+		});
+		Lua_helper.add_callback(lua, "setCameraShaderFloatArray", function(camera:String, prop:String, values:Dynamic) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.cameraShaders.get(camera);
+			if(shader == null) return false;
+			shader.setFloatArray(prop, values);
+			return true;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "setCameraShaderSampler2D", function(camera:String, prop:String, bitmapdataPath:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = ShaderFunctions.cameraShaders.get(camera);
+			if(shader == null) return false;
+			var value = Paths.image(bitmapdataPath);
+			if(value != null && value.bitmap != null) { shader.setSampler2D(prop, value.bitmap); return true; }
+			return false;
+			#else
+			return false;
+			#end
 		});
 
-		var cameraShaders:Map<String, FlxRuntimeShader> = new Map<String, FlxRuntimeShader>();
-
-			function getCameraByName(name:String):FlxCamera {
-				return switch(name.toLowerCase()) {
-					case 'game' | 'camgame' | '': FlxG.camera;
-					default:
-						var cam:Dynamic = MusicBeatState.getVariables().get(name);
-						(cam != null && Std.isOfType(cam, FlxCamera)) ? cast cam : FlxG.camera;
-				};
+		Lua_helper.add_callback(lua, "getRunningScripts", function() {
+			var result:Array<String> = [stateName];
+			if(PlayState.instance != null)
+				for(script in PlayState.instance.luaArray)
+					result.push(script.scriptName);
+			return result;
+		});
+		Lua_helper.add_callback(lua, "setOnScripts", function(varName:String, arg:Dynamic, ?ignoreSelf:Bool = false, ?exclusions:Array<String> = null) {
+			if(exclusions == null) exclusions = [];
+			set(varName, arg);
+			if(PlayState.instance != null)
+				PlayState.instance.setOnScripts(varName, arg, exclusions);
+		});
+		Lua_helper.add_callback(lua, "setOnHScript", function(varName:String, arg:Dynamic, ?ignoreSelf:Bool = false, ?exclusions:Array<String> = null) {
+			if(exclusions == null) exclusions = [];
+			#if HSCRIPT_ALLOWED
+			if(hscript != null) hscript.set(varName, arg);
+			#end
+			if(PlayState.instance != null)
+				PlayState.instance.setOnHScript(varName, arg, exclusions);
+		});
+		Lua_helper.add_callback(lua, "setOnLuas", function(varName:String, arg:Dynamic, ?ignoreSelf:Bool = false, ?exclusions:Array<String> = null) {
+			if(exclusions == null) exclusions = [];
+			set(varName, arg);
+			if(PlayState.instance != null)
+				PlayState.instance.setOnLuas(varName, arg, exclusions);
+		});
+		Lua_helper.add_callback(lua, "callOnScripts", function(funcName:String, ?args:Array<Dynamic> = null, ?ignoreStops:Bool = false, ?ignoreSelf:Bool = true, ?excludeScripts:Array<String> = null, ?excludeValues:Array<Dynamic> = null) {
+			if(args == null) args = [];
+			if(excludeScripts == null) excludeScripts = [];
+			if(PlayState.instance != null)
+				return PlayState.instance.callOnScripts(funcName, args, ignoreStops, excludeScripts, excludeValues);
+			return call(funcName, args);
+		});
+		Lua_helper.add_callback(lua, "callOnLuas", function(funcName:String, ?args:Array<Dynamic> = null, ?ignoreStops:Bool = false, ?ignoreSelf:Bool = true, ?excludeScripts:Array<String> = null, ?excludeValues:Array<Dynamic> = null) {
+			if(args == null) args = [];
+			if(excludeScripts == null) excludeScripts = [];
+			if(PlayState.instance != null)
+				return PlayState.instance.callOnLuas(funcName, args, ignoreStops, excludeScripts, excludeValues);
+			return call(funcName, args);
+		});
+		Lua_helper.add_callback(lua, "callOnHScript", function(funcName:String, ?args:Array<Dynamic> = null, ?ignoreStops:Bool = false, ?ignoreSelf:Bool = true, ?excludeScripts:Array<String> = null, ?excludeValues:Array<Dynamic> = null) {
+			if(args == null) args = [];
+			if(excludeScripts == null) excludeScripts = [];
+			if(PlayState.instance != null)
+				return PlayState.instance.callOnHScript(funcName, args, ignoreStops, excludeScripts, excludeValues);
+			return LuaUtils.Function_Continue;
+		});
+		Lua_helper.add_callback(lua, "callScript", function(luaFile:String, funcName:String, ?args:Array<Dynamic> = null) {
+			if(args == null) args = [];
+			if(PlayState.instance != null) {
+				for(luaInstance in PlayState.instance.luaArray)
+					if(luaInstance.scriptName == luaFile)
+						return luaInstance.call(funcName, args);
 			}
+			return null;
+		});
+		Lua_helper.add_callback(lua, "isRunning", function(scriptFile:String) {
+			if(PlayState.instance != null) {
+				for(luaInstance in PlayState.instance.luaArray)
+					if(luaInstance.scriptName == scriptFile)
+						return true;
+				#if HSCRIPT_ALLOWED
+				for(hscriptInstance in PlayState.instance.hscriptArray)
+					if(hscriptInstance.origin == scriptFile)
+						return true;
+				#end
+			}
+			return (lua != null && !closed);
+		});
+		Lua_helper.add_callback(lua, "addLuaScript", function(luaFile:String, ?ignoreAlreadyRunning:Bool = false) {
+			if(PlayState.instance != null) {
+				if(!ignoreAlreadyRunning)
+					for(luaInstance in PlayState.instance.luaArray)
+						if(luaInstance.scriptName == luaFile) return;
+				new FunkinLua(luaFile);
+			}
+		});
+		Lua_helper.add_callback(lua, "addHScript", function(scriptFile:String, ?ignoreAlreadyRunning:Bool = false) {
+			#if HSCRIPT_ALLOWED
+			if(PlayState.instance != null) {
+				if(!ignoreAlreadyRunning)
+					for(script in PlayState.instance.hscriptArray)
+						if(script.origin == scriptFile) return;
+				PlayState.instance.initHScript(scriptFile);
+			}
+			#end
+		});
+		Lua_helper.add_callback(lua, "removeLuaScript", function(luaFile:String) {
+			if(PlayState.instance != null) {
+				for(luaInstance in PlayState.instance.luaArray) {
+					if(luaInstance.scriptName == luaFile) {
+						luaInstance.stop();
+						return true;
+					}
+				}
+			}
+			return false;
+		});
+		Lua_helper.add_callback(lua, "removeHScript", function(scriptFile:String) {
+			#if HSCRIPT_ALLOWED
+			if(PlayState.instance != null) {
+				for(script in PlayState.instance.hscriptArray) {
+					if(script.origin == scriptFile) {
+						script.destroy();
+						return true;
+					}
+				}
+			}
+			#end
+			return false;
+		});
 
-			Lua_helper.add_callback(lua, "setCameraShader", function(camera:String, shader:String) {
-				if(!ClientPrefs.data.shaders) return false;
-				if(!runtimeShaders.exists(shader)) return false;
-				var cam:FlxCamera = getCameraByName(camera);
-				var arr:Array<String> = runtimeShaders.get(shader);
-				var rShader:FlxRuntimeShader = new shaders.ErrorHandledShader.ErrorHandledRuntimeShader(shader, arr[0], arr[1]);
-				cameraShaders.set(camera, rShader);
-				cam.setFilters([new openfl.filters.ShaderFilter(cast rShader)]);
+		Lua_helper.add_callback(lua, "getTextFromFile", function(path:String, ?ignoreModFolders:Bool = false) {
+			return Paths.getTextFromFile(path, ignoreModFolders);
+		});
+		Lua_helper.add_callback(lua, "saveFile", function(path:String, content:String, ?absolute:Bool = false) {
+			try {
+				#if MODS_ALLOWED
+				if(!absolute)
+					File.saveContent(Paths.mods(path), content);
+				else
+				#end
+					File.saveContent(path, content);
 				return true;
-			});
-			Lua_helper.add_callback(lua, "removeCameraShader", function(camera:String) {
-				var cam:FlxCamera = getCameraByName(camera);
-				cameraShaders.remove(camera);
-				cam.setFilters([]);
-				return true;
-			});
-			Lua_helper.add_callback(lua, "setCameraShaderFloat", function(camera:String, prop:String, value:Float) {
-				var shader:FlxRuntimeShader = cameraShaders.get(camera);
-				if(shader == null) return false;
-				shader.setFloat(prop, value);
-				return true;
-			});
-			Lua_helper.add_callback(lua, "getCameraShaderFloat", function(camera:String, prop:String) {
-				var shader:FlxRuntimeShader = cameraShaders.get(camera);
-				return shader == null ? null : shader.getFloat(prop);
-			});
-			Lua_helper.add_callback(lua, "setCameraShaderInt", function(camera:String, prop:String, value:Int) {
-				var shader:FlxRuntimeShader = cameraShaders.get(camera);
-				if(shader == null) return false;
-				shader.setInt(prop, value);
-				return true;
-			});
-			Lua_helper.add_callback(lua, "getCameraShaderInt", function(camera:String, prop:String) {
-				var shader:FlxRuntimeShader = cameraShaders.get(camera);
-				return shader == null ? null : shader.getInt(prop);
-			});
-			Lua_helper.add_callback(lua, "setCameraShaderBool", function(camera:String, prop:String, value:Bool) {
-				var shader:FlxRuntimeShader = cameraShaders.get(camera);
-				if(shader == null) return false;
-				shader.setBool(prop, value);
-				return true;
-			});
-			Lua_helper.add_callback(lua, "getCameraShaderBool", function(camera:String, prop:String) {
-				var shader:FlxRuntimeShader = cameraShaders.get(camera);
-				return shader == null ? null : shader.getBool(prop);
-			});
-			Lua_helper.add_callback(lua, "setCameraShaderFloatArray", function(camera:String, prop:String, values:Dynamic) {
-				var shader:FlxRuntimeShader = cameraShaders.get(camera);
-				if(shader == null) return false;
-				shader.setFloatArray(prop, values);
-				return true;
-			});
-			Lua_helper.add_callback(lua, "setCameraShaderSampler2D", function(camera:String, prop:String, bitmapdataPath:String) {
-				var shader:FlxRuntimeShader = cameraShaders.get(camera);
-				if(shader == null) return false;
-				var value = Paths.image(bitmapdataPath);
-				if(value != null && value.bitmap != null) { shader.setSampler2D(prop, value.bitmap); return true; }
-				return false;
-			});
+			} catch(e:Dynamic) {
+				trace('saveFile: Error trying to save ' + path + ': ' + e);
+			}
+			return false;
+		});
+		Lua_helper.add_callback(lua, "deleteFile", function(path:String, ?ignoreModFolders:Bool = false, ?absolute:Bool = false) {
+			try {
+				var lePath:String = path;
+				if(!absolute) lePath = Paths.getPath(path, TEXT, !ignoreModFolders);
+				if(FileSystem.exists(lePath)) {
+					FileSystem.deleteFile(lePath);
+					return true;
+				}
+			} catch(e:Dynamic) {
+				trace('deleteFile: Error trying to delete ' + path + ': ' + e);
+			}
+			return false;
+		});
+		Lua_helper.add_callback(lua, "checkFileExists", function(filename:String, ?absolute:Bool = false) {
+			#if MODS_ALLOWED
+			if(absolute) return FileSystem.exists(filename);
+			return FileSystem.exists(Paths.getPath(filename, TEXT));
+			#else
+			if(absolute) return openfl.utils.Assets.exists(filename, TEXT);
+			return openfl.utils.Assets.exists(Paths.getPath(filename, TEXT));
+			#end
+		});
+		Lua_helper.add_callback(lua, "directoryFileList", function(folder:String) {
+			#if sys
+			if(sys.FileSystem.exists(folder) && sys.FileSystem.isDirectory(folder))
+				return sys.FileSystem.readDirectory(folder);
+			#end
+			return [];
+		});
+		Lua_helper.add_callback(lua, "initSaveData", function(name:String, ?folder:String = 'psychenginemods') {
+			var variables = MusicBeatState.getVariables();
+			if(!variables.exists('save_$name')) {
+				var save:flixel.util.FlxSave = new flixel.util.FlxSave();
+				save.bind(name, CoolUtil.getSavePath() + '/' + folder);
+				variables.set('save_$name', save);
+				return;
+			}
+			trace('initSaveData: Save file already initialized: ' + name);
+		});
+		Lua_helper.add_callback(lua, "eraseSaveData", function(name:String) {
+			var variables = MusicBeatState.getVariables();
+			if(variables.exists('save_$name')) {
+				variables.get('save_$name').erase();
+				return;
+			}
+			trace('eraseSaveData: Save file not initialized: ' + name);
+		});
+		Lua_helper.add_callback(lua, "flushSaveData", function(name:String) {
+			var variables = MusicBeatState.getVariables();
+			if(variables.exists('save_$name')) {
+				variables.get('save_$name').flush();
+				return;
+			}
+			trace('flushSaveData: Save file not initialized: ' + name);
+		});
+		Lua_helper.add_callback(lua, "getDataFromSave", function(name:String, field:String, ?defaultValue:Dynamic = null) {
+			var variables = MusicBeatState.getVariables();
+			if(variables.exists('save_$name')) {
+				var saveData = variables.get('save_$name').data;
+				if(Reflect.hasField(saveData, field))
+					return Reflect.field(saveData, field);
+				else
+					return defaultValue;
+			}
+			trace('getDataFromSave: Save file not initialized: ' + name);
+			return defaultValue;
+		});
+		Lua_helper.add_callback(lua, "setDataFromSave", function(name:String, field:String, value:Dynamic) {
+			var variables = MusicBeatState.getVariables();
+			if(variables.exists('save_$name')) {
+				Reflect.setField(variables.get('save_$name').data, field, value);
+				return;
+			}
+			trace('setDataFromSave: Save file not initialized: ' + name);
+		});
+		Lua_helper.add_callback(lua, "stringStartsWith", function(str:String, start:String) {
+			return str.startsWith(start);
+		});
+		Lua_helper.add_callback(lua, "stringEndsWith", function(str:String, end:String) {
+			return str.endsWith(end);
+		});
+		Lua_helper.add_callback(lua, "stringSplit", function(str:String, split:String) {
+			return str.split(split);
+		});
+		Lua_helper.add_callback(lua, "stringTrim", function(str:String) {
+			return str.trim();
+		});
+		Lua_helper.add_callback(lua, "getRandomBool", function(chance:Float = 50) {
+			return FlxG.random.bool(chance);
+		});
+		Lua_helper.add_callback(lua, "getRandomFloat", function(min:Float, max:Float = 1, exclude:String = '') {
+			var excludeArray:Array<String> = exclude.split(',');
+			var toExclude:Array<Float> = [];
+			for(i in 0...excludeArray.length) {
+				if(exclude == '') break;
+				toExclude.push(Std.parseFloat(excludeArray[i].trim()));
+			}
+			return FlxG.random.float(min, max, toExclude);
+		});
+		Lua_helper.add_callback(lua, "getRandomInt", function(min:Int, max:Int = FlxMath.MAX_VALUE_INT, exclude:String = '') {
+			var excludeArray:Array<String> = exclude.split(',');
+			var toExclude:Array<Int> = [];
+			for(i in 0...excludeArray.length) {
+				if(exclude == '') break;
+				toExclude.push(Std.parseInt(excludeArray[i].trim()));
+			}
+			return FlxG.random.int(min, max, toExclude);
+		});
+		Lua_helper.add_callback(lua, "openCustomSubstate", function(name:String, ?pauseGame:Bool = false) {
+			CustomSubstate.openCustomSubstate(name, pauseGame);
+		});
+		Lua_helper.add_callback(lua, "closeCustomSubstate", function() {
+			return CustomSubstate.closeCustomSubstate();
+		});
+		Lua_helper.add_callback(lua, "insertToCustomSubstate", function(tag:String, ?pos:Int = -1) {
+			return CustomSubstate.insertToCustomSubstate(tag, pos);
+		});
+		#if DISCORD_ALLOWED
+		Lua_helper.add_callback(lua, "changeDiscordPresence", DiscordClient.changePresence);
+		Lua_helper.add_callback(lua, "changeDiscordClientID", function(?newID:String) {
+			if(newID == null) DiscordClient.resetClientID();
+			else DiscordClient.clientID = newID;
+		});
+		#end
+		#if ACHIEVEMENTS_ALLOWED
+		Lua_helper.add_callback(lua, "achievementExists", function(name:String) return Achievements.achievements.exists(name));
+		Lua_helper.add_callback(lua, "getAchievementScore", function(name:String):Float {
+			if(!Achievements.achievements.exists(name)) {
+				trace('getAchievementScore: Couldnt find achievement: $name');
+				return -1;
+			}
+			return Achievements.getScore(name);
+		});
+		Lua_helper.add_callback(lua, "setAchievementScore", function(name:String, ?value:Float = 0, ?saveIfNotUnlocked:Bool = true):Float {
+			if(!Achievements.achievements.exists(name)) {
+				trace('setAchievementScore: Couldnt find achievement: $name');
+				return -1;
+			}
+			return Achievements.setScore(name, value, saveIfNotUnlocked);
+		});
+		Lua_helper.add_callback(lua, "addAchievementScore", function(name:String, ?value:Float = 1, ?saveIfNotUnlocked:Bool = true):Float {
+			if(!Achievements.achievements.exists(name)) {
+				trace('addAchievementScore: Couldnt find achievement: $name');
+				return -1;
+			}
+			return Achievements.addScore(name, value, saveIfNotUnlocked);
+		});
+		Lua_helper.add_callback(lua, "unlockAchievement", function(name:String):Dynamic {
+			if(!Achievements.achievements.exists(name)) {
+				trace('unlockAchievement: Couldnt find achievement: $name');
+				return null;
+			}
+			return Achievements.unlock(name);
+		});
+		Lua_helper.add_callback(lua, "isAchievementUnlocked", function(name:String):Dynamic {
+			if(!Achievements.achievements.exists(name)) {
+				trace('isAchievementUnlocked: Couldnt find achievement: $name');
+				return null;
+			}
+			return Achievements.isUnlocked(name);
+		});
+		#end
+		#if TRANSLATIONS_ALLOWED
+		Lua_helper.add_callback(lua, "getTranslationPhrase", function(key:String, ?defaultPhrase:String, ?values:Array<Dynamic> = null) {
+			return Language.getPhrase(key, defaultPhrase, values);
+		});
+		Lua_helper.add_callback(lua, "getFileTranslation", function(key:String) {
+			return Language.getFileTranslation(key);
+		});
+		Lua_helper.add_callback(lua, "setTranslationPhrase", function(key:String, value:String) {
+			Language.setPhrase(key, value);
+		});
+		Lua_helper.add_callback(lua, "setFileTranslation", function(key:String, value:String) {
+			Language.setFileTranslation(key, value);
+		});
+		#end
+		Lua_helper.add_callback(lua, "addCharacterToList", function(name:String, type:String) {
+			if(PlayState.instance == null) return;
+			var charType:Int = 0;
+			switch(type.toLowerCase()) {
+				case 'dad': charType = 1;
+				case 'gf' | 'girlfriend': charType = 2;
+			}
+			PlayState.instance.addCharacterToList(name, charType);
+		});
+		Lua_helper.add_callback(lua, "getCharacterX", function(type:String) {
+			if(PlayState.instance == null) return 0.0;
+			switch(type.toLowerCase()) {
+				case 'dad' | 'opponent': return PlayState.instance.dadGroup.x;
+				case 'gf' | 'girlfriend': return PlayState.instance.gfGroup.x;
+				default: return PlayState.instance.boyfriendGroup.x;
+			}
+		});
+		Lua_helper.add_callback(lua, "setCharacterX", function(type:String, value:Float) {
+			if(PlayState.instance == null) return;
+			switch(type.toLowerCase()) {
+				case 'dad' | 'opponent': PlayState.instance.dadGroup.x = value;
+				case 'gf' | 'girlfriend': PlayState.instance.gfGroup.x = value;
+				default: PlayState.instance.boyfriendGroup.x = value;
+			}
+		});
+		Lua_helper.add_callback(lua, "getCharacterY", function(type:String) {
+			if(PlayState.instance == null) return 0.0;
+			switch(type.toLowerCase()) {
+				case 'dad' | 'opponent': return PlayState.instance.dadGroup.y;
+				case 'gf' | 'girlfriend': return PlayState.instance.gfGroup.y;
+				default: return PlayState.instance.boyfriendGroup.y;
+			}
+		});
+		Lua_helper.add_callback(lua, "setCharacterY", function(type:String, value:Float) {
+			if(PlayState.instance == null) return;
+			switch(type.toLowerCase()) {
+				case 'dad' | 'opponent': PlayState.instance.dadGroup.y = value;
+				case 'gf' | 'girlfriend': PlayState.instance.gfGroup.y = value;
+				default: PlayState.instance.boyfriendGroup.y = value;
+			}
+		});
+		Lua_helper.add_callback(lua, "characterDance", function(character:String) {
+			if(PlayState.instance == null) return;
+			switch(character.toLowerCase()) {
+				case 'dad': PlayState.instance.dad.dance();
+				case 'gf' | 'girlfriend':
+					if(PlayState.instance.gf != null) PlayState.instance.gf.dance();
+				default: PlayState.instance.boyfriend.dance();
+			}
+		});
 
 		#if HSCRIPT_ALLOWED
 		Lua_helper.add_callback(lua, "runHaxeCode", function(codeToRun:String, ?varsToBring:Any = null, ?funcToRun:String = null, ?funcArgs:Array<Dynamic> = null):Dynamic {

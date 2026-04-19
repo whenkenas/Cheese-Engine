@@ -54,6 +54,18 @@ class Language
 		#end
 	}
 
+	#if TRANSLATIONS_ALLOWED
+	public static function setPhrase(key:String, value:String):Void
+	{
+		phrases.set(formatKey(key), value);
+	}
+
+	public static function setFileTranslation(key:String, value:String):Void
+	{
+		phrases.set(key.trim().toLowerCase(), value);
+	}
+	#end
+
 	inline public static function getPhrase(key:String, ?defaultPhrase:String, values:Array<Dynamic> = null):String
 	{
 		#if TRANSLATIONS_ALLOWED
@@ -101,6 +113,16 @@ class Language
 		Lua_helper.add_callback(lua, "getFileTranslation", function(key:String) {
 			return getFileTranslation(key);
 		});
+
+		#if TRANSLATIONS_ALLOWED
+		Lua_helper.add_callback(lua, "setTranslationPhrase", function(key:String, value:String) {
+			setPhrase(key, value);
+		});
+
+		Lua_helper.add_callback(lua, "setFileTranslation", function(key:String, value:String) {
+			setFileTranslation(key, value);
+		});
+		#end
 	}
 	#end
 }

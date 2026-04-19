@@ -5,6 +5,22 @@ import lime.utils.Assets;
 
 import objects.Note;
 
+typedef ExtraStrumlineData =
+{
+	var character:String;
+	var type:String;
+	var stagePosition:String;
+	var scale:Float;
+	var spacing:Float;
+	var hudX:Float;
+	var hudY:Float;
+	var visible:Bool;
+	var scrollSpeed:Float;
+	var usesChartScroll:Bool;
+	var useExistingStrumline:Bool;
+	@:optional var layer:Int;
+}
+
 typedef SwagSong =
 {
 	var song:String;
@@ -28,10 +44,14 @@ typedef SwagSong =
 	@:optional var gameOverEnd:String;
 	
 	@:optional var disableNoteRGB:Bool;
+	@:optional var disableSplashRGB:Bool;
+	@:optional var disableHoldRGB:Bool;
 
 	@:optional var arrowSkin:String;
 	@:optional var splashSkin:String;
 	@:optional var holdCoverSkin:String;
+
+	@:optional var extraStrumlines:Array<ExtraStrumlineData>;
 }
 
 typedef SwagSection =
@@ -60,6 +80,8 @@ class Song
 	public var gameOverLoop:String;
 	public var gameOverEnd:String;
 	public var disableNoteRGB:Bool = false;
+	public var disableSplashRGB:Bool = false;
+	public var disableHoldRGB:Bool = false;
 	public var speed:Float = 1;
 	public var stage:String;
 	public var player1:String = 'bf';

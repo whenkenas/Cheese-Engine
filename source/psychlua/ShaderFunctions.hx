@@ -11,18 +11,19 @@ class ShaderFunctions
 
 	public static function getCameraByName(name:String):FlxCamera {
 		return switch(name.toLowerCase()) {
-			case 'camgame' | 'game': PlayState.instance.camGame;
-			case 'camhud' | 'hud': PlayState.instance.camHUD;
-			case 'camother' | 'other': PlayState.instance.camOther;
+			case 'camgame' | 'game': PlayState.instance != null ? PlayState.instance.camGame : FlxG.camera;
+			case 'camhud' | 'hud': PlayState.instance != null ? PlayState.instance.camHUD : FlxG.camera;
+			case 'camother' | 'other': PlayState.instance != null ? PlayState.instance.camOther : FlxG.camera;
+			case 'camera': FlxG.camera;
 			default:
 				var cam:Dynamic = MusicBeatState.getVariables().get(name);
-				(cam != null && Std.isOfType(cam, FlxCamera)) ? cast cam : PlayState.instance.camGame;
+				(cam != null && Std.isOfType(cam, FlxCamera)) ? cast cam : FlxG.camera;
 		};
 	}
 
 	public static function isCamera(obj:String):Bool {
 		return switch(obj.toLowerCase()) {
-			case 'camgame' | 'game' | 'camhud' | 'hud' | 'camother' | 'other': true;
+			case 'camgame' | 'game' | 'camhud' | 'hud' | 'camother' | 'other' | 'camera': true;
 			default:
 				var cam:Dynamic = MusicBeatState.getVariables().get(obj);
 				(cam != null && Std.isOfType(cam, FlxCamera));

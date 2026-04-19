@@ -169,6 +169,8 @@ class PlayState extends MusicBeatState
 	public var dad:Character = null;
 	public var gf:Character = null;
 	public var boyfriend:Character = null;
+	public var extraCharacters:Array<Character> = [];
+	public var extraCharacterGroups:Array<FlxSpriteGroup> = [];
 
 	public var notes:FlxTypedGroup<Note>;
 	public var unspawnNotes:Array<Note> = [];
@@ -185,6 +187,7 @@ class PlayState extends MusicBeatState
 	public var strumlineBackgroundOpponent:FlxSprite;
 	public var holdCovers:Map<String, HoldCover> = new Map<String, HoldCover>();
 	public var grpHoldCovers:FlxTypedGroup<HoldCover> = new FlxTypedGroup<HoldCover>();
+	public var extraStrumGroups:Array<FlxTypedGroup<StrumNote>> = [];
 
 	public var camZooming:Bool = false;
 	public var camZoomingMult:Float = 1;
@@ -452,6 +455,33 @@ class PlayState extends MusicBeatState
 		boyfriend = new Character(0, 0, SONG.player1, true);
 		startCharacterPos(boyfriend);
 		boyfriendGroup.add(boyfriend);
+		if(SONG.extraStrumlines != null)
+		{
+			for(strumData in SONG.extraStrumlines)
+			{
+				var isPlayer:Bool = (strumData.type == 'PLAYER');
+				var extraChar:Character = new Character(0, 0, strumData.character, isPlayer);
+
+				var baseX:Float = DAD_X;
+				var baseY:Float = DAD_Y;
+				switch(strumData.stagePosition)
+				{
+					case 'BF':
+						baseX = BF_X;
+						baseY = BF_Y;
+					case 'GF':
+						baseX = GF_X;
+						baseY = GF_Y;
+				}
+
+				var extraGroup:FlxSpriteGroup = new FlxSpriteGroup(baseX, baseY);
+				extraGroup.add(extraChar);
+				startCharacterPos(extraChar);
+
+				extraCharacters.push(extraChar);
+				extraCharacterGroups.push(extraGroup);
+			}
+		}
 		
 		if(stageData.objects != null && stageData.objects.length > 0)
 		{
@@ -463,7 +493,37 @@ class PlayState extends MusicBeatState
 		else
 		{
 			add(gfGroup);
+
+			var dadExtras:Array<FlxSpriteGroup> = [];
+			var bfExtras:Array<FlxSpriteGroup> = [];
+			var gfExtras:Array<FlxSpriteGroup> = [];
+
+			if(SONG.extraStrumlines != null)
+			{
+				for(i in 0...extraCharacterGroups.length)
+				{
+					var strumData = SONG.extraStrumlines[i];
+					switch(strumData.stagePosition)
+					{
+						case 'BF':
+							bfExtras.push(extraCharacterGroups[i]);
+						case 'GF':
+							gfExtras.push(extraCharacterGroups[i]);
+						default:
+							dadExtras.push(extraCharacterGroups[i]);
+					}
+				}
+			}
+
+			for(extraGroup in gfExtras)
+				add(extraGroup);
+
+			for(extraGroup in dadExtras)
+				add(extraGroup);
 			add(dadGroup);
+
+			for(extraGroup in bfExtras)
+				add(extraGroup);
 			add(boyfriendGroup);
 		}
 		
@@ -1081,6 +1141,12 @@ class PlayState extends MusicBeatState
 			generateStaticArrows(0);
 			generateStaticArrows(1);
 			linkHoldCoversToStrums();
+
+			if (SONG.extraStrumlines != null)
+			{
+				for (i in 0...SONG.extraStrumlines.length)
+					generateExtraStrumArrows(i, SONG.extraStrumlines[i]);
+			}
 			
 			if(opponentMode)
 			{
@@ -1498,11 +1564,15 @@ class PlayState extends MusicBeatState
 					holdLength = 0.0;
 
 				var gottaHitNote:Bool = (songNotes[1] < totalColumns);
+				var curStrumlineIndex:Int = Math.floor(Std.int(songNotes[1]) / totalColumns);
 
 				if (i != 0) {
 					// CLEAR ANY POSSIBLE GHOST NOTES
 					for (evilNote in unspawnNotes) {
-						var matches: Bool = (noteColumn == evilNote.noteData && gottaHitNote == evilNote.mustPress && evilNote.noteType == noteType);
+						var evilStrumIdx:Int = (evilNote.extraData != null && evilNote.extraData.exists('strumlineIndex'))
+							? Std.int(evilNote.extraData.get('strumlineIndex'))
+							: (evilNote.mustPress ? 0 : 1);
+						var matches: Bool = (noteColumn == evilNote.noteData && gottaHitNote == evilNote.mustPress && evilNote.noteType == noteType && curStrumlineIndex == evilStrumIdx);
 						if (matches && Math.abs(spawnTime - evilNote.strumTime) < flixel.math.FlxMath.EPSILON) {
 							if (evilNote.tail.length > 0)
 								for (tail in evilNote.tail)
@@ -1537,11 +1607,31 @@ class PlayState extends MusicBeatState
 				swagNote.mustPress = gottaHitNote;
 				swagNote.sustainLength = holdLength;
 				swagNote.noteType = noteType;
-				
+
+				var rawColumn:Int = Std.int(songNotes[1]);
+				var strumlineIndex:Int = Math.floor(rawColumn / totalColumns);
+				if (strumlineIndex > 1)
+				{
+					if (swagNote.extraData == null) swagNote.extraData = new Map<String, Dynamic>();
+					swagNote.extraData.set('strumlineIndex', strumlineIndex);
+					var extraSData:ExtraStrumlineData = (SONG.extraStrumlines != null) ? SONG.extraStrumlines[strumlineIndex - 2] : null;
+					swagNote.mustPress = (extraSData != null && extraSData.type == 'PLAYER');
+					if (extraSData != null && extraSData.scale != 0 && extraSData.scale != 1)
+						swagNote.extraData.set('noteScale', extraSData.scale);
+				}
+
 				if(noteType == 'Alt Animation' && songNotes.length > 4 && songNotes[4] != null && songNotes[4] != '')
 					swagNote.animSuffix = songNotes[4];
 					swagNote.texture = '';
 				swagNote.reloadNote();
+
+				if (swagNote.extraData != null && swagNote.extraData.exists('noteScale'))
+				{
+					var ns:Float = swagNote.extraData.get('noteScale');
+					swagNote.scale.x = ns;
+					swagNote.scale.y = ns;
+					swagNote.updateHitbox();
+				}
 	
 				swagNote.scrollFactor.set();
 				unspawnNotes.push(swagNote);
@@ -1561,6 +1651,13 @@ class PlayState extends MusicBeatState
 						sustainNote.noteType = swagNote.noteType;
 						sustainNote.scrollFactor.set();
 						sustainNote.parent = swagNote;
+						if (swagNote.extraData != null && swagNote.extraData.exists('strumlineIndex'))
+						{
+							if (sustainNote.extraData == null) sustainNote.extraData = new Map<String, Dynamic>();
+							sustainNote.extraData.set('strumlineIndex', swagNote.extraData.get('strumlineIndex'));
+							if (swagNote.extraData.exists('noteScale'))
+								sustainNote.extraData.set('noteScale', swagNote.extraData.get('noteScale'));
+						}
 						unspawnNotes.push(sustainNote);
 						swagNote.tail.push(sustainNote);
 
@@ -1589,6 +1686,13 @@ class PlayState extends MusicBeatState
 							sustainNote.x += 310;
 							if(noteColumn > 1) //Up and Right
 								sustainNote.x += FlxG.width / 2 + 25;
+						}
+
+						if (sustainNote.extraData != null && sustainNote.extraData.exists('noteScale'))
+						{
+							var ns:Float = sustainNote.extraData.get('noteScale');
+							sustainNote.scale.x = ns;
+							sustainNote.updateHitbox();
 						}
 					}
 				}
@@ -1771,6 +1875,46 @@ class PlayState extends MusicBeatState
 		updateStrumlineBackgrounds();
 	}
 
+	private function generateExtraStrumArrows(strumIndex:Int, strumData:ExtraStrumlineData):Void
+	{
+		if (strumData.useExistingStrumline)
+		{
+			extraStrumGroups.push(opponentStrums);
+			return;
+		}
+
+		var strumGroup:FlxTypedGroup<StrumNote> = new FlxTypedGroup<StrumNote>();
+		var strumLineY:Float = ClientPrefs.data.downScroll ? (FlxG.height - 150) : 50;
+
+		var baseX:Float = strumData.hudX;
+		var baseY:Float = strumData.hudY != 0 ? (ClientPrefs.data.downScroll ? FlxG.height - 100 - strumData.hudY : strumData.hudY) : strumLineY;
+		var noteSpacing:Float = strumData.spacing != 0 ? strumData.spacing : 112;
+		var noteScale:Float = strumData.scale != 0 ? strumData.scale : 1;
+
+		for (i in 0...4)
+		{
+			var babyArrow:StrumNote = new StrumNote(baseX + (noteSpacing * i), baseY, i, 0);
+			babyArrow.downScroll = ClientPrefs.data.downScroll;
+			babyArrow.setGraphicSize(Std.int(babyArrow.width * noteScale));
+			babyArrow.updateHitbox();
+
+			if (!isStoryMode && !skipArrowStartTween)
+			{
+				babyArrow.alpha = 0;
+				FlxTween.tween(babyArrow, {alpha: 1}, 1, {ease: FlxEase.circOut, startDelay: 0.5 + (0.2 * i)});
+			}
+
+			if (strumData.visible == false)
+				babyArrow.visible = false;
+
+			strumGroup.add(babyArrow);
+			strumLineNotes.add(babyArrow);
+			babyArrow.playerPosition();
+		}
+
+		extraStrumGroups.push(strumGroup);
+	}
+
 	private function initializeHoldCovers():Void
 	{
 		for (i in 0...4)
@@ -1822,6 +1966,7 @@ class PlayState extends MusicBeatState
 							cover.rgbShader.b = arr[2];
 						}
 					}
+					if(SONG != null && SONG.disableHoldRGB) cover.rgbShader.enabled = false;
 				}
 			}
 		}
@@ -2144,8 +2289,13 @@ class PlayState extends MusicBeatState
 							var strumGroup:FlxTypedGroup<StrumNote> = playerStrums;
 							if(!daNote.mustPress) strumGroup = opponentStrums;
 
+							var extraStrumIdx:Int = (daNote.extraData != null) ? Std.int(daNote.extraData.get('strumlineIndex')) : -1;
+							if (extraStrumIdx >= 2 && extraStrumGroups[extraStrumIdx - 2] != null)
+								strumGroup = extraStrumGroups[extraStrumIdx - 2];
+
 							var strum:StrumNote = strumGroup.members[daNote.noteData];
 							daNote.followStrumNote(strum, fakeCrochet, songSpeed / playbackRate);
+							if (!strum.visible) daNote.visible = false;
 
 							if(daNote.mustPress)
 							{
@@ -2941,6 +3091,138 @@ class PlayState extends MusicBeatState
 								songSpeedTween = null;
 							}
 						});
+				}
+
+			case 'Change Note Skin':
+				var rawNoteSkin:String = value1.trim();
+				if(rawNoteSkin.length > 0)
+				{
+					if(!rawNoteSkin.contains('/') && !Paths.fileExists('images/$rawNoteSkin.png', IMAGE)
+						&& Paths.fileExists('images/noteSkins/$rawNoteSkin.png', IMAGE))
+						rawNoteSkin = 'noteSkins/$rawNoteSkin';
+					SONG.arrowSkin = rawNoteSkin;
+				}
+				else
+					SONG.arrowSkin = null;
+				var noteTarget:String = value2.trim().toLowerCase();
+				for (note in notes)
+				{
+					if(note == null) continue;
+					if(note.strumTime < strumTime) continue;
+					if(noteTarget == 'bf' && !note.mustPress) continue;
+					if(noteTarget == 'dad' && note.mustPress) continue;
+					note.texture = '';
+					note.reloadNote();
+				}
+				for (note in unspawnNotes)
+				{
+					if(note == null) continue;
+					if(noteTarget == 'bf' && !note.mustPress) continue;
+					if(noteTarget == 'dad' && note.mustPress) continue;
+					note.texture = '';
+					note.reloadNote();
+				}
+
+			case 'Change NoteStrum Skin':
+				var strumTarget:String = value2.trim().toLowerCase();
+				var strumSkin:String = value1.trim();
+				if(strumSkin.length > 0 && !strumSkin.contains('/')
+					&& !Paths.fileExists('images/$strumSkin.png', IMAGE)
+					&& Paths.fileExists('images/noteSkins/$strumSkin.png', IMAGE))
+					strumSkin = 'noteSkins/$strumSkin';
+				for (strum in strumLineNotes)
+				{
+					if(strum == null) continue;
+					var isPlayerStrum:Bool = playerStrums.members.contains(strum);
+					if(strumTarget == 'bf' && !isPlayerStrum) continue;
+					if(strumTarget == 'dad' && isPlayerStrum) continue;
+					strum.texture = strumSkin;
+				}
+
+			case 'Change Hold Cover Skin':
+				var rawCoverSkin:String = value1.trim();
+				if(rawCoverSkin.length > 0)
+				{
+					if(!rawCoverSkin.contains('/') && !Paths.fileExists('images/$rawCoverSkin.png', IMAGE)
+					&& (Paths.fileExists('images/holdCovers/$rawCoverSkin.png', IMAGE)
+						|| Paths.fileExists('images/holdCovers/$rawCoverSkin.json', TEXT)))
+					rawCoverSkin = 'holdCovers/$rawCoverSkin';
+					SONG.holdCoverSkin = rawCoverSkin;
+				}
+				else
+					SONG.holdCoverSkin = null;
+				if(holdCovers.keys().hasNext())
+				{
+					var coverTarget:String = value2.trim().toLowerCase();
+					for (i in 0...4)
+					{
+						var colorName:String = HoldCover.getColorName(i);
+						if(coverTarget != 'dad')
+						{
+							var oldBF:HoldCover = holdCovers.get('hold' + colorName + 'BF');
+							if(oldBF != null)
+							{
+								grpHoldCovers.remove(oldBF, true);
+								noteGroup.remove(oldBF, true);
+							}
+							var newBF:HoldCover = new HoldCover(i, false, isPixelStage, camHUD);
+							holdCovers.set('hold' + colorName + 'BF', newBF);
+							grpHoldCovers.add(newBF);
+							noteGroup.add(newBF);
+							if(playerStrums.members[i] != null)
+								playerStrums.members[i].holdCover = newBF;
+						}
+						if(coverTarget != 'bf')
+						{
+							var oldDAD:HoldCover = holdCovers.get('hold' + colorName + 'DAD');
+							if(oldDAD != null)
+							{
+								grpHoldCovers.remove(oldDAD, true);
+								noteGroup.remove(oldDAD, true);
+							}
+							var newDAD:HoldCover = new HoldCover(i, true, isPixelStage, camHUD);
+							holdCovers.set('hold' + colorName + 'DAD', newDAD);
+							grpHoldCovers.add(newDAD);
+							noteGroup.add(newDAD);
+							if(opponentStrums.members[i] != null)
+								opponentStrums.members[i].holdCover = newDAD;
+						}
+					}
+					applyRGBShadersToHoldCovers();
+				}
+
+			case 'Change Note Splash Skin':
+				var rawSplashSkin:String = value1.trim();
+				if(rawSplashSkin.length > 0)
+				{
+					if(!rawSplashSkin.contains('/') && !Paths.fileExists('images/$rawSplashSkin.png', IMAGE)
+					&& (Paths.fileExists('images/noteSplashes/$rawSplashSkin.png', IMAGE)
+						|| Paths.fileExists('images/noteSplashes/$rawSplashSkin.json', TEXT)))
+					rawSplashSkin = 'noteSplashes/$rawSplashSkin';
+					SONG.splashSkin = rawSplashSkin;
+				}
+				else
+					SONG.splashSkin = null;
+				var splashTarget:String = value2.trim().toLowerCase();
+				for (note in notes)
+				{
+					if(note == null) continue;
+					if(note.strumTime < strumTime) continue;
+					if(splashTarget == 'bf' && !note.mustPress) continue;
+					if(splashTarget == 'dad' && note.mustPress) continue;
+					note.noteSplashData.texture = SONG.splashSkin;
+				}
+				for (note in unspawnNotes)
+				{
+					if(note == null) continue;
+					if(splashTarget == 'bf' && !note.mustPress) continue;
+					if(splashTarget == 'dad' && note.mustPress) continue;
+					note.noteSplashData.texture = SONG.splashSkin;
+				}
+				for (splash in grpNoteSplashes)
+				{
+					if(splash == null) continue;
+					splash.loadSplash(rawSplashSkin.length > 0 ? rawSplashSkin : null);
 				}
 
 			case 'Set Property':
@@ -4462,37 +4744,83 @@ class PlayState extends MusicBeatState
 		var ret:Dynamic = callOnScripts('onKeyPressPre', [key]);
 		if(ret == LuaUtils.Function_Stop) return;
 
-		// more accurate hit time for the ratings?
 		var lastTime:Float = Conductor.songPosition;
 		if(Conductor.songPosition >= 0) Conductor.songPosition = FlxG.sound.music.time + Conductor.offset;
 
-		// obtain notes that the player can hit
 		var plrInputNotes:Array<Note> = notes.members.filter(function(n:Note):Bool {
 			var canHit:Bool = n != null && !strumsBlocked[n.noteData] && n.canBeHit && n.mustPress && !n.tooLate && !n.wasGoodHit && !n.blockHit;
-			return canHit && !n.isSustainNote && n.noteData == key;
+			var extraIdx:Int = (n.extraData != null) ? Std.int(n.extraData.get('strumlineIndex')) : -1;
+			var isBF:Bool = (extraIdx < 2);
+			return canHit && !n.isSustainNote && n.noteData == key && isBF;
 		});
 		plrInputNotes.sort(sortHitNotes);
 
-		if (plrInputNotes.length != 0) { // slightly faster than doing `> 0` lol
-			var funnyNote:Note = plrInputNotes[0]; // front note
+		var hitSomething:Bool = false;
+		if (plrInputNotes.length != 0) {
+			var funnyNote:Note = plrInputNotes[0];
 
 			if (plrInputNotes.length > 1) {
 				var doubleNote:Note = plrInputNotes[1];
 
 				if (doubleNote.noteData == funnyNote.noteData) {
-					// if the note has a 0ms distance (is on top of the current note), kill it
 					if (Math.abs(doubleNote.strumTime - funnyNote.strumTime) < 1.0)
 						invalidateNote(doubleNote);
 					else if (doubleNote.strumTime < funnyNote.strumTime)
-					{
-						// replace the note if its ahead of time (or at least ensure "doubleNote" is ahead)
 						funnyNote = doubleNote;
-					}
 				}
 			}
 			goodNoteHit(funnyNote);
+			hitSomething = true;
 		}
-		else
+
+		if (SONG.extraStrumlines != null)
+		{
+			for (i in 0...SONG.extraStrumlines.length)
+			{
+				var extraSData:ExtraStrumlineData = SONG.extraStrumlines[i];
+				if (extraSData == null || extraSData.type != 'PLAYER') continue;
+
+				var extraStrumlineIdx:Int = i + 2;
+				var extraInputNotes:Array<Note> = notes.members.filter(function(n:Note):Bool {
+					var canHit:Bool = n != null && !strumsBlocked[n.noteData] && n.canBeHit && n.mustPress && !n.tooLate && !n.wasGoodHit && !n.blockHit;
+					var extraIdx:Int = (n.extraData != null) ? Std.int(n.extraData.get('strumlineIndex')) : -1;
+					return canHit && !n.isSustainNote && n.noteData == key && extraIdx == extraStrumlineIdx;
+				});
+				extraInputNotes.sort(sortHitNotes);
+
+				if (extraInputNotes.length != 0)
+				{
+					var funnyNote:Note = extraInputNotes[0];
+					if (extraInputNotes.length > 1)
+					{
+						var doubleNote:Note = extraInputNotes[1];
+						if (doubleNote.noteData == funnyNote.noteData)
+						{
+							if (Math.abs(doubleNote.strumTime - funnyNote.strumTime) < 1.0)
+								invalidateNote(doubleNote);
+							else if (doubleNote.strumTime < funnyNote.strumTime)
+								funnyNote = doubleNote;
+						}
+					}
+					goodNoteHit(funnyNote);
+					hitSomething = true;
+				}
+				else
+				{
+					if (!ClientPrefs.data.ghostTapping)
+						noteMissPress(key);
+				}
+
+				var extraSpr:StrumNote = extraStrumGroups[i] != null ? extraStrumGroups[i].members[key] : null;
+				if (strumsBlocked[key] != true && extraSpr != null && extraSpr.animation != null && extraSpr.animation.curAnim != null && extraSpr.animation.curAnim.name != 'confirm')
+				{
+					extraSpr.playAnim('pressed');
+					extraSpr.resetAnim = 0;
+				}
+			}
+		}
+
+		if (!hitSomething)
 		{
 			if (ClientPrefs.data.ghostTapping)
 				callOnScripts('onGhostTap', [key]);
@@ -4500,11 +4828,8 @@ class PlayState extends MusicBeatState
 				noteMissPress(key);
 		}
 
-		// Needed for the  "Just the Two of Us" achievement.
-		//									- Shadow Mario
 		if(!keysPressed.contains(key)) keysPressed.push(key);
 
-		//more accurate hit time for the ratings? part 2 (Now that the calculations are done, go back to the time it was before for not causing a note stutter)
 		Conductor.songPosition = lastTime;
 
 		var spr:StrumNote = playerStrums.members[key];
@@ -4545,6 +4870,30 @@ class PlayState extends MusicBeatState
 		{
 			spr.playAnim('static');
 			spr.resetAnim = 0;
+		}
+
+		if (SONG.extraStrumlines != null)
+		{
+			for (i in 0...SONG.extraStrumlines.length)
+			{
+				var extraSData:ExtraStrumlineData = SONG.extraStrumlines[i];
+				if (extraSData == null || extraSData.type != 'PLAYER') continue;
+
+				var extraSpr:StrumNote = extraStrumGroups[i] != null ? extraStrumGroups[i].members[key] : null;
+				if (extraSpr != null)
+				{
+					extraSpr.playAnim('static');
+					extraSpr.resetAnim = 0;
+				}
+
+				if(ClientPrefs.data.holdCoverAlpha > 0)
+				{
+					var color:String = HoldCover.getColorName(key);
+					var coverName:String = 'hold' + color + 'BF';
+					if(holdCovers.exists(coverName))
+						holdCovers.get(coverName).hide();
+				}
+			}
 		}
 		
 		if(ClientPrefs.data.holdCoverAlpha > 0)
@@ -4591,7 +4940,7 @@ class PlayState extends MusicBeatState
 		if (startedCountdown && !inCutscene && !boyfriend.stunned && generatedMusic)
 		{
 			if (notes.length > 0) {
-				for (n in notes) { // I can't do a filter here, that's kinda awesome
+				for (n in notes) {
 					var canHit:Bool = (n != null && !strumsBlocked[n.noteData] && n.canBeHit
 						&& n.mustPress && !n.tooLate && !n.wasGoodHit && !n.blockHit);
 
@@ -4781,7 +5130,17 @@ class PlayState extends MusicBeatState
 			note.hitByOpponent = true;
 
 			if(ClientPrefs.data.holdCoverAlpha > 0 && note.isSustainNote)
-				handleHoldCoverHit(note, true);
+			{
+				var extraOpponentIdx:Int = (note.extraData != null) ? Std.int(note.extraData.get('strumlineIndex')) : -1;
+				if (extraOpponentIdx >= 2 && extraStrumGroups[extraOpponentIdx - 2] != null)
+				{
+					var strum:StrumNote = extraStrumGroups[extraOpponentIdx - 2].members[note.noteData];
+					if (strum != null && strum.visible)
+						handleHoldCoverHit(note, true);
+				}
+				else
+					handleHoldCoverHit(note, true);
+			}
 
 			if (!note.isSustainNote) invalidateNote(note);
 			return;
@@ -4941,6 +5300,10 @@ class PlayState extends MusicBeatState
 				var char:Character = dad;
 				if(note.gfNote && note.noteType != 'Boyfriend SING') char = gf;
 
+				var extraStrumIdx:Int = (note.extraData != null) ? Std.int(note.extraData.get('strumlineIndex')) : -1;
+				if (extraStrumIdx >= 2 && extraCharacters[extraStrumIdx - 2] != null)
+					char = extraCharacters[extraStrumIdx - 2];
+
 				if(char != null)
 				{
 					var canPlay:Bool = true;
@@ -4957,12 +5320,26 @@ class PlayState extends MusicBeatState
 			}
 		}
 
+		var extraStrumIdxForAnim:Int = (note.extraData != null) ? Std.int(note.extraData.get('strumlineIndex')) : -1;
 		if(opponentVocals.length <= 0) vocals.volume = 1;
-		strumPlayAnim(true, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
+		if (extraStrumIdxForAnim >= 2 && extraStrumGroups[extraStrumIdxForAnim - 2] != null)
+			strumPlayAnim_extra(extraStrumIdxForAnim - 2, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
+		else
+			strumPlayAnim(true, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
 		note.hitByOpponent = true;
 
 		if(ClientPrefs.data.holdCoverAlpha > 0 && note.isSustainNote)
-			handleHoldCoverHit(note, true);
+		{
+			var extraOpponentIdx:Int = (note.extraData != null) ? Std.int(note.extraData.get('strumlineIndex')) : -1;
+			if (extraOpponentIdx >= 2 && extraStrumGroups[extraOpponentIdx - 2] != null)
+			{
+				var strum:StrumNote = extraStrumGroups[extraOpponentIdx - 2].members[note.noteData];
+				if (strum != null && strum.visible)
+					handleHoldCoverHit(note, true);
+			}
+			else
+				handleHoldCoverHit(note, true);
+		}
 
 		stagesFunc(function(stage:BaseStage) stage.opponentNoteHit(note));
 		var result:Dynamic = callOnLuas('opponentNoteHit', [notes.members.indexOf(note), Math.abs(note.noteData), note.noteType, note.isSustainNote]);
@@ -5007,6 +5384,10 @@ class PlayState extends MusicBeatState
 					char = gf;
 					animCheck = 'cheer';
 				}
+
+				var extraHitIdx:Int = (note.extraData != null) ? Std.int(note.extraData.get('strumlineIndex')) : -1;
+				if (extraHitIdx >= 2 && extraCharacters[extraHitIdx - 2] != null)
+					char = extraCharacters[extraHitIdx - 2];
 
 				if(note.noteType == 'Opponent Sing')
 				{
@@ -5139,8 +5520,17 @@ class PlayState extends MusicBeatState
 
 			if(!cpuControlled)
 			{
-				var spr = playerStrums.members[note.noteData];
-				if(spr != null) spr.playAnim('confirm', true);
+				var extraHitIdx2:Int = (note.extraData != null) ? Std.int(note.extraData.get('strumlineIndex')) : -1;
+				if (extraHitIdx2 >= 2 && extraStrumGroups[extraHitIdx2 - 2] != null)
+				{
+					var spr = extraStrumGroups[extraHitIdx2 - 2].members[note.noteData];
+					if(spr != null) spr.playAnim('confirm', true);
+				}
+				else
+				{
+					var spr = playerStrums.members[note.noteData];
+					if(spr != null) spr.playAnim('confirm', true);
+				}
 			}
 			else strumPlayAnim(false, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
 			vocals.volume = 1;
@@ -5175,9 +5565,31 @@ class PlayState extends MusicBeatState
 			if(!note.noteSplashData.disabled && !note.isSustainNote) spawnNoteSplashOnNote(note);
 		}
 
-		// Hold covers solo para el jugador
 		if(ClientPrefs.data.holdCoverAlpha > 0 && note.isSustainNote)
-			handleHoldCoverHit(note, false);
+		{
+			var extraHoldIdx:Int = (note.extraData != null) ? Std.int(note.extraData.get('strumlineIndex')) : -1;
+			if (extraHoldIdx >= 2 && extraStrumGroups[extraHoldIdx - 2] != null)
+			{
+				var color:String = HoldCover.getColorName(note.noteData);
+				var coverName:String = 'hold' + color + 'BF';
+				if(holdCovers.exists(coverName))
+				{
+					var cover:HoldCover = holdCovers.get(coverName);
+					var strum:StrumNote = extraStrumGroups[extraHoldIdx - 2].members[note.noteData];
+					var isEnd:Bool = note.animation.curAnim != null && note.animation.curAnim.name.endsWith('end');
+					if(strum != null && strum.visible)
+					{
+						if(isEnd)
+							cover.playEnd();
+						else
+							cover.playHold();
+						cover.updatePosition(strum, isPixelStage);
+					}
+				}
+			}
+			else
+				handleHoldCoverHit(note, false);
+		}
 
 		stagesFunc(function(stage:BaseStage) stage.goodNoteHit(note));
 		var result:Dynamic = callOnLuas('goodNoteHit', [notes.members.indexOf(note), leData, leType, isSus]);
@@ -5193,7 +5605,12 @@ class PlayState extends MusicBeatState
 
 	public function spawnNoteSplashOnNote(note:Note) {
 		if(note != null) {
-			var strum:StrumNote = playerStrums.members[note.noteData];
+			var extraIdx:Int = (note.extraData != null) ? Std.int(note.extraData.get('strumlineIndex')) : -1;
+			var strum:StrumNote = null;
+			if (extraIdx >= 2 && extraStrumGroups[extraIdx - 2] != null)
+				strum = extraStrumGroups[extraIdx - 2].members[note.noteData];
+			else
+				strum = playerStrums.members[note.noteData];
 			if(strum != null)
 				spawnNoteSplash(strum.x, strum.y, note.noteData, note, strum);
 		}
@@ -5361,6 +5778,9 @@ class PlayState extends MusicBeatState
 			boyfriend.dance();
 		if (dad != null && beat % dad.danceEveryNumBeats == 0 && !dad.getAnimationName().startsWith('sing') && !dad.stunned)
 			dad.dance();
+		for (extraChar in extraCharacters)
+			if (extraChar != null && beat % extraChar.danceEveryNumBeats == 0 && !extraChar.getAnimationName().startsWith('sing') && !extraChar.stunned)
+				extraChar.dance();
 	}
 
 	public function playerDance():Void
@@ -5375,6 +5795,20 @@ class PlayState extends MusicBeatState
 			var bfAnim:String = boyfriend.getAnimationName();
 			if(boyfriend.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / FlxG.sound.music.pitch #end) * boyfriend.singDuration && bfAnim.startsWith('sing') && !bfAnim.endsWith('miss'))
 				boyfriend.dance();
+		}
+
+		if (SONG.extraStrumlines != null)
+		{
+			for (i in 0...extraCharacters.length)
+			{
+				var extraSData:ExtraStrumlineData = SONG.extraStrumlines[i];
+				if (extraSData == null || extraSData.type != 'PLAYER') continue;
+				var extraChar:Character = extraCharacters[i];
+				if (extraChar == null) continue;
+				var extraAnim:String = extraChar.getAnimationName();
+				if (extraChar.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / FlxG.sound.music.pitch #end) * extraChar.singDuration && extraAnim.startsWith('sing') && !extraAnim.endsWith('miss'))
+					extraChar.dance();
+			}
 		}
 	}
 
@@ -5707,6 +6141,15 @@ class PlayState extends MusicBeatState
 			spr = playerStrums.members[id];
 		}
 
+		if(spr != null) {
+			spr.playAnim('confirm', true);
+			spr.resetAnim = time;
+		}
+	}
+
+	function strumPlayAnim_extra(groupIndex:Int, id:Int, time:Float) {
+		if (extraStrumGroups[groupIndex] == null) return;
+		var spr:StrumNote = extraStrumGroups[groupIndex].members[id];
 		if(spr != null) {
 			spr.playAnim('confirm', true);
 			spr.resetAnim = time;
