@@ -339,7 +339,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(PlayState.SONG != null)
 		{
 			var extraCount:Int = (PlayState.SONG.extraStrumlines != null) ? PlayState.SONG.extraStrumlines.length : 0;
-			var detectedPlayers:Int = 2 + extraCount;
+			var detectedPlayers:Int = (PlayState.SONG.mania >= 1) ? PlayState.SONG.mania : (2 + extraCount);
 			if(PlayState.SONG.notes != null)
 			{
 				var maxCol:Int = 0;
@@ -901,7 +901,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				strumlineConfigs.push(data);
 
 		var extraCount:Int = strumlineConfigs.length;
-		var detectedPlayers:Int = 2 + extraCount;
+		var detectedPlayers:Int = (PlayState.SONG.mania >= 1) ? PlayState.SONG.mania : (2 + extraCount);
 		if(PlayState.SONG.notes != null)
 		{
 			var maxCol:Int = 0;
@@ -3050,8 +3050,21 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var sec = getCurChartSection();
 		if(sec != null)
 		{
-			mustHitCheckBox.checked = sec.mustHitSection;
-			gfSectionCheckBox.checked = sec.gfSection;
+				var mustHitOptions:Array<String> = ['Dad', 'BF', 'GF'];
+			if (PlayState.SONG.extraStrumlines != null)
+				for (i in 0...PlayState.SONG.extraStrumlines.length)
+					mustHitOptions.push('Strumline #${i + 3}');
+			mustHitDropDown.list = mustHitOptions;
+
+			if (sec.mustHitTarget != null && mustHitOptions.contains(sec.mustHitTarget))
+				mustHitDropDown.selectedLabel = sec.mustHitTarget;
+			else if (sec.gfSection == true)
+				mustHitDropDown.selectedLabel = 'GF';
+			else if (sec.mustHitSection == true)
+				mustHitDropDown.selectedLabel = 'BF';
+			else
+				mustHitDropDown.selectedLabel = 'Dad';
+
 			altAnimSectionCheckBox.checked = sec.altAnim;
 			changeBpmCheckBox.checked = sec.changeBPM;
 			changeBpmStepper.value = Conductor.bpm;
@@ -3256,6 +3269,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 
 		var mustHitSection:Bool = (curSecData != null && curSecData.mustHitSection == true);
+		var mustHitTarget:String = (curSecData != null && curSecData.mustHitTarget != null) ? curSecData.mustHitTarget : '';
 		if(icons.length > 1)
 		{
 			var iconP1:HealthIcon = icons[0];
@@ -3268,8 +3282,16 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					iconP2.changeIcon('gf');
 			}
 
-			if(mustHitSection)
+			if (isGfSection)
+				mustHitIndicator.x = (mustHitSection ? iconP1.x : iconP2.x) + iconP1.width / 2;
+			else if (mustHitSection)
 				mustHitIndicator.x = iconP1.x + iconP1.width / 2;
+			else if (mustHitTarget.startsWith('Strumline #'))
+			{
+				var strumIndex:Null<Int> = Std.parseInt(mustHitTarget.substr('Strumline #'.length));
+				var targetIcon:HealthIcon = (strumIndex != null && strumIndex - 1 < icons.length) ? icons[strumIndex - 1] : null;
+				mustHitIndicator.x = (targetIcon != null ? targetIcon.x : iconP2.x) + iconP2.width / 2;
+			}
 			else
 				mustHitIndicator.x = iconP2.x + iconP2.width / 2;
 		}
@@ -4554,8 +4576,7 @@ end
 		tab_group.add(noteTypeDropDown);
 	}
 
-	var mustHitCheckBox:PsychUICheckBox;
-	var gfSectionCheckBox:PsychUICheckBox;
+	var mustHitDropDown:PsychUIDropDownMenu;
 	var altAnimSectionCheckBox:PsychUICheckBox;
 
 	var changeBpmCheckBox:PsychUICheckBox;
@@ -4634,19 +4655,28 @@ end
 			}
 		}
 
-		mustHitCheckBox = new PsychUICheckBox(objX, objY, 'Must Hit Sec.', 70, function()
+		var mustHitOptions:Array<String> = ['Dad', 'BF', 'GF'];
+		if (PlayState.SONG.extraStrumlines != null)
+			for (i in 0...PlayState.SONG.extraStrumlines.length)
+				mustHitOptions.push('Strumline #${i + 3}');
+
+		var mustHitLabel:FlxText = new FlxText(objX, objY, 100, 'Must Hit Section:');
+		mustHitLabel.cameras = cameras;
+		tab_group.add(mustHitLabel);
+
+		objY += 15;
+		mustHitDropDown = new PsychUIDropDownMenu(objX, objY, mustHitOptions, function(id:Int, val:String)
 		{
 			var sec = getCurChartSection();
-			if(sec != null) sec.mustHitSection = mustHitCheckBox.checked;
+			if (sec == null) return;
+			sec.mustHitTarget = val;
+			sec.mustHitSection = (val == 'BF');
+			sec.gfSection = (val == 'GF');
 			updateHeads(true);
 		});
-		gfSectionCheckBox = new PsychUICheckBox(objX + 100, objY, 'GF Section', 70, function()
-		{
-			var sec = getCurChartSection();
-			if(sec != null) sec.gfSection = gfSectionCheckBox.checked;
-			updateHeads(true);
-		});
-		altAnimSectionCheckBox = new PsychUICheckBox(objX + 200, objY, 'Alt Anim', 70, function()
+		mustHitDropDown.cameras = cameras;
+
+		altAnimSectionCheckBox = new PsychUICheckBox(objX + 150, objY, 'Alt Anim', 70, function()
 		{
 			var sec = getCurChartSection();
 			if(sec != null) sec.altAnim = altAnimSectionCheckBox.checked;
@@ -4805,8 +4835,7 @@ end
 			softReloadNotes(true);
 		});
 
-		tab_group.add(mustHitCheckBox);
-		tab_group.add(gfSectionCheckBox);
+		tab_group.add(mustHitDropDown);
 		tab_group.add(altAnimSectionCheckBox);
 
 		tab_group.add(new FlxText(beatsPerSecStepper.x, beatsPerSecStepper.y - 15, 100, 'Beats per Section:'));
@@ -5168,20 +5197,30 @@ end
 			var newValue:Int = Std.int(strumsStepper.value);
 			if(newValue > GRID_PLAYERS)
 			{
-				openSubState(new CreateStrumlinePrompt(newValue, function(data:StrumlineConfigData)
+				var extraNeeded:Int = Std.int(Math.max(0, newValue - 2));
+				if(extraNeeded > strumlineConfigs.length)
 				{
-					strumlineConfigs.push(data);
+					openSubState(new CreateStrumlinePrompt(newValue, function(data:StrumlineConfigData)
+					{
+						strumlineConfigs.push(data);
+						GRID_PLAYERS = newValue;
+						updateChartData();
+						rebuildGridPlayers();
+					}, function()
+					{
+						strumsStepper.value = GRID_PLAYERS;
+					}, characterList));
+				}
+				else
+				{
 					GRID_PLAYERS = newValue;
 					updateChartData();
 					rebuildGridPlayers();
-				}, function()
-				{
-					strumsStepper.value = GRID_PLAYERS;
-				}, characterList));
+				}
 			}
 			else
 			{
-				var extraNeeded:Int = newValue - 2;
+				var extraNeeded:Int = Std.int(Math.max(0, newValue - 2));
 				if(extraNeeded < strumlineConfigs.length)
 					strumlineConfigs.resize(extraNeeded);
 
@@ -5212,6 +5251,8 @@ end
 			{
 				strumlineConfigs = newConfigs;
 				updateChartData();
+				updateJsonData();
+				updateHeads(true);
 			}));
 		}, 100);
 		editStrumsButton.resize(100, Std.int(strumsStepper.height));
@@ -6322,6 +6363,8 @@ end
 
 	function updateChartData()
 	{
+		PlayState.SONG.mania = GRID_PLAYERS;
+
 		if(strumlineConfigs.length > 0)
 			PlayState.SONG.extraStrumlines = strumlineConfigs.copy();
 		else
@@ -6416,10 +6459,17 @@ end
 
 		var curSecData:SwagSection = PlayState.SONG.notes != null ? PlayState.SONG.notes[curSec] : null;
 		var mustHitSection:Bool = (curSecData != null && curSecData.mustHitSection == true);
+		var mustHitTarget:String = (curSecData != null && curSecData.mustHitTarget != null) ? curSecData.mustHitTarget : '';
 		if(icons.length > 1)
 		{
 			if(mustHitSection)
 				mustHitIndicator.x = icons[0].x + icons[0].width / 2;
+			else if (mustHitTarget.startsWith('Strumline #'))
+			{
+				var strumIndex:Null<Int> = Std.parseInt(mustHitTarget.substr('Strumline #'.length));
+				var targetIcon:HealthIcon = (strumIndex != null && strumIndex - 1 < icons.length) ? icons[strumIndex - 1] : null;
+				mustHitIndicator.x = (targetIcon != null ? targetIcon.x : icons[1].x) + icons[1].width / 2;
+			}
 			else
 				mustHitIndicator.x = icons[1].x + icons[1].width / 2;
 		}

@@ -44,6 +44,7 @@ class CreateStrumlinePrompt extends BasePrompt
 	var _layer:Int = 0;
 
 	var _typeDropDown:PsychUIDropDownMenu;
+	var _selectDropDown:PsychUIDropDownMenu;
 	var _useExistingCheck:PsychUICheckBox;
 	var _charDropDown:PsychUIDropDownMenu;
 	var _stagePosDropDown:PsychUIDropDownMenu;
@@ -133,7 +134,7 @@ class CreateStrumlinePrompt extends BasePrompt
 				_loadEditConfig(id);
 			});
 			selectDropDown.cameras = cameras;
-			add(selectDropDown);
+			_selectDropDown = selectDropDown;
 		}
 
 		var typeLabel:FlxText = new FlxText(bx + pad, by + 50 + yOff, 90, 'Type:');
@@ -344,6 +345,8 @@ class CreateStrumlinePrompt extends BasePrompt
 		add(_charDropDown);
 		add(_stagePosDropDown);
 		add(_typeDropDown);
+		if(_selectDropDown != null)
+			add(_selectDropDown);
 	}
 
 	override function close()

@@ -63,6 +63,7 @@ typedef SwagSection =
 	@:optional var gfSection:Bool;
 	@:optional var bpm:Float;
 	@:optional var changeBPM:Bool;
+	@:optional var mustHitTarget:String;
 }
 
 class Song
@@ -135,6 +136,12 @@ class Song
 
 			for (note in section.sectionNotes)
 			{
+				if (note[1] >= 8)
+				{
+					if(!Std.isOfType(note[3], String))
+						note[3] = Note.defaultNoteTypes[note[3]];
+					continue;
+				}
 				var gottaHitNote:Bool = (note[1] < 4) ? section.mustHitSection : !section.mustHitSection;
 				note[1] = (note[1] % 4) + (gottaHitNote ? 0 : 4);
 

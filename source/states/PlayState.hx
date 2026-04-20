@@ -160,6 +160,7 @@ class PlayState extends MusicBeatState
 	public static var storyPlaylist:Array<String> = [];
 	public static var storyDifficulty:Int = 1;
 
+	public var soloMode:Bool = false;
 	public var spawnTime:Float = 2000;
 
 	public var inst:FlxSound;
@@ -376,6 +377,8 @@ class PlayState extends MusicBeatState
 		detailsPausedText = "Paused - " + detailsText;
 		#end
 
+		soloMode = (SONG.mania == 1);
+
 		GameOverSubstate.resetVariables();
 		songName = Paths.formatToSongPath(SONG.song);
 		if(SONG.stage == null || SONG.stage.length < 1)
@@ -448,9 +451,12 @@ class PlayState extends MusicBeatState
 			gfGroup.add(gf);
 		}
 
-		dad = new Character(0, 0, SONG.player2);
-		startCharacterPos(dad, true);
-		dadGroup.add(dad);
+		if (!soloMode)
+		{
+			dad = new Character(0, 0, SONG.player2);
+			startCharacterPos(dad, true);
+			dadGroup.add(dad);
+		}
 
 		boyfriend = new Character(0, 0, SONG.player1, true);
 		startCharacterPos(boyfriend);
@@ -520,7 +526,8 @@ class PlayState extends MusicBeatState
 
 			for(extraGroup in dadExtras)
 				add(extraGroup);
-			add(dadGroup);
+			if (!soloMode)
+				add(dadGroup);
 
 			for(extraGroup in bfExtras)
 				add(extraGroup);
@@ -592,7 +599,7 @@ class PlayState extends MusicBeatState
 			camPos.y += gf.getGraphicMidpoint().y + gf.cameraPosition[1];
 		}
 
-		if(dad.curCharacter.startsWith('gf')) {
+		if(dad != null && dad.curCharacter.startsWith('gf')) {
 			dad.setPosition(GF_X, GF_Y);
 			if(gf != null)
 				gf.visible = false;
@@ -605,7 +612,7 @@ class PlayState extends MusicBeatState
 
 		// CHARACTER SCRIPTS
 		if(gf != null) startCharacterScripts(gf.curCharacter);
-		startCharacterScripts(dad.curCharacter);
+		if(dad != null) startCharacterScripts(dad.curCharacter);
 		startCharacterScripts(boyfriend.curCharacter);
 		#end
 
@@ -682,9 +689,9 @@ class PlayState extends MusicBeatState
 		iconP1.alpha = ClientPrefs.data.healthBarAlpha;
 		uiGroup.add(iconP1);
 
-		iconP2 = new HealthIcon(dad.healthIcon, false);
+		iconP2 = new HealthIcon(dad != null ? dad.healthIcon : 'face', false);
 		iconP2.y = healthBar.y - 75;
-		iconP2.visible = !ClientPrefs.data.hideHud;
+		iconP2.visible = !ClientPrefs.data.hideHud && !soloMode;
 		iconP2.alpha = ClientPrefs.data.healthBarAlpha;
 		uiGroup.add(iconP2);
 
@@ -883,7 +890,10 @@ class PlayState extends MusicBeatState
 	#end
 
 	public function reloadHealthBarColors() {
-		healthBar.setColors(FlxColor.fromRGB(dad.healthColorArray[0], dad.healthColorArray[1], dad.healthColorArray[2]),
+		var dadColor:FlxColor = (dad != null)
+			? FlxColor.fromRGB(dad.healthColorArray[0], dad.healthColorArray[1], dad.healthColorArray[2])
+			: FlxColor.fromRGB(0, 0, 0);
+		healthBar.setColors(dadColor,
 			FlxColor.fromRGB(boyfriend.healthColorArray[0], boyfriend.healthColorArray[1], boyfriend.healthColorArray[2]));
 	}
 
@@ -1138,7 +1148,8 @@ class PlayState extends MusicBeatState
 			if (skipCountdown || startOnTime > 0) skipArrowStartTween = true;
 
 			canPause = true;
-			generateStaticArrows(0);
+			if (!soloMode)
+				generateStaticArrows(0);
 			generateStaticArrows(1);
 			linkHoldCoversToStrums();
 
@@ -1618,6 +1629,13 @@ class PlayState extends MusicBeatState
 					if (swagNote.extraData == null) swagNote.extraData = new Map<String, Dynamic>();
 					swagNote.extraData.set('strumlineIndex', strumlineIndex);
 					var extraSData:ExtraStrumlineData = (SONG.extraStrumlines != null) ? SONG.extraStrumlines[strumlineIndex - 2] : null;
+				var sectionTarget:String = section.mustHitTarget;
+				var extraStrumLabel:String = 'Strumline #${strumlineIndex + 1}';
+				if (sectionTarget != null && sectionTarget == extraStrumLabel)
+					swagNote.mustPress = true;
+				else if (sectionTarget != null && sectionTarget != extraStrumLabel)
+					swagNote.mustPress = false;
+				else
 					swagNote.mustPress = (extraSData != null && extraSData.type == 'PLAYER');
 					if (extraSData != null && extraSData.scale != 0 && extraSData.scale != 1)
 						swagNote.extraData.set('noteScale', extraSData.scale);
@@ -3137,7 +3155,8 @@ class PlayState extends MusicBeatState
 				{
 					if(strum == null) continue;
 					var isPlayerStrum:Bool = playerStrums.members.contains(strum);
-					if(strumTarget == 'bf' && !isPlayerStrum) continue;
+					var isExtraStrum:Bool = !isPlayerStrum && !opponentStrums.members.contains(strum);
+					if(strumTarget == 'bf' && !isPlayerStrum && !isExtraStrum) continue;
 					if(strumTarget == 'dad' && isPlayerStrum) continue;
 					strum.texture = strumSkin;
 				}
@@ -4223,14 +4242,52 @@ class PlayState extends MusicBeatState
 
 		if(SONG.notes[sec] == null) return;
 
-		if (gf != null && SONG.notes[sec].gfSection)
+		var secData = SONG.notes[sec];
+		var target:String = secData.mustHitTarget != null ? secData.mustHitTarget : (secData.gfSection ? 'GF' : (secData.mustHitSection ? 'BF' : 'Dad'));
+
+		if (target == 'GF' && gf != null)
 		{
 			moveCameraToGirlfriend();
 			callOnScripts('onMoveCamera', ['gf']);
 			return;
 		}
 
-		var isDad:Bool = (SONG.notes[sec].mustHitSection != true);
+		if (target.startsWith('Strumline #'))
+		{
+			var idx:Int = Std.parseInt(target.substr(11)) - 3;
+			if (idx >= 0 && idx < extraCharacters.length && extraCharacters[idx] != null)
+			{
+				var ec = extraCharacters[idx];
+				var extraSData:ExtraStrumlineData = (SONG.extraStrumlines != null) ? SONG.extraStrumlines[idx] : null;
+				var stagePos:String = (extraSData != null) ? extraSData.stagePosition : 'Dad';
+				var isPlayer:Bool = (extraSData != null && extraSData.type == 'PLAYER');
+
+				if (stagePos == 'GF')
+				{
+					camFollow.setPosition(ec.getMidpoint().x, ec.getMidpoint().y);
+					camFollow.x += ec.cameraPosition[0] + girlfriendCameraOffset[0];
+					camFollow.y += ec.cameraPosition[1] + girlfriendCameraOffset[1];
+				}
+				else if (isPlayer || stagePos == 'BF')
+				{
+					camFollow.setPosition(ec.getMidpoint().x - 100, ec.getMidpoint().y - 100);
+					camFollow.x -= ec.cameraPosition[0] - boyfriendCameraOffset[0];
+					camFollow.y += ec.cameraPosition[1] + boyfriendCameraOffset[1];
+				}
+				else
+				{
+					camFollow.setPosition(ec.getMidpoint().x + 150, ec.getMidpoint().y - 100);
+					camFollow.x += ec.cameraPosition[0] + opponentCameraOffset[0];
+					camFollow.y += ec.cameraPosition[1] + opponentCameraOffset[1];
+				}
+
+				tweenCamIn();
+				callOnScripts('onMoveCamera', [target]);
+				return;
+			}
+		}
+
+		var isDad:Bool = (target == 'Dad');
 		moveCamera(isDad);
 		if (isDad)
 			callOnScripts('onMoveCamera', ['dad']);
