@@ -1572,6 +1572,9 @@ class PlayState extends MusicBeatState
 						var evilStrumIdx:Int = (evilNote.extraData != null && evilNote.extraData.exists('strumlineIndex'))
 							? Std.int(evilNote.extraData.get('strumlineIndex'))
 							: (evilNote.mustPress ? 0 : 1);
+						var curStrumlineForMatch:Int = (curStrumlineIndex > 1 && SONG.extraStrumlines != null && SONG.extraStrumlines[curStrumlineIndex - 2] != null && SONG.extraStrumlines[curStrumlineIndex - 2].useExistingStrumline)
+							? curStrumlineIndex
+							: curStrumlineIndex;
 						var matches: Bool = (noteColumn == evilNote.noteData && gottaHitNote == evilNote.mustPress && evilNote.noteType == noteType && curStrumlineIndex == evilStrumIdx);
 						if (matches && Math.abs(spawnTime - evilNote.strumTime) < flixel.math.FlxMath.EPSILON) {
 							if (evilNote.tail.length > 0)
@@ -3407,12 +3410,10 @@ class PlayState extends MusicBeatState
 						if(parsedDuration != null && !Math.isNaN(parsedDuration) && parsedDuration > 0)
 						{
 							duration = parsedDuration;
-							trace('Set Cam Zoom - Parsed duration from first param: $duration');
 						}
 						else
 						{
 							easeName = firstParam.toLowerCase();
-							trace('Set Cam Zoom - Parsed ease from first param: $easeName');
 						}
 					}
 
@@ -3423,12 +3424,10 @@ class PlayState extends MusicBeatState
 						if(parsedDuration != null && !Math.isNaN(parsedDuration) && parsedDuration > 0)
 						{
 							duration = parsedDuration;
-							trace('Set Cam Zoom - Parsed duration from second param: $duration');
 						}
 						else
 						{
 							easeName = secondParam.toLowerCase();
-							trace('Set Cam Zoom - Parsed ease from second param: $easeName');
 						}
 					}
 
@@ -3484,16 +3483,13 @@ class PlayState extends MusicBeatState
 						ease: easeFunc,
 						onComplete: function(twn:FlxTween)
 						{
-							trace('[CAM TWEEN COMPLETE] twn==$camZoomTween: ${twn == camZoomTween} zoom=${FlxG.camera.zoom} defaultCamZoom=$defaultCamZoom');
 							if(twn != camZoomTween) {
-								trace('[CAM TWEEN COMPLETE] IGNORADO - era un tween viejo');
 								return;
 							}
 							defaultCamZoom = FlxG.camera.zoom;
 							camZoomTween = null;
 							camZoomTweenEndTime = haxe.Timer.stamp();
 							camZooming = true;
-							trace('[CAM TWEEN COMPLETE] APLICADO - defaultCamZoom=$defaultCamZoom camZooming=$camZooming');
 						}
 					});
 					camZoomTween = newTween;
@@ -5323,7 +5319,13 @@ class PlayState extends MusicBeatState
 		var extraStrumIdxForAnim:Int = (note.extraData != null) ? Std.int(note.extraData.get('strumlineIndex')) : -1;
 		if(opponentVocals.length <= 0) vocals.volume = 1;
 		if (extraStrumIdxForAnim >= 2 && extraStrumGroups[extraStrumIdxForAnim - 2] != null)
-			strumPlayAnim_extra(extraStrumIdxForAnim - 2, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
+		{
+			var extraSDataAnim:ExtraStrumlineData = (SONG.extraStrumlines != null) ? SONG.extraStrumlines[extraStrumIdxForAnim - 2] : null;
+			if (extraSDataAnim == null || !extraSDataAnim.useExistingStrumline)
+				strumPlayAnim_extra(extraStrumIdxForAnim - 2, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
+			else
+				strumPlayAnim(true, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
+		}
 		else
 			strumPlayAnim(true, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
 		note.hitByOpponent = true;
@@ -5837,7 +5839,6 @@ class PlayState extends MusicBeatState
 				FlxG.camera.zoom += 0.015 * camZoomingMult;
 				camHUD.zoom += 0.03 * camZoomingMult;
 			}
-			trace('[CAM] zoom=${FlxG.camera.zoom} defaultCamZoom=$defaultCamZoom camZooming=$camZooming tweenActive=${camZoomTween != null} timeSinceTween=${haxe.Timer.stamp() - camZoomTweenEndTime}');
 
 			if (SONG.notes[curSection].changeBPM)
 			{

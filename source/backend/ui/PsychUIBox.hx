@@ -264,6 +264,22 @@ class PsychUIBox extends FlxSpriteGroup
 
 		if(selectedTab != null && !isMinimized)
 			selectedTab.drawMenu(this);
+
+		if(selectedTab != null && !isMinimized && selectedTab.menu != null)
+		{
+			for(member in selectedTab.menu.members)
+			{
+				if(member != null && member.exists && member.visible && Std.isOfType(member, PsychUIDropDownMenu))
+				{
+					var drop:PsychUIDropDownMenu = cast member;
+					var hasOpenItems:Bool = false;
+					for(item in drop.members)
+						if(item != null && item.visible && !Std.isOfType(item, PsychUIInputText))
+						{ hasOpenItems = true; break; }
+					if(hasOpenItems) drop.draw();
+				}
+			}
+		}
 	}
 
 	override function destroy()

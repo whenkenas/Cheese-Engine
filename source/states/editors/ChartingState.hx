@@ -1563,7 +1563,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			}
 		}
 
-		if(FlxG.mouse.overlaps(miniChartBg) || isDraggingMiniChart)
+		if((FlxG.mouse.overlaps(miniChartBg) && !ignoreClickForThisFrame) || isDraggingMiniChart)
 		{
 			if(FlxG.mouse.justPressed)
 			{
@@ -2599,6 +2599,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 				updateEventSpecialUI(eventName);
 				updateEventDescriptionHeight();
+				_syncCustomUIFromValues();
 			}
 		}
 		else selectedEventText.visible = false;
@@ -2871,7 +2872,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		swagNote.updateHitbox();
 		swagNote.active = false;
-		trace('[createNote] note[1]=${note[1]} songData[1]=${swagNote.songData[1]} GRID_PLAYERS=$GRID_PLAYERS');
 		positionNoteXByData(swagNote);
 		positionNoteYOnTime(swagNote, secNum);
 		return swagNote;
@@ -3162,8 +3162,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	function positionNoteXByData(note:MetaNote, ?data:Null<Int> = null)
 	{
 		if(data == null) data = note.songData[1];
-
-		trace('[positionNoteXByData] songData[1]=${note.songData[1]} data=$data GRID_PLAYERS=$GRID_PLAYERS total_cols=${GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS} result=${data % (GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS)}');
 
 		var noteX:Float = gridBg.x + (GRID_SIZE - note.width) / 2;
 		if(SHOW_EVENT_COLUMN) noteX += GRID_SIZE;
@@ -3635,9 +3633,371 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	static inline var MAX_EVENT_VALUES:Int = 10;
 	var selectedEventText:FlxText;
 	var eventDescriptionText:FlxText;
+	var _customUIAll:Array<Dynamic> = [];
+	var _customUISync:Array<{ctrl:Dynamic, inputIdx:Int}> = [];
+	var _customUIReplacedIndices:Array<Int> = [];
+	var _lastCustomUIEvent:String = null;
+	var _pendingUIData:Array<Dynamic> = null;
 
 	var eventsList:Array<Array<String>>;
 	var curEventSelected:Int = 0;
+
+	function _changeEventValue(str:String, n:Int)
+	{
+		if(selectedNotes.length > 1)
+		{
+			for (note in selectedNotes)
+			{
+				if(note == null || !note.isEvent) continue;
+				var event:EventMetaNote = cast (note, EventMetaNote);
+				event.events[event.events.length - 1][n] = str;
+				event.updateEventText();
+			}
+		}
+		else if(selectedNotes.length == 1 && selectedNotes[0].isEvent)
+		{
+			var event:EventMetaNote = cast (selectedNotes[0], EventMetaNote);
+			event.events[Std.int(FlxMath.bound(curEventSelected, 0, event.events.length - 1))][n] = str;
+			event.updateEventText();
+		}
+	}
+
+	function getEventUIData(eventName:String):Array<Dynamic>
+	{
+		if(eventName == null || eventName.trim().length == 0) return null;
+
+		var jsonFile:String = Paths.getTextFromFile('custom_events/$eventName.json');
+		if(jsonFile != null && jsonFile.length > 0)
+		{
+			try
+			{
+				var parsed:Dynamic = haxe.Json.parse(jsonFile);
+				var result:Array<Dynamic> = [];
+				if(Std.isOfType(parsed, Array))
+				{
+					result = cast parsed;
+					for(i in 0...result.length)
+						if(result[i] != null && !Reflect.hasField(result[i], 'value'))
+							Reflect.setField(result[i], 'value', i + 1);
+				}
+				if(result.length > 0) return result;
+			}
+			catch(e:Dynamic) {}
+		}
+
+		var content:String = null;
+		var isHScript:Bool = false;
+		#if LUA_ALLOWED
+		if(content == null)
+		{
+			var c:String = Paths.getTextFromFile('custom_events/$eventName.lua');
+			if(c != null && c.length > 0) content = c;
+		}
+		#end
+		#if HSCRIPT_ALLOWED
+		if(content == null)
+		{
+			var c:String = Paths.getTextFromFile('custom_events/$eventName.hx');
+			if(c != null && c.length > 0) { content = c; isHScript = true; }
+		}
+		#end
+		if(content == null) return null;
+
+		#if HSCRIPT_ALLOWED
+		if(isHScript && content.indexOf('getEventUI') != -1)
+		{
+			try
+			{
+				var hs:psychlua.HScript = new psychlua.HScript(null, content, null, true);
+				hs.execute();
+				if(hs.exists('getEventUI'))
+				{
+					var retVal = hs.call('getEventUI', []);
+					if(retVal != null && retVal.returnValue != null)
+					{
+						var raw:Array<Dynamic> = cast retVal.returnValue;
+						for(i in 0...raw.length)
+							if(raw[i] != null && !Reflect.hasField(raw[i], 'value'))
+								Reflect.setField(raw[i], 'value', i + 1);
+						hs.destroy();
+						if(raw.length > 0) return raw;
+					}
+				}
+				hs.destroy();
+			}
+			catch(e:Dynamic) {}
+		}
+		#end
+
+		#if LUA_ALLOWED
+		if(!isHScript && content.indexOf('getEventUI') != -1)
+		{
+			try
+			{
+				var L:State = LuaL.newstate();
+				LuaL.openlibs(L);
+				LuaL.dostring(L, content);
+				LuaL.dostring(L, "
+function __encode(v)
+	if type(v) == 'table' then
+		local isArr = true
+		local n = 0
+		for k in pairs(v) do
+			n = n + 1
+			if type(k) ~= 'number' then
+				isArr = false
+			end
+		end
+		if isArr then
+			local parts = {}
+			for i = 1, n do
+				parts[i] = __encode(v[i])
+			end
+			return '[' .. table.concat(parts, ',') .. ']'
+		else
+			local parts = {}
+			for k, val in pairs(v) do
+				parts[#parts+1] = '\"' .. tostring(k) .. '\":' .. __encode(val)
+			end
+			return '{' .. table.concat(parts, ',') .. '}'
+		end
+	elseif type(v) == 'string' then
+		return '\"' .. v .. '\"'
+	elseif type(v) == 'number' or type(v) == 'boolean' then
+		return tostring(v)
+	else
+		return 'null'
+	end
+end
+if type(getEventUI) == 'function' then
+	__ui_result = __encode(getEventUI())
+else
+	__ui_result = nil
+end
+");
+				Lua.getglobal(L, '__ui_result');
+				if(Lua.type(L, -1) == Lua.LUA_TSTRING)
+				{
+					var jsonStr:String = Lua.tostring(L, -1);
+					Lua.pop(L, 1);
+					Lua.close(L);
+					try
+					{
+						var raw:Array<Dynamic> = cast haxe.Json.parse(jsonStr);
+						for(i in 0...raw.length)
+							if(raw[i] != null && !Reflect.hasField(raw[i], 'value'))
+								Reflect.setField(raw[i], 'value', i + 1);
+						if(raw.length > 0) return raw;
+					}
+					catch(e:Dynamic) {}
+				}
+				else
+				{
+					Lua.pop(L, 1);
+					Lua.close(L);
+				}
+			}
+			catch(e:Dynamic) {}
+		}
+		#end
+
+		return null;
+	}
+
+	function _clearCustomUI()
+	{
+		var evTab = mainBox != null ? mainBox.getTab('Events') : null;
+		var tab_group:FlxSpriteGroup = evTab != null ? evTab.menu : null;
+		for(ctrl in _customUIAll)
+		{
+			if(tab_group != null) tab_group.remove(ctrl, true);
+			ctrl.destroy();
+		}
+		_customUIAll = [];
+		_customUISync = [];
+		_customUIReplacedIndices = [];
+	}
+
+	function _buildCustomUI(uiData:Array<Dynamic>)
+	{
+		if(uiData == null || uiData.length == 0) return;
+		var evTab = mainBox != null ? mainBox.getTab('Events') : null;
+		var tab_group:FlxSpriteGroup = evTab != null ? evTab.menu : null;
+		if(tab_group == null) return;
+
+		for(item in uiData)
+		{
+			var valueIdx:Int = Reflect.hasField(item, 'value') ? Std.int(Reflect.field(item, 'value')) : 1;
+			var inputIdx:Int = valueIdx - 1;
+			if(inputIdx < 0 || inputIdx >= valueInputTexts.length) continue;
+
+			var inp:PsychUIInputText = valueInputTexts[inputIdx];
+			var lbl:FlxText = (inputIdx < valueLabels.length) ? valueLabels[inputIdx] : null;
+			var type:String = Reflect.hasField(item, 'type') ? Std.string(Reflect.field(item, 'type')).toLowerCase() : 'inputtext';
+			var label:String = Reflect.hasField(item, 'label') ? Std.string(Reflect.field(item, 'label')) : 'Value $valueIdx';
+
+			if(type == 'inputtext')
+			{
+				if(lbl != null) lbl.text = '$label:';
+				continue;
+			}
+
+			inp.visible = inp.active = false;
+			if(lbl != null) lbl.visible = false;
+			_customUIReplacedIndices.push(inputIdx);
+
+			var menuX:Float = evTab.menu.x;
+			var menuY:Float = evTab.menu.y;
+			var offX:Float = Reflect.hasField(item, 'x') ? cast Reflect.field(item, 'x') : 0;
+			var offY:Float = Reflect.hasField(item, 'y') ? cast Reflect.field(item, 'y') : 0;
+			var lblText:FlxText = new FlxText(inp.x - menuX + offX, inp.y - menuY - 15 + offY, 140, '$label:');
+			tab_group.add(lblText);
+			_customUIAll.push(lblText);
+
+			var capturedIdx:Int = inputIdx;
+			if(eventDropDown != null) eventDropDown.showDropDown(false);
+
+			switch(type)
+			{
+				case 'checkbox':
+					var check:PsychUICheckBox = new PsychUICheckBox(inp.x - menuX + offX, inp.y - menuY + offY, '', 0, null);
+					check.checked = (inp.text == 'true');
+					check.onClick = function()
+					{
+						if(eventDropDown != null) eventDropDown.showDropDown(false);
+						var val:String = Std.string(check.checked);
+						valueInputTexts[capturedIdx].text = val;
+						_changeEventValue(val, capturedIdx + 1);
+					};
+					tab_group.add(check);
+					_customUIAll.push(check);
+					_customUISync.push({ctrl: check, inputIdx: capturedIdx});
+
+				case 'dropdown':
+					var opts:Array<String> = Reflect.hasField(item, 'options') ? cast Reflect.field(item, 'options') : [];
+					var dropW:Int = Reflect.hasField(item, 'width') ? Std.int(Reflect.field(item, 'width')) : 140;
+					var drop:PsychUIDropDownMenu = new PsychUIDropDownMenu(inp.x - menuX + offX, inp.y - menuY + offY, opts, function(id:Int, selected:String)
+					{
+						valueInputTexts[capturedIdx].text = selected;
+						_changeEventValue(selected, capturedIdx + 1);
+					}, dropW);
+					drop.autoSort = false;
+					if(inp.text.length > 0 && opts.contains(inp.text))
+						drop.selectedLabel = inp.text;
+					drop.onChange = function(old:String, cur:String)
+					{
+						if(PsychUIInputText.focusOn == drop && eventDropDown != null)
+							eventDropDown.showDropDown(false);
+					};
+					tab_group.insert(tab_group.members.indexOf(eventDropDown), drop);
+					_customUIAll.push(drop);
+					_customUISync.push({ctrl: drop, inputIdx: capturedIdx});
+
+				case 'stepper':
+					var minVal:Float = Reflect.hasField(item, 'min') ? cast Reflect.field(item, 'min') : 0;
+					var maxVal:Float = Reflect.hasField(item, 'max') ? cast Reflect.field(item, 'max') : 100;
+					var stepVal:Float = Reflect.hasField(item, 'step') ? cast Reflect.field(item, 'step') : 1;
+					var decimals:Int = Reflect.hasField(item, 'decimals') ? Std.int(Reflect.field(item, 'decimals')) : 0;
+					var stepW:Int = Reflect.hasField(item, 'width') ? Std.int(Reflect.field(item, 'width')) : 100;
+					var defVal:Float = Std.parseFloat(inp.text);
+					if(Math.isNaN(defVal)) defVal = minVal;
+					var stepper:PsychUINumericStepper = new PsychUINumericStepper(inp.x - menuX + offX, inp.y - menuY + offY, stepVal, defVal, minVal, maxVal, decimals, stepW);
+					stepper.onValueChange = function()
+					{
+						var val:String = Std.string(stepper.value);
+						valueInputTexts[capturedIdx].text = val;
+						_changeEventValue(val, capturedIdx + 1);
+					};
+					tab_group.add(stepper);
+					_customUIAll.push(stepper);
+					_customUISync.push({ctrl: stepper, inputIdx: capturedIdx});
+
+				case 'slider':
+					var minVal:Float = Reflect.hasField(item, 'min') ? cast Reflect.field(item, 'min') : 0;
+					var maxVal:Float = Reflect.hasField(item, 'max') ? cast Reflect.field(item, 'max') : 1;
+					var decimals:Int = Reflect.hasField(item, 'decimals') ? Std.int(Reflect.field(item, 'decimals')) : 2;
+					var sliderW:Float = Reflect.hasField(item, 'width') ? cast Reflect.field(item, 'width') : 130;
+					var defVal:Float = Std.parseFloat(inp.text);
+					if(Math.isNaN(defVal)) defVal = minVal;
+					var slider:PsychUISlider = new PsychUISlider(inp.x - menuX + offX, inp.y - menuY + offY, function(v:Float)
+					{
+						if(eventDropDown != null) eventDropDown.showDropDown(false);
+						var val:String = Std.string(v);
+						valueInputTexts[capturedIdx].text = val;
+						_changeEventValue(val, capturedIdx + 1);
+					}, defVal, minVal, maxVal, sliderW);
+					slider.decimals = decimals;
+					tab_group.add(slider);
+					_customUIAll.push(slider);
+					_customUISync.push({ctrl: slider, inputIdx: capturedIdx});
+
+				case 'radiogroup':
+					var opts:Array<String> = Reflect.hasField(item, 'options') ? cast Reflect.field(item, 'options') : [];
+					var radioW:Int = Reflect.hasField(item, 'width') ? Std.int(Reflect.field(item, 'width')) : 120;
+					var radio:PsychUIRadioGroup = new PsychUIRadioGroup(inp.x - menuX + offX, inp.y - menuY + offY, opts, 20, 0, false, radioW);
+					if(inp.text.length > 0)
+					{
+						var ridx:Int = opts.indexOf(inp.text);
+						if(ridx >= 0) radio.checked = ridx;
+					}
+					radio.onClick = function()
+					{
+						if(eventDropDown != null) eventDropDown.showDropDown(false);
+						var val:String = (radio.checkedRadio != null) ? radio.checkedRadio.label : '';
+						valueInputTexts[capturedIdx].text = val;
+						_changeEventValue(val, capturedIdx + 1);
+					};
+					tab_group.add(radio);
+					_customUIAll.push(radio);
+					_customUISync.push({ctrl: radio, inputIdx: capturedIdx});
+
+				default:
+					inp.visible = inp.active = true;
+					if(lbl != null) lbl.visible = true;
+					_customUIReplacedIndices.remove(inputIdx);
+					tab_group.remove(lblText, true);
+					lblText.destroy();
+					_customUIAll.remove(lblText);
+			}
+		}
+	}
+
+	function _syncCustomUIFromValues()
+	{
+		for(entry in _customUISync)
+		{
+			var idx:Int = entry.inputIdx;
+			if(idx >= valueInputTexts.length) continue;
+			var text:String = valueInputTexts[idx].text;
+			var ctrl:Dynamic = entry.ctrl;
+
+			if(Std.isOfType(ctrl, PsychUICheckBox))
+				(cast ctrl:PsychUICheckBox).checked = (text == 'true');
+			else if(Std.isOfType(ctrl, PsychUIDropDownMenu))
+			{
+				var drop:PsychUIDropDownMenu = cast ctrl;
+				if(drop.list.contains(text))
+					drop.selectedLabel = text;
+			}
+			else if(Std.isOfType(ctrl, PsychUINumericStepper))
+			{
+				var val:Float = Std.parseFloat(text);
+				if(!Math.isNaN(val)) (cast ctrl:PsychUINumericStepper).value = val;
+			}
+			else if(Std.isOfType(ctrl, PsychUISlider))
+			{
+				var val:Float = Std.parseFloat(text);
+				if(!Math.isNaN(val)) (cast ctrl:PsychUISlider).value = val;
+			}
+			else if(Std.isOfType(ctrl, PsychUIRadioGroup))
+			{
+				var radio:PsychUIRadioGroup = cast ctrl;
+				var ridx:Int = radio.labels.indexOf(text);
+				if(ridx >= 0) radio.checked = ridx;
+			}
+		}
+	}
+
 	function updateEventDescriptionHeight()
 	{
 		if(eventDescriptionText != null && mainBox != null)
@@ -3659,6 +4019,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	function updateEventSpecialUI(eventName:String)
 	{
 		if(easeDropDown == null) return;
+		if(eventName != _lastCustomUIEvent)
+		{
+			_clearCustomUI();
+			_lastCustomUIEvent = eventName;
+			_pendingUIData = getEventUIData(eventName);
+		}
 		var useEaseDropDown:Bool = (eventName == 'Set Cam Zoom' || eventName == 'Target Camera' || eventName == 'Target Follow Pos' || eventName == '(STEPS) Set Cam Zoom' || eventName == '(STEPS) Target Camera' || eventName == '(STEPS) Target Follow Pos');
 		var isSetCamZoom:Bool = (eventName == 'Set Cam Zoom' || eventName == '(STEPS) Set Cam Zoom');
 		var isTargetCamera:Bool = (eventName == 'Target Camera' || eventName == '(STEPS) Target Camera');
@@ -3764,8 +4130,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			if(customName != null && customName.length > 0)
 				customName = customName.charAt(0).toUpperCase() + customName.substr(1);
 			valueLabels[i].text = (i == 0) ? (isSetCamZoom ? 'New Zoom:' : (isTargetCamera ? 'Target:' : (isTargetFollow ? 'Target:' : (customName != null ? '$customName:' : 'Value ${detectedIndices[0]}:')))) : (isEaseSeconds ? (useSteps ? 'Steps:' : 'Seconds:') : (isEaseType ? 'Ease:' : (customName != null ? '$customName:' : 'Value $labelN:')));
-			valueLabels[i].visible = show || isEaseSeconds || isEaseType;
-			valueInputTexts[i].visible = valueInputTexts[i].active = show;
+			if(!_customUIReplacedIndices.contains(i))
+			{
+				valueLabels[i].visible = show || isEaseSeconds || isEaseType;
+				valueInputTexts[i].visible = valueInputTexts[i].active = show;
+			}
 
 			var col:Int = i % 2;
 			var row:Int = Std.int(i / 2);
@@ -3816,6 +4185,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			easeInOutDropDown.selectedLabel = _noDir ? '' : direction;
 			easeInOutDropDown.showDropDown(false);
 			easeInOutDropDown.onChange = prevOnChange2;
+		}
+		if(_pendingUIData != null)
+		{
+			_buildCustomUI(_pendingUIData);
+			_pendingUIData = null;
 		}
 	}
 
