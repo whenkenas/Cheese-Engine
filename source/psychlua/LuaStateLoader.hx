@@ -112,7 +112,12 @@ class LuaState extends MusicBeatState
 	function registerCallbacks()
 	{
 		Lua_helper.add_callback(lua, "switchState", function(stateName:String) {
-			backend.StateManager.switchState(stateName);
+			if(stateName == 'PlayState' && states.PlayState.SONG != null) {
+				FlxG.state.persistentUpdate = false;
+				states.LoadingState.loadAndSwitchState(new states.PlayState());
+			} else {
+				backend.StateManager.switchState(stateName);
+			}
 		});
 
 		Lua_helper.add_callback(lua, "isMusicPlaying", function() {
@@ -146,18 +151,94 @@ class LuaState extends MusicBeatState
 			return backend.Difficulty.list[index];
 		});
 
-		Lua_helper.add_callback(lua, "loadSong", function(songName:String, ?difficulty:String = 'normal') {
-			Mods.currentModDirectory = Mods.currentModDirectory;
-			var chart = backend.Song.loadFromJson(songName.toLowerCase(), songName.toLowerCase());
-			if(chart != null) {
-				states.PlayState.SONG = chart;
+		Lua_helper.add_callback(lua, "loadSong", function(songName:String, ?difficulty:Dynamic = 'normal', ?folder:String = null) {
+			var diffIdx:Int = 0;
+			var resolvedDiff:String = 'normal';
+			if(Std.isOfType(difficulty, Int)) {
+				diffIdx = cast(difficulty, Int);
+				if(diffIdx < 0 || diffIdx >= backend.Difficulty.list.length) diffIdx = 0;
+				if(backend.Difficulty.list.length > 0)
+					resolvedDiff = backend.Difficulty.list[diffIdx];
+			} else if(Std.isOfType(difficulty, String)) {
+				resolvedDiff = cast(difficulty, String);
+				var diffLower:String = resolvedDiff.toLowerCase();
+				var idx:Int = -1;
+				for(i in 0...backend.Difficulty.list.length) {
+					if(backend.Difficulty.list[i].toLowerCase() == diffLower) { idx = i; break; }
+				}
+				if(idx >= 0) diffIdx = idx;
+			}
+			var songFolder:String = folder != null ? Paths.formatToSongPath(folder) : Paths.formatToSongPath(songName);
+			var jsonName:String = Paths.formatToSongPath(songName) + '-' + Paths.formatToSongPath(resolvedDiff);
+			var chartCheck = backend.Song.getChart(jsonName, songFolder);
+			if(chartCheck == null)
+				jsonName = Paths.formatToSongPath(songName);
+			if(backend.Song.getChart(jsonName, songFolder) != null) {
+				backend.Song.loadFromJson(jsonName, songFolder);
 				states.PlayState.isStoryMode = false;
-				var diffIdx = backend.Difficulty.list.indexOf(difficulty);
-				states.PlayState.storyDifficulty = diffIdx < 0 ? 0 : diffIdx;
-				states.PlayState.previousState = 'FreeplayState';
+				states.PlayState.storyDifficulty = diffIdx;
+				states.PlayState.previousState = stateName;
+				FlxG.state.persistentUpdate = false;
+				states.LoadingState.loadAndSwitchState(new states.PlayState());
 			}
 		});
-		
+
+		Lua_helper.add_callback(lua, "songExists", function(songName:String, ?difficulty:Dynamic = null, ?folder:String = null):Bool {
+			var songFolder:String = folder != null ? Paths.formatToSongPath(folder) : Paths.formatToSongPath(songName);
+			if(difficulty != null) {
+				var resolvedDiff:String = 'normal';
+				if(Std.isOfType(difficulty, Int)) {
+					var idx:Int = cast(difficulty, Int);
+					if(idx >= 0 && idx < backend.Difficulty.list.length)
+						resolvedDiff = backend.Difficulty.list[idx].toLowerCase();
+				} else if(Std.isOfType(difficulty, String)) {
+					resolvedDiff = cast(difficulty, String).toLowerCase();
+				}
+				var jsonName:String = Paths.formatToSongPath(songName) + '-' + resolvedDiff;
+				if(backend.Song.getChart(jsonName, songFolder) != null) return true;
+			}
+			return backend.Song.getChart(Paths.formatToSongPath(songName), songFolder) != null;
+		});
+
+		Lua_helper.add_callback(lua, "getSongDifficulties", function(songName:String, ?folder:String = null):Array<String> {
+			var result:Array<String> = [];
+			#if MODS_ALLOWED
+			var songFolder:String = folder != null ? Paths.formatToSongPath(folder) : Paths.formatToSongPath(songName);
+			var dirPath:String = Paths.mods(Mods.currentModDirectory + '/data/' + songFolder + '/');
+			if(FileSystem.exists(dirPath) && FileSystem.isDirectory(dirPath)) {
+				var prefix:String = Paths.formatToSongPath(songName) + '-';
+				for(file in FileSystem.readDirectory(dirPath)) {
+					if(file.endsWith('.json')) {
+						var base:String = file.substr(0, file.length - 5);
+						if(base.startsWith(prefix))
+							result.push(base.substr(prefix.length));
+					}
+				}
+			}
+			#end
+			return result;
+		});
+
+		Lua_helper.add_callback(lua, "getCurrentSong", function():String {
+			if(states.PlayState.SONG != null)
+				return states.PlayState.SONG.song;
+			return null;
+		});
+
+		Lua_helper.add_callback(lua, "getHighscore", function(songName:String, ?difficulty:Dynamic = 'normal'):Int {
+			var diffIdx:Int = 0;
+			if(Std.isOfType(difficulty, Int)) {
+				diffIdx = cast(difficulty, Int);
+				if(diffIdx < 0 || diffIdx >= backend.Difficulty.list.length) diffIdx = 0;
+			} else if(Std.isOfType(difficulty, String)) {
+				var diffStr:String = cast(difficulty, String).toLowerCase();
+				for(i in 0...backend.Difficulty.list.length) {
+					if(backend.Difficulty.list[i].toLowerCase() == diffStr) { diffIdx = i; break; }
+				}
+			}
+			return backend.Highscore.getScore(songName, diffIdx);
+		});
+
         Lua_helper.add_callback(lua, "resetState", function() {
 			MusicBeatState.resetState();
 		});
@@ -2043,7 +2124,12 @@ class LoadingLuaScript
 		});
 
 		Lua_helper.add_callback(lua, "switchState", function(stateName:String) {
-			backend.StateManager.switchState(stateName);
+			if(stateName == 'PlayState' && states.PlayState.SONG != null) {
+				FlxG.state.persistentUpdate = false;
+				states.LoadingState.loadAndSwitchState(new states.PlayState());
+			} else {
+				backend.StateManager.switchState(stateName);
+			}
 		});
 		Lua_helper.add_callback(lua, "isMusicPlaying", function() {
 			return FlxG.sound.music != null && FlxG.sound.music.playing;
@@ -2051,7 +2137,18 @@ class LoadingLuaScript
 		Lua_helper.add_callback(lua, "getScore", function(songName:String, diffIndex:Int) {
 			return backend.Highscore.getScore(songName, diffIndex);
 		});
-		Lua_helper.add_callback(lua, "getDifficulties", function() {
+		Lua_helper.add_callback(lua, "getDifficulties", function(?weekName:String = null) {
+			if(weekName != null && weekName.length > 0) {
+				#if MODS_ALLOWED
+				var weekPath = Paths.mods(Mods.currentModDirectory + '/weeks/' + weekName + '.json');
+				if(FileSystem.exists(weekPath)) {
+					var weekData:backend.WeekData = haxe.Json.parse(sys.io.File.getContent(weekPath));
+					if(weekData != null) backend.Difficulty.loadFromWeek(weekData);
+				}
+				#end
+			}
+			if(backend.Difficulty.list == null || backend.Difficulty.list.length == 0)
+				backend.Difficulty.resetList();
 			return backend.Difficulty.list;
 		});
 		Lua_helper.add_callback(lua, "getDifficultyName", function(index:Int) {
