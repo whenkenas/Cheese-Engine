@@ -172,6 +172,7 @@ class PlayState extends MusicBeatState
 	public var boyfriend:Character = null;
 	public var extraCharacters:Array<Character> = [];
 	public var extraCharacterGroups:Array<FlxSpriteGroup> = [];
+	public var extraCharacterMaps:Array<Map<String, Character>> = [];
 
 	public var notes:FlxTypedGroup<Note>;
 	public var unspawnNotes:Array<Note> = [];
@@ -890,9 +891,24 @@ class PlayState extends MusicBeatState
 	#end
 
 	public function reloadHealthBarColors() {
-		var dadColor:FlxColor = (dad != null)
-			? FlxColor.fromRGB(dad.healthColorArray[0], dad.healthColorArray[1], dad.healthColorArray[2])
-			: FlxColor.fromRGB(0, 0, 0);
+		var dadColor:FlxColor;
+		if (dad != null) {
+			dadColor = FlxColor.fromRGB(dad.healthColorArray[0], dad.healthColorArray[1], dad.healthColorArray[2]);
+		} else {
+			var colorArr:Array<Int> = [161, 161, 161];
+			for (folder in Mods.directoriesWithFile(Paths.getSharedPath(), 'characters/')) {
+				var jsonPath:String = folder + SONG.player2 + '.json';
+				if (FileSystem.exists(jsonPath)) {
+					try {
+						var rawJson:Dynamic = Json.parse(File.getContent(jsonPath));
+						if (rawJson != null && rawJson.healthbar_colors != null)
+							colorArr = rawJson.healthbar_colors;
+					} catch(e:Dynamic) {}
+					break;
+				}
+			}
+			dadColor = FlxColor.fromRGB(colorArr[0], colorArr[1], colorArr[2]);
+		}
 		healthBar.setColors(dadColor,
 			FlxColor.fromRGB(boyfriend.healthColorArray[0], boyfriend.healthColorArray[1], boyfriend.healthColorArray[2]));
 	}
@@ -1629,14 +1645,7 @@ class PlayState extends MusicBeatState
 					if (swagNote.extraData == null) swagNote.extraData = new Map<String, Dynamic>();
 					swagNote.extraData.set('strumlineIndex', strumlineIndex);
 					var extraSData:ExtraStrumlineData = (SONG.extraStrumlines != null) ? SONG.extraStrumlines[strumlineIndex - 2] : null;
-				var sectionTarget:String = section.mustHitTarget;
-				var extraStrumLabel:String = 'Strumline #${strumlineIndex + 1}';
-				if (sectionTarget != null && sectionTarget == extraStrumLabel)
-					swagNote.mustPress = true;
-				else if (sectionTarget != null && sectionTarget != extraStrumLabel)
-					swagNote.mustPress = false;
-				else
-					swagNote.mustPress = (extraSData != null && extraSData.type == 'PLAYER');
+				swagNote.mustPress = (extraSData != null && extraSData.type == 'PLAYER');
 					if (extraSData != null && extraSData.scale != 0 && extraSData.scale != 1)
 						swagNote.extraData.set('noteScale', extraSData.scale);
 				}
@@ -2699,7 +2708,14 @@ class PlayState extends MusicBeatState
 						char = gf;
 					default:
 						if(flValue2 == null) flValue2 = 0;
-						switch(Math.round(flValue2)) {
+						var roundedVal:Int = Math.round(flValue2);
+						if (roundedVal >= 3)
+						{
+							var extraIdx:Int = roundedVal - 3;
+							if (extraIdx >= 0 && extraIdx < extraCharacters.length && extraCharacters[extraIdx] != null)
+								char = extraCharacters[extraIdx];
+						}
+						else switch(roundedVal) {
 							case 1: char = boyfriend;
 							case 2: char = gf;
 						}
@@ -2833,17 +2849,27 @@ class PlayState extends MusicBeatState
 									}
 								}
 							default:
-								var xVal:Null<Float> = Std.parseFloat(target);
-								if(xVal != null && !Math.isNaN(xVal))
+							var xVal:Null<Float> = Std.parseFloat(target);
+							if (xVal != null && !Math.isNaN(xVal) && xVal >= 3 && xVal == Math.floor(xVal) && value1Parts.length == 1)
+							{
+								var extraIdx:Int = Std.int(xVal) - 3;
+								if (extraIdx >= 0 && extraIdx < extraCharacters.length && extraCharacters[extraIdx] != null)
 								{
-									targetX = xVal;
-									if(value1Parts.length > 1)
-									{
-										var yVal:Null<Float> = Std.parseFloat(value1Parts[1].trim());
-										if(yVal != null && !Math.isNaN(yVal))
-											targetY = yVal;
-									}
+									var pos = getExtraCharTargetPos(extraIdx);
+									targetX = pos.x;
+									targetY = pos.y;
 								}
+							}
+							else if(xVal != null && !Math.isNaN(xVal))
+							{
+								targetX = xVal;
+								if(value1Parts.length > 1)
+								{
+									var yVal:Null<Float> = Std.parseFloat(value1Parts[1].trim());
+									if(yVal != null && !Math.isNaN(yVal))
+										targetY = yVal;
+								}
+							}
 						}
 						
 						if(cameraFollowPosTween != null)
@@ -2988,21 +3014,27 @@ class PlayState extends MusicBeatState
 				}
 
 			case 'Alt Idle Animation':
-				var char:Character = dad;
-				switch(value1.toLowerCase().trim()) {
-					case 'gf' | 'girlfriend':
-						char = gf;
-					case 'boyfriend' | 'bf':
-						char = boyfriend;
-					default:
-						var val:Int = Std.parseInt(value1);
-						if(Math.isNaN(val)) val = 0;
-
-						switch(val) {
-							case 1: char = boyfriend;
-							case 2: char = gf;
-						}
-				}
+					var char:Character = dad;
+					switch(value1.toLowerCase().trim()) {
+						case 'gf' | 'girlfriend':
+							char = gf;
+						case 'boyfriend' | 'bf':
+							char = boyfriend;
+						default:
+							var valFloat:Null<Float> = Std.parseFloat(value1.trim());
+							if (valFloat == null || Math.isNaN(valFloat)) valFloat = 0;
+							var val:Int = Std.int(valFloat);
+							if (val >= 3)
+							{
+								var extraIdx:Int = val - 3;
+								if (extraIdx >= 0 && extraIdx < extraCharacters.length && extraCharacters[extraIdx] != null)
+									char = extraCharacters[extraIdx];
+							}
+							else switch(val) {
+								case 1: char = boyfriend;
+								case 2: char = gf;
+							}
+					}
 
 				if (char != null)
 				{
@@ -3092,6 +3124,36 @@ class PlayState extends MusicBeatState
 								gf.alpha = lastAlpha;
 							}
 							setOnScripts('gfName', gf.curCharacter);
+						}
+
+					default:
+						var extraIdx:Int = charType - 3;
+						if (extraIdx >= 0 && extraIdx < extraCharacters.length && extraCharacters[extraIdx] != null)
+						{
+							while (extraCharacterMaps.length <= extraIdx)
+								extraCharacterMaps.push(new Map<String, Character>());
+
+							var curExtra:Character = extraCharacters[extraIdx];
+							if (!extraCharacterMaps[extraIdx].exists(curExtra.curCharacter))
+								extraCharacterMaps[extraIdx].set(curExtra.curCharacter, curExtra);
+
+							if (curExtra.curCharacter != value2)
+							{
+								if (!extraCharacterMaps[extraIdx].exists(value2))
+								{
+									var isPlayer:Bool = curExtra.isPlayer;
+									var newChar:Character = new Character(0, 0, value2, isPlayer);
+									startCharacterPos(newChar);
+									newChar.alpha = 0.00001;
+									extraCharacterGroups[extraIdx].add(newChar);
+									extraCharacterMaps[extraIdx].set(value2, newChar);
+								}
+								var lastAlpha:Float = curExtra.alpha;
+								curExtra.alpha = 0.00001;
+								extraCharacters[extraIdx] = extraCharacterMaps[extraIdx].get(value2);
+								extraCharacters[extraIdx].alpha = lastAlpha;
+							}
+							setOnScripts('extraChar${extraIdx}Name', extraCharacters[extraIdx].curCharacter);
 						}
 				}
 				reloadHealthBarColors();
@@ -3558,7 +3620,17 @@ class PlayState extends MusicBeatState
 						}
 					default:
 						var xVal:Null<Float> = Std.parseFloat(target);
-						if(xVal != null && !Math.isNaN(xVal))
+						if (xVal != null && !Math.isNaN(xVal) && xVal >= 3 && xVal == Math.floor(xVal) && value1Parts.length == 1)
+						{
+							var extraIdx:Int = Std.int(xVal) - 3;
+							if (extraIdx >= 0 && extraIdx < extraCharacters.length && extraCharacters[extraIdx] != null)
+							{
+								var pos = getExtraCharTargetPos(extraIdx);
+								targetX = pos.x;
+								targetY = pos.y;
+							}
+						}
+						else if(xVal != null && !Math.isNaN(xVal))
 						{
 							targetX = xVal;
 							if(value1Parts.length > 1)
@@ -3844,7 +3916,17 @@ class PlayState extends MusicBeatState
 						}
 					default:
 						var xVal:Null<Float> = Std.parseFloat(target);
-						if(xVal != null && !Math.isNaN(xVal))
+						if (xVal != null && !Math.isNaN(xVal) && xVal >= 3 && xVal == Math.floor(xVal) && value1Parts.length == 1)
+						{
+							var extraIdx:Int = Std.int(xVal) - 3;
+							if (extraIdx >= 0 && extraIdx < extraCharacters.length && extraCharacters[extraIdx] != null)
+							{
+								var pos = getExtraCharTargetPos(extraIdx);
+								targetX = pos.x;
+								targetY = pos.y;
+							}
+						}
+						else if(xVal != null && !Math.isNaN(xVal))
 						{
 							targetX = xVal;
 							if(value1Parts.length > 1)
@@ -4071,17 +4153,27 @@ class PlayState extends MusicBeatState
 									}
 								}
 							default:
-								var xVal:Null<Float> = Std.parseFloat(target);
-								if(xVal != null && !Math.isNaN(xVal))
+							var xVal:Null<Float> = Std.parseFloat(target);
+							if (xVal != null && !Math.isNaN(xVal) && xVal >= 3 && xVal == Math.floor(xVal) && value1Parts.length == 1)
+							{
+								var extraIdx:Int = Std.int(xVal) - 3;
+								if (extraIdx >= 0 && extraIdx < extraCharacters.length && extraCharacters[extraIdx] != null)
 								{
-									targetX = xVal;
-									if(value1Parts.length > 1)
-									{
-										var yVal:Null<Float> = Std.parseFloat(value1Parts[1].trim());
-										if(yVal != null && !Math.isNaN(yVal))
-											targetY = yVal;
-									}
+									var pos = getExtraCharTargetPos(extraIdx);
+									targetX = pos.x;
+									targetY = pos.y;
 								}
+							}
+							else if(xVal != null && !Math.isNaN(xVal))
+							{
+								targetX = xVal;
+								if(value1Parts.length > 1)
+								{
+									var yVal:Null<Float> = Std.parseFloat(value1Parts[1].trim());
+									if(yVal != null && !Math.isNaN(yVal))
+										targetY = yVal;
+								}
+							}
 						}
 						
 						if(cameraFollowPosTween != null)
@@ -4245,7 +4337,7 @@ class PlayState extends MusicBeatState
 		var secData = SONG.notes[sec];
 		var target:String = secData.mustHitTarget != null ? secData.mustHitTarget : (secData.gfSection ? 'GF' : (secData.mustHitSection ? 'BF' : 'Dad'));
 
-		if (target == 'GF' && gf != null)
+		if ((target == 'GF' || target == 'GF (Player)') && gf != null)
 		{
 			moveCameraToGirlfriend();
 			callOnScripts('onMoveCamera', ['gf']);
@@ -4303,6 +4395,36 @@ class PlayState extends MusicBeatState
 		camFollow.x += gf.cameraPosition[0] + girlfriendCameraOffset[0];
 		camFollow.y += gf.cameraPosition[1] + girlfriendCameraOffset[1];
 		tweenCamIn();
+	}
+
+	public function getExtraCharTargetPos(idx:Int):{x:Float, y:Float}
+	{
+		var ec:Character = extraCharacters[idx];
+		var extraSData:ExtraStrumlineData = (SONG.extraStrumlines != null) ? SONG.extraStrumlines[idx] : null;
+		var stagePos:String = (extraSData != null) ? extraSData.stagePosition : 'Dad';
+		var isPlayer:Bool = (extraSData != null && extraSData.type == 'PLAYER');
+		var tx:Float = ec.getMidpoint().x;
+		var ty:Float = ec.getMidpoint().y;
+		if (stagePos == 'GF')
+		{
+			tx += ec.cameraPosition[0] + girlfriendCameraOffset[0];
+			ty += ec.cameraPosition[1] + girlfriendCameraOffset[1];
+		}
+		else if (isPlayer || stagePos == 'BF')
+		{
+			tx += -100;
+			ty += -100;
+			tx -= ec.cameraPosition[0] - boyfriendCameraOffset[0];
+			ty += ec.cameraPosition[1] + boyfriendCameraOffset[1];
+		}
+		else
+		{
+			tx += 150;
+			ty += -100;
+			tx += ec.cameraPosition[0] + opponentCameraOffset[0];
+			ty += ec.cameraPosition[1] + opponentCameraOffset[1];
+		}
+		return {x: tx, y: ty};
 	}
 
 	var cameraTwn:FlxTween;

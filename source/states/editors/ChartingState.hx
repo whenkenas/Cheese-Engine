@@ -91,19 +91,19 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		['Add Camera Zoom', "Used on MILF on that one \"hard\" part\nValue 1: Camera zoom add (Default: 0.015)\nValue 2: UI zoom add (Default: 0.03)\nLeave the values blank if you want to use Default."],
 		['BG Freaks Expression', "Should be used only in \"school\" Stage!"],
 		['Trigger BG Ghouls', "Should be used only in \"schoolEvil\" Stage!"],
-		['Play Animation', "Plays an animation on a Character,\nonce the animation is completed,\nthe animation changes to Idle\n\nValue 1: Animation to play.\nValue 2: Character (Dad, BF, GF)"],
+		['Play Animation', "Plays an animation on a Character,\nonce the animation is completed,\nthe animation changes to Idle\n\nValue 1: Animation to play.\nValue 2: Character (Dad, BF, GF)\nOr strumline number (3, 4, 5...)"],
 		['Target Follow Pos', "Locks camera to a specific position or character.\n\nValue 1: Position or Target\n- BF, GF, Dad (follows character)\n- Or absolute position: X, Y (e.g., 400, 800)\n- Leave empty to unlock and return to normal\n\nValue 2: Tween settings or instant\n- Leave empty or 'instant' for instant movement\n- Format: duration, easeName\n- Example: 1.5, sineInOut\n- Available eases: linear, quadIn, quadOut, quadInOut, cubeIn, cubeOut, cubeInOut, sineIn, sineOut, sineInOut, etc.\n\nNote: Camera stays locked until you clear it (empty Value 1) or use Target Camera event"],
 		['Camera Follow Pos', "Value 1: X\nValue 2: Y\n\nThe camera won't change the follow point\nafter using this, for getting it back\nto normal, leave both values blank."],
-		['Alt Idle Animation', "Sets a specified postfix after the idle animation name.\nYou can use this to trigger 'idle-alt' if you set\nValue 2 to -alt\n\nValue 1: Character to set (Dad, BF or GF)\nValue 2: New postfix (Leave it blank to disable)"],
+		['Alt Idle Animation', "Sets a specified postfix after the idle animation name.\nYou can use this to trigger 'idle-alt' if you set\nValue 2 to -alt\n\nValue 1: Character to set (Dad, BF, GF)\nOr strumline number (3, 4, 5...)\nValue 2: New postfix (Leave it blank to disable)"],
 		['Screen Shake', "Value 1: Camera shake\nValue 2: HUD shake\n\nEvery value works as the following example: \"1, 0.05\".\nThe first number (1) is the duration.\nThe second number (0.05) is the intensity."],
-		['Change Character', "Value 1: Character to change (Dad, BF, GF)\nValue 2: New character's name"],
+		['Change Character', "Value 1: Character to change\n- Dad, BF, GF\n- Or strumline number (3, 4, 5...)\nValue 2: New character's name"],
 		['Change Scroll Speed', "Value 1: Scroll Speed Multiplier (1 is default)\nValue 2: Time it takes to change fully in seconds."],
 		['Set Property', "Value 1: Variable name\nValue 2: New value"],
 		['Play Sound', "Value 1: Sound file name\nValue 2: Volume (Default: 1), ranges from 0 to 1"],
 		['Flash Camera', "Value 1: Duration in seconds (Default: 1)\nValue 2: Color name or hex code (#FFFFFF)\nSupported colors: white, black, red, green, blue, yellow, cyan, magenta, purple, orange, pink, lime, gray, brown"],
 		['Video Player', "Plays a video file.\n\nValue 1: Video Name, Camera, Layer\n- Format: videoName, camera, layer\n- Example: cutscene1, hud, 0\n- Camera options: game, hud, other (default: other)\n- Layer: number (0 = bottom, leave empty for default)\n\nValue 2: Can Skip, Mid-Song, Loop, Play On Load\n- Format: true/false, true/false, true/false, true/false\n- Example: false, true, false, true\n- Can Skip: allows skipping (default: false)\n- Mid-Song: continues music during video (default: true)\n- Loop: repeats video (default: false)\n- Play On Load: auto-play (default: true)"],
 		['Set Cam Zoom', "Value 1: Camera zoom level\n- Example: 1.05\n\nValue 2: Tween settings or instant\n- Leave empty or 'instant' for instant zoom\n- Format: duration, easeName\n- Example: 1.5, cubeInOut\n- Available eases: linear, quadIn, quadOut, quadInOut, cubeIn, cubeOut, cubeInOut, sineIn, sineOut, sineInOut, etc."],
-		['Target Camera', "Moves camera to a specific target or position.\n\nValue 1: Target\n- BF, GF, Dad\n- Or absolute position: X, Y (e.g., 400, 800)\n- Or target + offset: BF, 300 (character + X offset)\n\nValue 2: Tween settings\n- Format: easeName, duration\n- Example: sineInOut, 0.3\n- Available eases: linear, quadIn, quadOut, quadInOut, cubeIn, cubeOut, cubeInOut, sineIn, sineOut, sineInOut, elasticIn, elasticOut, elasticInOut, etc.\n\nNote: Overrides mustHitSection until tween completes"],
+		['Target Camera', "Moves camera to a specific target or position.\n\nValue 1: Target\n- BF, GF, Dad\n- Or strumline number (3, 4, 5...)\n- Or absolute position: X, Y (e.g., 400, 800)\n- Or target + offset: BF, 300 (character + X offset)\n\nValue 2: Tween settings\n- Format: easeName, duration\n- Example: sineInOut, 0.3\n- Available eases: linear, quadIn, quadOut, quadInOut, cubeIn, cubeOut, cubeInOut, sineIn, sineOut, sineInOut, elasticIn, elasticOut, elasticInOut, etc.\n\nNote: Overrides mustHitSection until tween completes"],
 		['(STEPS) Set Cam Zoom', "Like Set Cam Zoom, but the tween duration uses steps instead of seconds.\n\nValue 1: Camera zoom level\n- Example: 1.05\n\nValue 2: Tween settings or instant\n- Leave empty or 'instant' for instant zoom\n- Format: steps, easeName\n- Example: 16, cubeInOut"],
 		['(STEPS) Target Camera', "Like Target Camera, but the tween duration uses steps instead of seconds.\n\nValue 1: Target\n- BF, GF, Dad\n- Or absolute position: X, Y (e.g., 400, 800)\n- Or target + offset: BF, 300 (character + X offset)\n\nValue 2: Tween settings\n- Format: easeName, steps\n- Example: sineInOut, 8\n\nNote: Overrides mustHitSection until tween completes"],
 		['(STEPS) Target Follow Pos', "Like Target Follow Pos, but the tween duration uses steps instead of seconds.\n\nValue 1: Position or Target\n- BF, GF, Dad (follows character)\n- Or absolute position: X, Y (e.g., 400, 800)\n- Leave empty to unlock and return to normal\n\nValue 2: Tween settings or instant\n- Leave empty or 'instant' for instant movement\n- Format: steps, easeName\n- Example: 8, sineInOut\n\nNote: Camera stays locked until you clear it (empty Value 1) or use Target Camera event"],
@@ -3050,7 +3050,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var sec = getCurChartSection();
 		if(sec != null)
 		{
-				var mustHitOptions:Array<String> = ['Dad', 'BF', 'GF'];
+				var mustHitOptions:Array<String> = (GRID_PLAYERS == 1) ? ['BF', 'GF', 'GF (Player)'] : ['Dad', 'BF', 'GF', 'GF (Player)'];
 			if (PlayState.SONG.extraStrumlines != null)
 				for (i in 0...PlayState.SONG.extraStrumlines.length)
 					mustHitOptions.push('Strumline #${i + 3}');
@@ -3063,7 +3063,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			else if (sec.mustHitSection == true)
 				mustHitDropDown.selectedLabel = 'BF';
 			else
-				mustHitDropDown.selectedLabel = 'Dad';
+				mustHitDropDown.selectedLabel = (GRID_PLAYERS == 1) ? 'BF' : 'Dad';
 
 			altAnimSectionCheckBox.checked = sec.altAnim;
 			changeBpmCheckBox.checked = sec.changeBPM;
@@ -3297,6 +3297,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 		else if(icons.length == 1)
 		{
+			if (isGfSection)
+				icons[0].changeIcon('gf');
 			mustHitIndicator.x = icons[0].x + icons[0].width / 2;
 		}
 		else if(icons.length == 0)
@@ -4655,7 +4657,7 @@ end
 			}
 		}
 
-		var mustHitOptions:Array<String> = ['Dad', 'BF', 'GF'];
+		var mustHitOptions:Array<String> = ['Dad', 'BF', 'GF', 'GF (Player)'];
 		if (PlayState.SONG.extraStrumlines != null)
 			for (i in 0...PlayState.SONG.extraStrumlines.length)
 				mustHitOptions.push('Strumline #${i + 3}');
@@ -4670,8 +4672,8 @@ end
 			var sec = getCurChartSection();
 			if (sec == null) return;
 			sec.mustHitTarget = val;
-			sec.mustHitSection = (val == 'BF');
-			sec.gfSection = (val == 'GF');
+			sec.mustHitSection = (val == 'BF' || val == 'GF (Player)');
+			sec.gfSection = (val == 'GF' || val == 'GF (Player)');
 			updateHeads(true);
 		});
 		mustHitDropDown.cameras = cameras;
@@ -5260,7 +5262,13 @@ end
 		objY += 40;
 		playerDropDown = new PsychUIDropDownMenu(objX, objY, [''], function(id:Int, character:String)
 		{
-			PlayState.SONG.player1 = character;
+			if (GRID_PLAYERS == 1 && character == 'dad')
+			{
+				PlayState.SONG.player1 = 'bf';
+				playerDropDown.selectedLabel = 'bf';
+			}
+			else
+				PlayState.SONG.player1 = character;
 			updateJsonData();
 			updateHeads(true);
 			loadMusic();
