@@ -102,7 +102,7 @@ class MainMenuState extends MusicBeatState
 		tabText.scrollFactor.set();
 		tabText.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		add(tabText);
-		var cheeseVer:FlxText = new FlxText(12, FlxG.height - 64, 0, "Cheese Engine v0.5", 12);
+		var cheeseVer:FlxText = new FlxText(12, FlxG.height - 64, 0, "Cheese Engine v1.0", 12);
 		cheeseVer.scrollFactor.set();
 		cheeseVer.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		add(cheeseVer);
