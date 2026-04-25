@@ -5968,13 +5968,13 @@ class PlayState extends MusicBeatState
 	{
 		var char:Character = opponentMode ? dad : boyfriend;
 		var anim:String = char.getAnimationName();
-		if(char.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / FlxG.sound.music.pitch #end) * char.singDuration && anim.startsWith('sing') && !anim.endsWith('miss'))
+		if(char.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / (FlxG.sound.music != null ? FlxG.sound.music.pitch : 1.0) #end) * char.singDuration && anim.startsWith('sing') && !anim.endsWith('miss'))
 			char.dance();
 		
 		if(opponentMode && boyfriend != null)
 		{
 			var bfAnim:String = boyfriend.getAnimationName();
-			if(boyfriend.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / FlxG.sound.music.pitch #end) * boyfriend.singDuration && bfAnim.startsWith('sing') && !bfAnim.endsWith('miss'))
+			if(boyfriend.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / (FlxG.sound.music != null ? FlxG.sound.music.pitch : 1.0) #end) * boyfriend.singDuration && bfAnim.startsWith('sing') && !bfAnim.endsWith('miss'))
 				boyfriend.dance();
 		}
 
@@ -5987,7 +5987,7 @@ class PlayState extends MusicBeatState
 				var extraChar:Character = extraCharacters[i];
 				if (extraChar == null) continue;
 				var extraAnim:String = extraChar.getAnimationName();
-				if (extraChar.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / FlxG.sound.music.pitch #end) * extraChar.singDuration && extraAnim.startsWith('sing') && !extraAnim.endsWith('miss'))
+				if (extraChar.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / (FlxG.sound.music != null ? FlxG.sound.music.pitch : 1.0) #end) * extraChar.singDuration && extraAnim.startsWith('sing') && !extraAnim.endsWith('miss'))
 					extraChar.dance();
 			}
 		}

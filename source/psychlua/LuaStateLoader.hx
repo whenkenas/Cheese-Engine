@@ -174,13 +174,15 @@ class LuaState extends MusicBeatState
 			if(chartCheck == null)
 				jsonName = Paths.formatToSongPath(songName);
 			if(backend.Song.getChart(jsonName, songFolder) != null) {
-				backend.Song.loadFromJson(jsonName, songFolder);
-				states.PlayState.isStoryMode = false;
-				states.PlayState.storyDifficulty = diffIdx;
-				states.PlayState.previousState = stateName;
-				FlxG.state.persistentUpdate = false;
-				states.LoadingState.loadAndSwitchState(new states.PlayState());
-			}
+					backend.Song.loadFromJson(jsonName, songFolder);
+					states.PlayState.isStoryMode = false;
+					states.PlayState.storyDifficulty = diffIdx;
+					states.PlayState.previousState = stateName;
+					FlxG.state.persistentUpdate = false;
+					if(FlxG.sound.music == null)
+						FlxG.sound.playMusic(Paths.music('freakyMenu'), 0, true);
+					states.LoadingState.loadAndSwitchState(new states.PlayState());
+				}
 		});
 
 		Lua_helper.add_callback(lua, "songExists", function(songName:String, ?difficulty:Dynamic = null, ?folder:String = null):Bool {
