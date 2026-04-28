@@ -1654,13 +1654,31 @@ class LuaState extends MusicBeatState
 			return FlxG.random.int(min, max, toExclude);
 		});
 		Lua_helper.add_callback(lua, "openCustomSubstate", function(name:String, ?pauseGame:Bool = false) {
-			CustomSubstate.openCustomSubstate(name, pauseGame);
+			if(pauseGame) {
+				persistentUpdate = false;
+				persistentDraw = true;
+				if(FlxG.sound.music != null)
+					FlxG.sound.music.pause();
+			}
+			openSubState(new LuaStateCustomSubstate(name, this));
 		});
 		Lua_helper.add_callback(lua, "closeCustomSubstate", function() {
-			return CustomSubstate.closeCustomSubstate();
+			if(LuaStateCustomSubstate.instance != null) {
+				closeSubState();
+				return true;
+			}
+			return false;
 		});
 		Lua_helper.add_callback(lua, "insertToCustomSubstate", function(tag:String, ?pos:Int = -1) {
-			return CustomSubstate.insertToCustomSubstate(tag, pos);
+			if(LuaStateCustomSubstate.instance != null) {
+				var tagObject:FlxObject = cast(MusicBeatState.getVariables().get(tag), FlxObject);
+				if(tagObject != null) {
+					if(pos < 0) LuaStateCustomSubstate.instance.add(tagObject);
+					else LuaStateCustomSubstate.instance.insert(pos, tagObject);
+					return true;
+				}
+			}
+			return false;
 		});
 		#if DISCORD_ALLOWED
 		Lua_helper.add_callback(lua, "changeDiscordPresence", DiscordClient.changePresence);
@@ -3003,5 +3021,43 @@ class LoadingLuaScript
 		}
 	}
 	#end
+}
+
+class LuaStateCustomSubstate extends MusicBeatSubstate
+{
+	public static var instance:LuaStateCustomSubstate = null;
+	public var substateName:String;
+	var _luaState:LuaState;
+
+	public function new(name:String, luaState:LuaState)
+	{
+		substateName = name;
+		_luaState = luaState;
+		super();
+		cameras = [FlxG.cameras.list[FlxG.cameras.list.length - 1]];
+	}
+
+	override function create()
+	{
+		instance = this;
+		_luaState.call('onCustomSubstateCreate', [substateName]);
+		super.create();
+		_luaState.call('onCustomSubstateCreatePost', [substateName]);
+	}
+
+	override function update(elapsed:Float)
+	{
+		_luaState.call('onCustomSubstateUpdate', [substateName, elapsed]);
+		super.update(elapsed);
+		_luaState.call('onCustomSubstateUpdatePost', [substateName, elapsed]);
+	}
+
+	override function destroy()
+	{
+		_luaState.call('onCustomSubstateDestroy', [substateName]);
+		instance = null;
+		substateName = 'unnamed';
+		super.destroy();
+	}
 }
 #end

@@ -17,6 +17,7 @@ enum MainMenuColumn {
 class MainMenuState extends MusicBeatState
 {
 	public static var psychEngineVersion:String = '1.0.4'; // This is also used for Discord RPC
+	public static var cheeseEngineVersion:String = '1.2';
 	public static var curSelected:Int = 0;
 	public static var curColumn:MainMenuColumn = CENTER;
 	var allowMouse:Bool = true; //Turn this off to block mouse movement in menus
@@ -102,7 +103,7 @@ class MainMenuState extends MusicBeatState
 		tabText.scrollFactor.set();
 		tabText.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		add(tabText);
-		var cheeseVer:FlxText = new FlxText(12, FlxG.height - 64, 0, "Cheese Engine v1.0", 12);
+		var cheeseVer:FlxText = new FlxText(12, FlxG.height - 64, 0, "Cheese Engine v" + cheeseEngineVersion, 12);
 		cheeseVer.scrollFactor.set();
 		cheeseVer.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		add(cheeseVer);
@@ -128,7 +129,7 @@ class MainMenuState extends MusicBeatState
 		#end
 
 		#if CHECK_FOR_UPDATES
-		if (showOutdatedWarning && ClientPrefs.data.checkForUpdates && substates.OutdatedSubState.updateVersion != psychEngineVersion) {
+		if (showOutdatedWarning && ClientPrefs.data.checkForUpdates && substates.OutdatedSubState.updateVersion != cheeseEngineVersion) {
 			persistentUpdate = false;
 			showOutdatedWarning = false;
 			openSubState(new substates.OutdatedSubState());

@@ -24,9 +24,9 @@ class OutdatedSubState extends MusicBeatSubstate
 		add(bg);
 
 		warnText = new FlxText(0, 0, FlxG.width,
-			'Sup bro, looks like you\'re running an outdated version of\nCheese Engine (${MainMenuState.psychEngineVersion})\n
+			'Sup bro, looks like you\'re running an outdated version of\nCheese Engine (${MainMenuState.cheeseEngineVersion})\n
 			-----------------------------------------------\n
-			Press ENTER to update to the latest version ${updateVersion}\n
+			Press ENTER to update to the latest version ${MainMenuState.cheeseEngineVersion}\n
 			Press ESCAPE to proceed anyway.\n
 			You can disable this warning by unchecking the
 			"Check for Updates" setting in the Options Menu\n
