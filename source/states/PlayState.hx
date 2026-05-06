@@ -2037,6 +2037,10 @@ class PlayState extends MusicBeatState
 	public var canResync:Bool = true;
 	override function closeSubState()
 	{
+		if (stickerSubState != null && subState == stickerSubState)
+		{
+			stickerSubState = null;
+		}
 		super.closeSubState();
 		
 		stagesFunc(function(stage:BaseStage) stage.closeSubState());

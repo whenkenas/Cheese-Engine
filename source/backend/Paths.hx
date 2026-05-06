@@ -302,6 +302,12 @@ class Paths
 			bitmap.readable = true;
 		}
 
+		var existing:FlxGraphic = FlxG.bitmap.get(key);
+		if (existing != null)
+		{
+			existing.persist = false;
+			FlxG.bitmap.remove(existing);
+		}
 		var graph:FlxGraphic = FlxGraphic.fromBitmapData(bitmap, false, key);
 		graph.persist = true;
 		graph.destroyOnNoUse = false;

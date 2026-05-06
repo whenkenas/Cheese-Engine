@@ -241,6 +241,20 @@ class LuaState extends MusicBeatState
 			return backend.Highscore.getScore(songName, diffIdx);
 		});
 
+		Lua_helper.add_callback(lua, "getHighscoreRating", function(songName:String, ?difficulty:Dynamic = 'normal'):Float {
+			var diffIdx:Int = 0;
+			if(Std.isOfType(difficulty, Int)) {
+				diffIdx = cast(difficulty, Int);
+				if(diffIdx < 0 || diffIdx >= backend.Difficulty.list.length) diffIdx = 0;
+			} else if(Std.isOfType(difficulty, String)) {
+				var diffStr:String = cast(difficulty, String).toLowerCase();
+				for(i in 0...backend.Difficulty.list.length) {
+					if(backend.Difficulty.list[i].toLowerCase() == diffStr) { diffIdx = i; break; }
+				}
+			}
+			return backend.Highscore.getRating(songName, diffIdx);
+		});
+
         Lua_helper.add_callback(lua, "resetState", function() {
 			MusicBeatState.resetState();
 		});
@@ -1862,6 +1876,7 @@ class LuaState extends MusicBeatState
 		persistentUpdate = true;
 		super.create();
 
+		backend.Highscore.load();
 		call('onCreate', []);
 
 		if(oldStickers != null && oldStickers.length > 0) {

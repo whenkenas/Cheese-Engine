@@ -201,7 +201,7 @@ class MusicBeatState extends FlxState
 
 		#if MODS_ALLOWED
 		var currentMode = getCurrentModMode();
-		if(currentMode == 'SINGLE MOD' && Mods.currentModDirectory != null && Mods.currentModDirectory != '')
+		if(currentMode != 'DISABLE MODS' && Mods.currentModDirectory != null && Mods.currentModDirectory != '')
 		{
 			var stateClassName = Type.getClassName(Type.getClass(nextState));
 			if(stateClassName != null)

@@ -82,20 +82,34 @@ class Highscore
 		return Paths.formatToSongPath(song) + Difficulty.getFilePath(diff);
 	}
 
-	public static function getScore(song:String, diff:Int):Int
+	private static function resolveDiff(diff:Dynamic):Int
 	{
-		var daSong:String = formatSong(song, diff);
+		if (Std.isOfType(diff, String)) {
+			var diffStr:String = cast(diff, String).toLowerCase();
+			for (i in 0...Difficulty.list.length)
+				if (Difficulty.list[i].toLowerCase() == diffStr)
+					return i;
+			return 0;
+		}
+		var idx:Int = Std.int(diff);
+		if (idx < 0 || idx >= Difficulty.list.length) return 0;
+		return idx;
+	}
+
+	public static function getScore(song:String, diff:Dynamic):Int
+	{
+		var daSong:String = formatSong(song, resolveDiff(diff));
 		if (!songScores.exists(daSong))
-			setScore(daSong, 0);
+			return 0;
 
 		return songScores.get(daSong);
 	}
 
-	public static function getRating(song:String, diff:Int):Float
+	public static function getRating(song:String, diff:Dynamic):Float
 	{
-		var daSong:String = formatSong(song, diff);
+		var daSong:String = formatSong(song, resolveDiff(diff));
 		if (!songRating.exists(daSong))
-			setRating(daSong, 0);
+			return 0;
 
 		return songRating.get(daSong);
 	}

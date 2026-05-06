@@ -359,6 +359,12 @@ class ModSelectorSubstate extends MusicBeatSubstate
 		try {
 			backend.Highscore.load();
 		} catch(e:Dynamic) {}
+
+		try {
+			Paths.currentTrackedAssets.clear();
+			Paths.localTrackedAssets = [];
+			FlxG.bitmap.clearCache();
+		} catch(e:Dynamic) {}
 		
 		TitleState.initialized = false;
 		TitleState.closedState = false;
