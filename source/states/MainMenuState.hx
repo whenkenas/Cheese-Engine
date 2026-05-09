@@ -129,7 +129,7 @@ class MainMenuState extends MusicBeatState
 		#end
 
 		#if CHECK_FOR_UPDATES
-		if (showOutdatedWarning && ClientPrefs.data.checkForUpdates && substates.OutdatedSubState.updateVersion != cheeseEngineVersion) {
+		if (showOutdatedWarning && ClientPrefs.data.checkForUpdates && Std.parseFloat(substates.OutdatedSubState.updateVersion) > Std.parseFloat(cheeseEngineVersion)) {
 			persistentUpdate = false;
 			showOutdatedWarning = false;
 			openSubState(new substates.OutdatedSubState());
