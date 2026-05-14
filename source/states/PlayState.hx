@@ -5304,7 +5304,7 @@ class PlayState extends MusicBeatState
 				}
 			}
 
-			if(opponentVocals.length <= 0) vocals.volume = 1;
+			if(opponentVocals.length <= 0) vocals.volume = 1; else opponentVocals.volume = 1;
 			strumPlayAnim(true, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
 			note.hitByOpponent = true;
 
@@ -5500,7 +5500,7 @@ class PlayState extends MusicBeatState
 		}
 
 		var extraStrumIdxForAnim:Int = (note.extraData != null) ? Std.int(note.extraData.get('strumlineIndex')) : -1;
-		if(opponentVocals.length <= 0) vocals.volume = 1;
+		if(opponentVocals.length <= 0) vocals.volume = 1; else opponentVocals.volume = 1;
 		if (extraStrumIdxForAnim >= 2 && extraStrumGroups[extraStrumIdxForAnim - 2] != null)
 		{
 			var extraSDataAnim:ExtraStrumlineData = (SONG.extraStrumlines != null) ? SONG.extraStrumlines[extraStrumIdxForAnim - 2] : null;
