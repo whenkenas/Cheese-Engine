@@ -11,6 +11,7 @@ import flixel.util.FlxColor;
 <target id="haxe">
 	<lib name="dwmapi.lib" if="windows"/>
 	<lib name="gdi32.lib" if="windows"/>
+	<lib name="ole32.lib" if="windows"/>
 </target>
 ')
 @:cppFileCode('
@@ -18,6 +19,13 @@ import flixel.util.FlxColor;
 #include <dwmapi.h>
 #include <winuser.h>
 #include <wingdi.h>
+
+#include "mmdeviceapi.h"
+#include "combaseapi.h"
+
+#define SAFE_RELEASE(punk)  \\
+	if ((punk) != NULL)  \\
+	{ (punk)->Release(); (punk) = NULL; }
 
 #define attributeDarkMode 20
 #define attributeDarkModeFallback 19
@@ -45,6 +53,7 @@ BOOL CALLBACK findByPID(HWND handle, LPARAM lParam) {
 }
 
 HWND curHandle = 0;
+
 void getHandle() {
 	if (curHandle == (HWND)0) {
 		HandleData data;
@@ -53,10 +62,106 @@ void getHandle() {
 		curHandle = data.handle;
 	}
 }
+
+class AudioFixClient : public IMMNotificationClient {
+	LONG _cRef;
+	IMMDeviceEnumerator *_pEnumerator;
+
+	public:
+
+	AudioFixClient() :
+		_cRef(1),
+		_pEnumerator(NULL)
+	{
+		HRESULT result = CoCreateInstance(
+			__uuidof(MMDeviceEnumerator),
+			NULL,
+			CLSCTX_INPROC_SERVER,
+			__uuidof(IMMDeviceEnumerator),
+			(void**)&_pEnumerator
+		);
+
+		if (result == S_OK) {
+			_pEnumerator->RegisterEndpointNotificationCallback(this);
+		}
+	}
+
+	~AudioFixClient()
+	{
+		SAFE_RELEASE(_pEnumerator);
+	}
+
+	ULONG STDMETHODCALLTYPE AddRef()
+	{
+		return InterlockedIncrement(&_cRef);
+	}
+
+	ULONG STDMETHODCALLTYPE Release()
+	{
+		ULONG ulRef = InterlockedDecrement(&_cRef);
+
+		if (0 == ulRef)
+			delete this;
+
+		return ulRef;
+	}
+
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, VOID **ppvInterface)
+	{
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE OnDeviceAdded(LPCWSTR pwstrDeviceId)
+	{
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE OnDeviceRemoved(LPCWSTR pwstrDeviceId)
+	{
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE OnDeviceStateChanged(
+		LPCWSTR pwstrDeviceId,
+		DWORD dwNewState)
+	{
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE OnPropertyValueChanged(
+		LPCWSTR pwstrDeviceId,
+		const PROPERTYKEY key)
+	{
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged(
+		EDataFlow flow,
+		ERole role,
+		LPCWSTR pwstrDeviceId)
+	{
+		::Main_obj::audioDisconnected = true;
+		return S_OK;
+	}
+};
+
+AudioFixClient* curAudioFix;
 ')
 #end
 class Native
 {
+	public static function registerAudio():Void
+	{
+		#if (cpp && windows)
+		untyped __cpp__('
+			if (!curAudioFix)
+				curAudioFix = new AudioFixClient();
+		');
+
+		Main.audioDisconnected = false;
+		#end
+	}
+
 	public static function __init__():Void
 	{
 		registerDPIAware();

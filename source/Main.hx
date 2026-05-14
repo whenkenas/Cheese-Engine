@@ -46,6 +46,7 @@ import haxe.io.Path;
 #end
 
 import backend.Highscore;
+import backend.AudioSwitchFix;
 
 #if (cpp && windows)
 import hxwindowmode.WindowColorMode;
@@ -108,6 +109,9 @@ class Main extends Sprite
 	{
 		Lib.current.addChild(new Main());
 	}
+
+	public static var audioDisconnected:Bool = false;
+	public static var changeID:Int = 0;
 
 	public function new()
 	{
@@ -282,6 +286,8 @@ class Main extends Sprite
 		#if (cpp && windows)
 		updateWindowTheme();
 		#end
+
+		AudioSwitchFix.init();
 
 		#if html5
 		FlxG.autoPause = false;
