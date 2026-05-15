@@ -2858,8 +2858,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		swagNote.setSustainLength(note[2], cachedSectionCrochets[secNum] / 4, curZoom);
 		swagNote.gfNote = (section.gfSection && gottaHitNote == section.mustHitSection);
 		swagNote.noteType = note[3];
-		if(note[3] == 'Alt Animation' && note[4] != null && note[4] != '')
-			swagNote.animSuffix = note[4];
+		if(note[3] == 'Alt Animation')
+			swagNote.animSuffix = (note[4] != null) ? note[4] : '';
 		swagNote.scrollFactor.x = 0;
 		var txt:FlxText = swagNote.findNoteTypeText(swagNote.noteType != null ? noteTypes.indexOf(swagNote.noteType) : 0);
 		if(txt != null) txt.visible = showNoteTypeLabels;
@@ -4517,8 +4517,11 @@ end
 				if(typeSelected != null && typeSelected.length > 0)
 				{
 					note.songData[3] = typeSelected;
-					if(typeSelected == 'Alt Animation' && note.songData.length > 4)
-						note.songData[4] = note.animSuffix;
+						if(typeSelected == 'Alt Animation')
+					{
+						if(note.songData.length <= 4)
+							note.songData.push('');
+					}
 					else if(note.songData.length > 4)
 						note.songData.remove(note.songData[4]);
 				}
@@ -4542,6 +4545,8 @@ end
 			softReloadNotes();
 			
 			altAnimInputText.visible = altAnimDescText.visible = altAnimLabelText.visible = (typeSelected == 'Alt Animation');
+			if(typeSelected == 'Alt Animation')
+				altAnimInputText.text = '';
 		}, 150);
 		
 		tab_group.add(new FlxText(susLengthStepper.x, susLengthStepper.y - 15, 80, 'Sustain length:'));

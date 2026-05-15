@@ -313,7 +313,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				var spr:FlxSprite = !character.isAnimateAtlas ? ghost : animateGhost;
 				if(spr != null)
 				{
-					spr.setPosition(character.x, character.y);
 					spr.antialiasing = character.antialiasing;
 					spr.flipX = character.flipX;
 					spr.alpha = ghostAlpha;
@@ -322,6 +321,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 					spr.updateHitbox();
 
 					spr.offset.set(character.offset.x, character.offset.y);
+					spr.origin.set(character.origin.x, character.origin.y);
+					spr.setPosition(character.x, character.y);
 					spr.visible = true;
 
 					var otherSpr:FlxSprite = (spr == animateGhost) ? ghost : animateGhost;
