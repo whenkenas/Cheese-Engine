@@ -2589,8 +2589,19 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				{
 					var rawVal2:String = (myEvent[2] != null) ? myEvent[2] : '';
 					var parts:Array<String> = rawVal2.split(',');
-					valueInputTexts[1].text = parts[0].trim();
-					valueInputTexts[2].text = parts.length > 1 ? parts[1].trim() : '';
+					var _seconds:String = parts[0].trim();
+					var _ease:String = parts.length > 1 ? parts[1].trim() : '';
+					if(_seconds.length == 0 && _ease.length > 0)
+					{
+						myEvent[2] = _ease;
+						rawVal2 = _ease;
+					}
+					else if(_seconds.length > 0 && _ease.length > 0)
+					{
+						myEvent[2] = _seconds + ', ' + _ease;
+					}
+					valueInputTexts[1].text = _seconds;
+					valueInputTexts[2].text = _ease;
 				}
 				else
 				{
@@ -4352,7 +4363,7 @@ end
 				if(idx == 1 && easeDropDown != null && easeDropDown.visible)
 				{
 					var ease:String = valueInputTexts[2].text.trim();
-					var combined:String = ease.length > 0 ? cur + ', ' + ease : cur;
+					var combined:String = ease.length > 0 ? (cur.length > 0 ? cur + ', ' + ease : ease) : cur;
 					changeEventsValue(combined, 2);
 				}
 				else if(idx == 2)
@@ -4391,7 +4402,7 @@ end
 			if(easeDropDown != null && easeDropDown.visible)
 			{
 				var seconds:String = valueInputTexts[1].text.trim();
-				var combined:String = ease.length > 0 ? seconds + ', ' + ease : seconds;
+				var combined:String = ease.length > 0 ? (seconds.length > 0 ? seconds + ', ' + ease : ease) : seconds;
 				changeEventsValue(combined, 2);
 				changeEventsValue('', 3);
 			}
@@ -4408,7 +4419,7 @@ end
 			if(easeInOutDropDown != null && easeInOutDropDown.visible)
 			{
 				var seconds:String = valueInputTexts[1].text.trim();
-				var combined:String = ease.length > 0 ? seconds + ', ' + ease : seconds;
+				var combined:String = ease.length > 0 ? (seconds.length > 0 ? seconds + ', ' + ease : ease) : seconds;
 				changeEventsValue(combined, 2);
 				changeEventsValue('', 3);
 			}

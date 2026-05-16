@@ -2886,7 +2886,7 @@ class PlayState extends MusicBeatState
 						{
 							camFollow.setPosition(targetX, targetY);
 						}
-						else if(value2.trim().toLowerCase() == 'instant')
+						else if(value2.split(',').map(s -> s.trim().toLowerCase()).contains('instant'))
 						{
 							FlxG.camera.follow(null);
 							camFollow.setPosition(targetX, targetY);
@@ -3558,27 +3558,40 @@ class PlayState extends MusicBeatState
 						case 'smootherstepinout': easeFunc = FlxEase.smootherStepInOut;
 					}
 
-					for(t in camZoomTweens) { t.cancel(); }
-					camZoomTweens = [];
-					camZoomTween = null;
-					FlxTween.cancelTweensOf(FlxG.camera);
+					if(easeName == 'instant')
+					{
+						for(t in camZoomTweens) { t.cancel(); }
+						camZoomTweens = [];
+						camZoomTween = null;
+						FlxTween.cancelTweensOf(FlxG.camera);
+						defaultCamZoom = zoomValue;
+						FlxG.camera.zoom = zoomValue;
+						camZooming = true;
+					}
+					else
+					{
+						for(t in camZoomTweens) { t.cancel(); }
+						camZoomTweens = [];
+						camZoomTween = null;
+						FlxTween.cancelTweensOf(FlxG.camera);
 
-					camZooming = false;
-					var newTween:FlxTween = FlxTween.tween(FlxG.camera, {zoom: zoomValue}, duration / playbackRate, {
-						ease: easeFunc,
-						onComplete: function(twn:FlxTween)
-						{
-							if(twn != camZoomTween) {
-								return;
+						camZooming = false;
+						var newTween:FlxTween = FlxTween.tween(FlxG.camera, {zoom: zoomValue}, duration / playbackRate, {
+							ease: easeFunc,
+							onComplete: function(twn:FlxTween)
+							{
+								if(twn != camZoomTween) {
+									return;
+								}
+								defaultCamZoom = FlxG.camera.zoom;
+								camZoomTween = null;
+								camZoomTweenEndTime = haxe.Timer.stamp();
+								camZooming = true;
 							}
-							defaultCamZoom = FlxG.camera.zoom;
-							camZoomTween = null;
-							camZoomTweenEndTime = haxe.Timer.stamp();
-							camZooming = true;
-						}
-					});
-					camZoomTween = newTween;
-					camZoomTweens.push(newTween);
+						});
+						camZoomTween = newTween;
+						camZoomTweens.push(newTween);
+					}
 				}
 
 			case 'Target Camera':
@@ -3757,13 +3770,23 @@ class PlayState extends MusicBeatState
 							duration = durationVal;
 					}
 					
-					targetCameraEventTween = FlxTween.tween(camFollow, {x: targetX, y: targetY}, duration / playbackRate, {
-						ease: easeFunc,
-						onComplete: function(twn:FlxTween)
-						{
-							targetCameraEventTween = null;
-						}
-					});
+					if(_easeName == 'instant')
+					{
+						FlxG.camera.follow(null);
+						camFollow.setPosition(targetX, targetY);
+						FlxG.camera.focusOn(camFollow.getPosition());
+						FlxG.camera.follow(camFollow, LOCKON, 0);
+					}
+					else
+					{
+						targetCameraEventTween = FlxTween.tween(camFollow, {x: targetX, y: targetY}, duration / playbackRate, {
+							ease: easeFunc,
+							onComplete: function(twn:FlxTween)
+							{
+								targetCameraEventTween = null;
+							}
+						});
+					}
 				}
 				case '(STEPS) Set Cam Zoom':
 				var zoomValue:Float = Std.parseFloat(value1);
@@ -3856,25 +3879,38 @@ class PlayState extends MusicBeatState
 						case 'smootherstepinout': easeFunc = FlxEase.smootherStepInOut;
 					}
 
-					for(t in camZoomTweens) { t.cancel(); }
-					camZoomTweens = [];
-					camZoomTween = null;
-					FlxTween.cancelTweensOf(FlxG.camera);
+					if(easeName == 'instant')
+					{
+						for(t in camZoomTweens) { t.cancel(); }
+						camZoomTweens = [];
+						camZoomTween = null;
+						FlxTween.cancelTweensOf(FlxG.camera);
+						defaultCamZoom = zoomValue;
+						FlxG.camera.zoom = zoomValue;
+						camZooming = true;
+					}
+					else
+					{
+						for(t in camZoomTweens) { t.cancel(); }
+						camZoomTweens = [];
+						camZoomTween = null;
+						FlxTween.cancelTweensOf(FlxG.camera);
 
-					camZooming = false;
-					var newTween:FlxTween = FlxTween.tween(FlxG.camera, {zoom: zoomValue}, duration / playbackRate, {
-						ease: easeFunc,
-						onComplete: function(twn:FlxTween)
-						{
-							if(twn != camZoomTween) return;
-							defaultCamZoom = FlxG.camera.zoom;
-							camZoomTween = null;
-							camZoomTweenEndTime = haxe.Timer.stamp();
-							camZooming = true;
-						}
-					});
-					camZoomTween = newTween;
-					camZoomTweens.push(newTween);
+						camZooming = false;
+						var newTween:FlxTween = FlxTween.tween(FlxG.camera, {zoom: zoomValue}, duration / playbackRate, {
+							ease: easeFunc,
+							onComplete: function(twn:FlxTween)
+							{
+								if(twn != camZoomTween) return;
+								defaultCamZoom = FlxG.camera.zoom;
+								camZoomTween = null;
+								camZoomTweenEndTime = haxe.Timer.stamp();
+								camZooming = true;
+							}
+						});
+						camZoomTween = newTween;
+						camZoomTweens.push(newTween);
+					}
 				}
 
 			case '(STEPS) Target Camera':
@@ -4053,13 +4089,23 @@ class PlayState extends MusicBeatState
 							duration = durationVal * (Conductor.stepCrochet / 1000);
 					}
 					
-					targetCameraEventTween = FlxTween.tween(camFollow, {x: targetX, y: targetY}, duration / playbackRate, {
-						ease: easeFunc,
-						onComplete: function(twn:FlxTween)
-						{
-							targetCameraEventTween = null;
-						}
-					});
+					if(_easeName == 'instant')
+					{
+						FlxG.camera.follow(null);
+						camFollow.setPosition(targetX, targetY);
+						FlxG.camera.focusOn(camFollow.getPosition());
+						FlxG.camera.follow(camFollow, LOCKON, 0);
+					}
+					else
+					{
+						targetCameraEventTween = FlxTween.tween(camFollow, {x: targetX, y: targetY}, duration / playbackRate, {
+							ease: easeFunc,
+							onComplete: function(twn:FlxTween)
+							{
+								targetCameraEventTween = null;
+							}
+						});
+					}
 				}
 
 			case '(STEPS) Target Follow Pos':
@@ -4190,7 +4236,7 @@ class PlayState extends MusicBeatState
 						{
 							camFollow.setPosition(targetX, targetY);
 						}
-						else if(value2.trim().toLowerCase() == 'instant')
+						else if(value2.split(',').map(s -> s.trim().toLowerCase()).contains('instant'))
 						{
 							FlxG.camera.follow(null);
 							camFollow.setPosition(targetX, targetY);
