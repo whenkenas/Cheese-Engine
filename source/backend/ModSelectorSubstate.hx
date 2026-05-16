@@ -215,7 +215,10 @@ class ModSelectorSubstate extends MusicBeatSubstate
 			{
 				Mods.setActiveMod(selectedMod);
 				if(save != null && save.data != null)
+				{
+					save.data.currentMod = selectedMod;
 					save.data.modMode = 'SINGLE MOD';
+				}
 				save.flush();
 			}
 			
@@ -361,8 +364,10 @@ class ModSelectorSubstate extends MusicBeatSubstate
 		} catch(e:Dynamic) {}
 
 		try {
-			Paths.currentTrackedAssets.clear();
+			Paths.dumpExclusions = ['assets/shared/music/freakyMenu.${Paths.SOUND_EXT}'];
 			Paths.localTrackedAssets = [];
+			Paths.clearStoredMemory();
+			Paths.currentTrackedAssets.clear();
 			FlxG.bitmap.clearCache();
 		} catch(e:Dynamic) {}
 		

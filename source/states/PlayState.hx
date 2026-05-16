@@ -1650,7 +1650,7 @@ class PlayState extends MusicBeatState
 						swagNote.extraData.set('noteScale', extraSData.scale);
 				}
 
-				if(noteType == 'Alt Animation' && songNotes.length > 4 && songNotes[4] != null && songNotes[4] != '')
+				if(noteType == 'Alt Animation' && songNotes.length > 4 && songNotes[4] != null)
 					swagNote.animSuffix = songNotes[4];
 					swagNote.texture = '';
 				swagNote.reloadNote();

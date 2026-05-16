@@ -121,7 +121,6 @@ class HScriptStateLoader
 			if(save != null && save.data != null && save.data.currentMod != null && save.data.currentMod != '')
 			{
 				savedModDirectory = save.data.currentMod;
-				Mods.currentModDirectory = savedModDirectory;
 			}
 		}
 		
