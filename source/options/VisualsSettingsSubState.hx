@@ -147,6 +147,12 @@ class VisualsSettingsSubState extends BaseOptionsMenu
 			BOOL);
 		addOption(option);
 
+		var option:Option = new Option('Quant Notes',
+			"If checked, notes are colored by their beat quantization\ninstead of their lane color.",
+			'quantNotes',
+			BOOL);
+		addOption(option);
+
 		var option:Option = new Option('Detailed Ranking',
 			'Shows detailed note hit statistics.',
 			'detailedRanking',

@@ -20,6 +20,7 @@ import backend.ui.PsychUITheme;
 	public var noteSkin:String = 'Default';
 	public var splashSkin:String = 'Psych';
 	public var useChartNoteSkins:Bool = true;
+	public var quantNotes:Bool = false;
 	public var splashAlpha:Float = 0.6;
 	public var holdCoverAlpha:Float = 1.0;
 	public var strumlineBackgroundPlayer:Float = 0.0;

@@ -2955,14 +2955,26 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			if(FlxG.sound.music != null && time >= FlxG.sound.music.length)
 			{
 				var lastSectionNum:Int = PlayState.SONG.notes.length - 1;
-				if(secNum < lastSectionNum) //Delete extra sections
+				if(secNum < lastSectionNum)
 				{
-					while(PlayState.SONG.notes.length - 1 > secNum)
+					var hasNotes:Bool = false;
+					for(i in (secNum + 1)...PlayState.SONG.notes.length)
 					{
-						PlayState.SONG.notes.pop();
+						var sec = PlayState.SONG.notes[i];
+						if(sec != null && sec.sectionNotes != null && sec.sectionNotes.length > 0)
+						{
+							hasNotes = true;
+							break;
+						}
 					}
-	
-					trace('breaking at section $secNum');
+					if(!hasNotes)
+					{
+						while(PlayState.SONG.notes.length - 1 > secNum)
+						{
+							PlayState.SONG.notes.pop();
+						}
+						trace('breaking at section $secNum');
+					}
 					reachedLimit = true;
 					break;
 				}
@@ -3598,6 +3610,28 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		
 						note.updateHitbox();
 					}
+					strumLineNotes.forEachAlive(function(n) n.destroy());
+					strumLineNotes.clear();
+					var strumStartX:Float = gridBg.x + (SHOW_EVENT_COLUMN ? GRID_SIZE : 0);
+					var strumStartY:Float = FlxG.height / 2;
+					for (i in 0...Std.int(GRID_PLAYERS * GRID_COLUMNS_PER_PLAYER))
+					{
+						var sn:StrumNote = new StrumNote(strumStartX + (GRID_SIZE * i), strumStartY, i % GRID_COLUMNS_PER_PLAYER, 0);
+						sn.scrollFactor.set();
+						sn.playAnim('static');
+						sn.alpha = 0.4;
+						sn.updateHitbox();
+						if(sn.width > sn.height)
+							sn.setGraphicSize(GRID_SIZE);
+						else
+							sn.setGraphicSize(0, GRID_SIZE);
+						sn.updateHitbox();
+						sn.x += GRID_SIZE / 2 - sn.width / 2;
+						sn.y += GRID_SIZE / 2 - sn.height / 2;
+						strumLineNotes.add(sn);
+					}
+					strumLineNotes.visible = strumLineNotes.active = vortexEnabled;
+					updateMiniChartPosition();
 					if(noteTextureInputText.text.trim().length > 0) showOutput('Reloaded notes to: "$textureLoad"');
 					else showOutput('Reloaded notes to default texture');
 				}
@@ -6399,22 +6433,28 @@ end
 
 		notes.sort(PlayState.sortByTime);
 		var noteSec:Int = 0;
-		var nextSectionTime:Float = cachedSectionTimes[noteSec + 1];
-		var curSectionTime:Float = cachedSectionTimes[noteSec];
+		var nextSectionTime:Float = cachedSectionTimes.length > 1 ? cachedSectionTimes[noteSec + 1] : Math.POSITIVE_INFINITY;
+		var curSectionTime:Float = cachedSectionTimes.length > 0 ? cachedSectionTimes[noteSec] : 0;
 
 		for (num => note in notes)
 		{
 			if(note == null) continue;
 
-			while(cachedSectionTimes[noteSec + 1] <= note.strumTime)
+			while(noteSec + 1 < cachedSectionTimes.length && cachedSectionTimes[noteSec + 1] <= note.strumTime)
 			{
 				noteSec++;
-				nextSectionTime = cachedSectionTimes[noteSec + 1];
+				nextSectionTime = (noteSec + 1 < cachedSectionTimes.length) ? cachedSectionTimes[noteSec + 1] : Math.POSITIVE_INFINITY;
 				curSectionTime = cachedSectionTimes[noteSec];
 			}
 
+			if(noteSec >= PlayState.SONG.notes.length)
+			{
+				var lastSec = PlayState.SONG.notes[PlayState.SONG.notes.length - 1];
+				if(lastSec != null)
+					lastSec.sectionNotes.push(note.songData);
+				continue;
+			}
 			var arr:Array<Dynamic> = PlayState.SONG.notes[noteSec].sectionNotes;
-			//trace('Added note with time ${note.songData[0]} at section $noteSec');
 			arr.push(note.songData);
 		}
 

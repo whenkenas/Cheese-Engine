@@ -2,6 +2,8 @@ package backend.ui;
 
 import backend.ui.PsychUIBox.UIStyleData;
 import flixel.util.FlxSpriteUtil;
+import flixel.util.FlxSpriteUtil;
+import flixel.input.FlxInput.FlxInputState;
 
 class PsychUIDropDownMenu extends PsychUIInputText
 {
@@ -279,6 +281,7 @@ class PsychUIDropDownMenu extends PsychUIInputText
 	{
 		selectedIndex = num;
 		showDropDown(false);
+		PsychUIInputText.focusOn = null;
 		if(onSelect != null) onSelect(num, label);
 		if(broadcastDropDownEvent) PsychUIEventHandler.event(CLICK_EVENT, this);
 	}
@@ -403,7 +406,10 @@ class PsychUIDropDownItem extends FlxSpriteGroup
 			forceNextUpdate = false;
 
 			if(overlapped && FlxG.mouse.justPressed)
+			{
 				onClick();
+				@:privateAccess FlxG.mouse._leftButton.current = PRESSED;
+			}
 		}
 		
 		text.x = bg.x;

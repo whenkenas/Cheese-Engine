@@ -1664,6 +1664,18 @@ class PlayState extends MusicBeatState
 				}
 	
 				swagNote.scrollFactor.set();
+
+				if (ClientPrefs.data.quantNotes)
+				{
+					var qc:FlxColor = getQuantColor(spawnTime, daBpm);
+					var qcDark:FlxColor = FlxColor.fromRGB(qc.red >> 1, qc.green >> 1, qc.blue >> 1);
+					swagNote.rgbShader.r = qc;
+					swagNote.rgbShader.g = 0xFFFFFFFF;
+					swagNote.rgbShader.b = qcDark;
+					swagNote.noteSplashData.r = qc;
+					swagNote.noteSplashData.b = qcDark;
+				}
+
 				unspawnNotes.push(swagNote);
 
 				var curStepCrochet:Float = 60 / daBpm * 1000 / 4.0;
@@ -1688,6 +1700,13 @@ class PlayState extends MusicBeatState
 							if (swagNote.extraData.exists('noteScale'))
 								sustainNote.extraData.set('noteScale', swagNote.extraData.get('noteScale'));
 						}
+							if (ClientPrefs.data.quantNotes)
+						{
+							sustainNote.rgbShader.r = swagNote.rgbShader.r;
+							sustainNote.rgbShader.g = swagNote.rgbShader.g;
+							sustainNote.rgbShader.b = swagNote.rgbShader.b;
+						}
+
 						unspawnNotes.push(sustainNote);
 						swagNote.tail.push(sustainNote);
 
@@ -5572,6 +5591,17 @@ class PlayState extends MusicBeatState
 				handleHoldCoverHit(note, true);
 		}
 
+		if (ClientPrefs.data.quantNotes)
+		{
+			var spr:StrumNote = opponentStrums.members[Std.int(Math.abs(note.noteData))];
+			if (spr != null)
+			{
+				spr.rgbShader.r = note.rgbShader.r;
+				spr.rgbShader.g = note.rgbShader.g;
+				spr.rgbShader.b = note.rgbShader.b;
+			}
+		}
+
 		stagesFunc(function(stage:BaseStage) stage.opponentNoteHit(note));
 		var result:Dynamic = callOnLuas('opponentNoteHit', [notes.members.indexOf(note), Math.abs(note.noteData), note.noteType, note.isSustainNote]);
 		if(result != LuaUtils.Function_Stop && result != LuaUtils.Function_StopHScript && result != LuaUtils.Function_StopAll) callOnHScript('opponentNoteHit', [note]);
@@ -5815,11 +5845,28 @@ class PlayState extends MusicBeatState
 						else
 							cover.playHold();
 						cover.updatePosition(strum, isPixelStage);
+						if(ClientPrefs.data.quantNotes)
+						{
+							cover.rgbShader.r = note.rgbShader.r;
+							cover.rgbShader.g = note.rgbShader.g;
+							cover.rgbShader.b = note.rgbShader.b;
+						}
 					}
 				}
 			}
 			else
 				handleHoldCoverHit(note, false);
+		}
+
+		if (ClientPrefs.data.quantNotes)
+		{
+			var spr:StrumNote = playerStrums.members[leData];
+			if (spr != null)
+			{
+				spr.rgbShader.r = note.rgbShader.r;
+				spr.rgbShader.g = note.rgbShader.g;
+				spr.rgbShader.b = note.rgbShader.b;
+			}
 		}
 
 		stagesFunc(function(stage:BaseStage) stage.goodNoteHit(note));
@@ -5832,6 +5879,28 @@ class PlayState extends MusicBeatState
 		note.kill();
 		notes.remove(note, true);
 		note.destroy();
+	}
+
+	public static function getQuantColor(strumTime:Float, bpm:Float):FlxColor
+	{
+		var crochet:Float = (60 / bpm) * 1000;
+		var beat:Float = strumTime / crochet;
+		var beatRow:Int = Math.round(beat * 48);
+
+		var snaps:Array<Int>   = [4, 8, 12, 16, 20, 24, 32, 48, 64, 96, 192];
+		var colors:Array<FlxColor> = [
+			0xFFE51919, 0xFF193BE5, 0xFFA119E5, 0xFF26D93E,
+			0xFF0000B2, 0xFFA119E5, 0xFFE5C319, 0xFFA119E5,
+			0xFF13ECA4, 0xFF3A3A6C, 0xFF3A3A6C
+		];
+
+		for (i in 0...snaps.length)
+		{
+			var divisor:Int = Math.round(192 / snaps[i]);
+			if (divisor > 0 && beatRow % divisor == 0)
+				return colors[i];
+		}
+		return colors[colors.length - 1];
 	}
 
 	public function spawnNoteSplashOnNote(note:Note) {
@@ -5885,6 +5954,12 @@ class PlayState extends MusicBeatState
 						cover.playHold();
 					
 					cover.updatePosition(strum, isPixelStage);
+					if(ClientPrefs.data.quantNotes)
+					{
+						cover.rgbShader.r = note.rgbShader.r;
+						cover.rgbShader.g = note.rgbShader.g;
+						cover.rgbShader.b = note.rgbShader.b;
+					}
 				}
 			}
 		}
