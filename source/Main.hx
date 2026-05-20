@@ -89,6 +89,8 @@ class Main extends Sprite
 	public static var screenshotCounter:Int = 1;
 	public static var engineName:String = "Cheese Engine";
 	public static var engineVersion:String = "0.2.8";
+	public static var audioDisconnected:Bool = false;
+	public static var changeID:Int = 0;
 
 	var flashSprite:Sprite;
 	var flashBitmap:openfl.display.Bitmap;
@@ -115,6 +117,10 @@ class Main extends Sprite
 
 		#if (cpp && windows)
 		backend.Native.fixScaling();
+		#end
+
+		#if (cpp && windows)
+		backend.AudioSwitchFix.init();
 		#end
 
 		#if android

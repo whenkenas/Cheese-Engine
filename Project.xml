@@ -40,6 +40,7 @@
 	<set name="BUILD_DIR" value="export/32bit" if="32bits" />
 
 	<classpath name="source" />
+	<classpath name="lime-overrides" if="cpp" />
 
 	<define name="CRASH_HANDLER" if="desktop release" />
 

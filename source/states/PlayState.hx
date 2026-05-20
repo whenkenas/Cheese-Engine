@@ -4743,37 +4743,18 @@ class PlayState extends MusicBeatState
 						FlxTransitionableState.skipNextTransOut = true;
 						
 						stickerSubState = new StickerSubState(null, function(sticker) {
-						var oldStickers = sticker.grpStickers != null ? sticker.grpStickers.members.copy() : null;
-						
 						#if HSCRIPT_ALLOWED
 						var hscriptState = backend.HScriptStateLoader.loadStateScript(stateToReturn);
 						if(hscriptState != null)
-						{
-							if(Std.isOfType(hscriptState, backend.HScriptState))
-							{
-								var hstate = cast(hscriptState, backend.HScriptState);
-								hstate.oldStickers = oldStickers;
-							}
 							return hscriptState;
-						}
-						else
 						#end
-						{
-							var luaState = backend.StateManager.loadLuaState(stateToReturn, oldStickers);
-							if(luaState != null)
-								return luaState;
-							var stateClass = backend.StateManager.getStateClass(stateToReturn);
-							if(stateClass != null)
-							{
-								var stateInstance = Type.createInstance(stateClass, []);
-								if(Std.isOfType(stateInstance, FreeplayState))
-								{
-									return new FreeplayState(oldStickers);
-								}
-								return stateInstance;
-							}
-							return new FreeplayState(oldStickers);
-						}
+						var luaState = backend.StateManager.loadLuaState(stateToReturn);
+						if(luaState != null)
+							return luaState;
+						var stateClass = backend.StateManager.getStateClass(stateToReturn);
+						if(stateClass != null)
+							return Type.createInstance(stateClass, []);
+						return new FreeplayState();
 					});
 				openSubState(stickerSubState);
 				changedDifficulty = false;

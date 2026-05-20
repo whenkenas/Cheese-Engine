@@ -83,11 +83,20 @@ class MusicBeatState extends FlxState
 
 		super.create();
 
-		if(!skip) {
+		var pending = substates.StickerSubState.pendingStickers;
+
+		if(!skip && pending == null) {
 			openSubState(new CustomFadeTransition(0.5, true));
 		}
 		FlxTransitionableState.skipNextTransOut = false;
+		FlxTransitionableState.skipNextTransIn = false;
 		timePassedOnState = 0;
+
+		if(pending != null)
+		{
+			substates.StickerSubState.pendingStickers = null;
+			openSubState(new substates.StickerSubState(pending));
+		}
 	}
 
 	public function initPsychCamera():PsychCamera

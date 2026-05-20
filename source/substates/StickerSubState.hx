@@ -24,6 +24,7 @@ class StickerSubState extends MusicBeatSubstate
 	var targetState:StickerSubState->FlxState;
 	var switchingState:Bool = false;
 	public static var transitionSprite:StickerTransitionSprite = null;
+	public static var pendingStickers:Array<StickerSprite> = null;
 	var sounds:Array<String> = [];
 	var loadingText:FlxText;
 	var isWaitingForLoad:Bool = false;
@@ -34,15 +35,39 @@ class StickerSubState extends MusicBeatSubstate
 		this.targetState = (targetState == null) ? ((sticker) -> new MainMenuState()) : targetState;
 
 		#if sys
-		var soundPath:String = 'assets/shared/sounds/stickersounds/keys/';
-		if(sys.FileSystem.exists(soundPath) && sys.FileSystem.isDirectory(soundPath))
+		var soundsFound:Bool = false;
+
+		#if MODS_ALLOWED
+		if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
 		{
-			for(file in sys.FileSystem.readDirectory(soundPath))
+			var modSoundPath:String = Paths.mods(Mods.currentModDirectory + '/sounds/');
+			if(sys.FileSystem.exists(modSoundPath) && sys.FileSystem.isDirectory(modSoundPath))
 			{
-				if(file.endsWith('.ogg') || file.endsWith('.mp3'))
+				for(file in sys.FileSystem.readDirectory(modSoundPath))
 				{
-					var fileName:String = file.substring(0, file.lastIndexOf('.'));
-					sounds.push('stickersounds/keys/$fileName');
+					if(file.endsWith('.ogg'))
+					{
+						var fileName:String = file.substring(0, file.lastIndexOf('.'));
+						sounds.push('stickersounds/keys/$fileName');
+						soundsFound = true;
+					}
+				}
+			}
+		}
+		#end
+
+		if(!soundsFound)
+		{
+			var soundPath:String = 'assets/shared/sounds/stickersounds/keys/';
+			if(sys.FileSystem.exists(soundPath) && sys.FileSystem.isDirectory(soundPath))
+			{
+				for(file in sys.FileSystem.readDirectory(soundPath))
+				{
+					if(file.endsWith('.ogg'))
+					{
+						var fileName:String = file.substring(0, file.lastIndexOf('.'));
+						sounds.push('stickersounds/keys/$fileName');
+					}
 				}
 			}
 		}
@@ -61,7 +86,10 @@ class StickerSubState extends MusicBeatSubstate
 		{
 			for (sticker in oldStickers)
 				grpStickers.add(sticker);
-			degenStickers();
+			degenStickers(function() {
+				switchingState = false;
+				close();
+			});
 		}
 		else
 		{
@@ -69,12 +97,11 @@ class StickerSubState extends MusicBeatSubstate
 		}
 	}
 
-	public function degenStickers():Void
+	public function degenStickers(onComplete:Void->Void):Void
 	{
 		if (grpStickers.members == null || grpStickers.members.length == 0)
 		{
-			switchingState = false;
-			close();
+			onComplete();
 			return;
 		}
 
@@ -91,31 +118,15 @@ class StickerSubState extends MusicBeatSubstate
 				{
 					var daSound:String = FlxG.random.getObject(sounds);
 					FlxG.sound.play(Paths.sound(daSound), 0.6);
-					
 					sticker.visible = false;
 				}
-				
+
 				stickersRemoved++;
 
 				if (stickersRemoved >= totalStickers)
 				{
-					switchingState = false;
-					FlxTransitionableState.skipNextTransIn = false;
-					
-					if(grpStickers != null)
-					{
-						for(s in grpStickers.members)
-						{
-							if(s != null)
-							{
-								s.kill();
-								s.destroy();
-							}
-						}
-						grpStickers.clear();
-					}
-					
-					close();
+					transitionSprite.clear();
+					onComplete();
 				}
 			});
 		}
@@ -266,24 +277,6 @@ class StickerSubState extends MusicBeatSubstate
 								}
 							}
 							
-							var isSongNamedFolder:Bool = false;
-							if(currentSongName != null)
-							{
-								for(variant in songNameVariants)
-								{
-									if(item.toLowerCase() == variant.toLowerCase() ||
-									   StringTools.replace(item, ' ', '-').toLowerCase() == variant.toLowerCase() ||
-									   StringTools.replace(item, '-', ' ').toLowerCase() == variant.toLowerCase())
-									{
-										isSongNamedFolder = true;
-										break;
-									}
-								}
-							}
-							
-							if(isSongNamedFolder)
-								shouldLoadThisSet = true;
-							
 							if(shouldLoadThisSet)
 							{
 								for(file in FileSystem.readDirectory(itemPath))
@@ -294,9 +287,6 @@ class StickerSubState extends MusicBeatSubstate
 										stickerFiles.push({path: stickerPath, scale: setScale});
 									}
 								}
-								
-								if(isSongNamedFolder)
-									trace('Loaded song-specific folder stickers: $item');
 							}
 						}
 						else if(item.endsWith('.png'))
@@ -418,17 +408,14 @@ class StickerSubState extends MusicBeatSubstate
 									switchingState = true;
 									FlxTransitionableState.skipNextTransIn = true;
 									FlxTransitionableState.skipNextTransOut = true;
-									
-									if(subState != null)
-									{
-										subStateClosed.addOnce(s -> {
-											FlxG.switchState(targetState(this));
-										});
-									}
-									else
-									{
-										FlxG.switchState(targetState(this));
-									}
+
+									var nextState:FlxState = targetState(this);
+										if(nextState == null) return;
+
+										pendingStickers = grpStickers != null ? grpStickers.members.copy() : null;
+										FlxTransitionableState.skipNextTransIn = true;
+										FlxTransitionableState.skipNextTransOut = false;
+										FlxG.switchState(nextState);
 								});
 							}
 						}
