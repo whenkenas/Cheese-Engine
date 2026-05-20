@@ -99,6 +99,7 @@ class NativeAudioSource {
 	var playing:Bool;
 	var completed:Bool;
 	var lastTime:Float;
+	public var lastKnownTime:Float = 0;
 
 	var position:Vector4;
 	var angles:Vector2;
@@ -127,6 +128,7 @@ class NativeAudioSource {
 
 	static var streamMutex:Mutex = new Mutex();
 	static var streamTimer:Timer;
+	public static var audioDisconnected:Bool = false;
 
 	#if !ALLOW_MULTITHREADING
 	static var wasEmpty:Bool = false;
@@ -500,6 +502,7 @@ class NativeAudioSource {
 	#end
 
 	static function streamUpdate() {
+		if (audioDisconnected) return;
 		if (!streamMutex.tryAcquire()) return;
 
 		var i = queuedStreamSources.length, source:NativeAudioSource;
@@ -564,6 +567,10 @@ class NativeAudioSource {
 	}
 
 	function timer_onRun() {
+		if (audioDisconnected) {
+			completeTimer = resetTimer(completeTimer, 200, timer_onRun);
+			return;
+		}
 		final pitch = getPitch();
 		var timeRemaining = (getLength() - getCurrentTime()) / pitch;
 		if (timeRemaining > 50 && AL.getSourcei(source, AL.SOURCE_STATE) == AL.PLAYING && (!streamed || !streamEnded && streamLoops <= 0)) {
@@ -655,8 +662,10 @@ class NativeAudioSource {
 		time *= 1000;
 
 		var length = getRealLength();
-		return if (loops <= 0 || time <= length) time - parent.offset;
+		var result = if (loops <= 0 || time <= length) time - parent.offset;
 			else ((time - loopTime) % (length - loopTime)) + loopTime - parent.offset;
+		if (playing && !completed) lastKnownTime = result;
+		return result;
 	}
 
 	public function setCurrentTime(value:Float):Float {

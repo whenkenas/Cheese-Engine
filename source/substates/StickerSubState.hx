@@ -40,7 +40,7 @@ class StickerSubState extends MusicBeatSubstate
 		#if MODS_ALLOWED
 		if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
 		{
-			var modSoundPath:String = Paths.mods(Mods.currentModDirectory + '/sounds/');
+			var modSoundPath:String = Paths.mods(Mods.currentModDirectory + '/sounds/stickersounds/keys/');
 			if(sys.FileSystem.exists(modSoundPath) && sys.FileSystem.isDirectory(modSoundPath))
 			{
 				for(file in sys.FileSystem.readDirectory(modSoundPath))
@@ -480,25 +480,47 @@ class StickerSprite extends FlxSprite
 			{
 				#if sys
 				var fullPath = stickerPath + '.png';
+				var loaded:Bool = false;
 				if(FileSystem.exists(fullPath))
 				{
 					var bmp = BitmapData.fromFile(fullPath);
 					if(bmp != null && bmp.width > 1 && bmp.height > 1)
 					{
 						loadGraphic(bmp);
+						loaded = true;
 					}
+				}
+				if(!loaded)
+				{
+					var modKey:String = stickerPath.substr(stickerPath.indexOf('/images/') + 8);
+					loadGraphic(Paths.image(modKey));
 				}
 				#end
 			}
 			else
 			{
+				#if sys
+				var fnfPath = 'assets/shared/images/transitionSwag/stickers-set-1/$stickerPath.png';
+				if(FileSystem.exists(fnfPath))
+				{
+					var bmp = BitmapData.fromFile(fnfPath);
+					if(bmp != null && bmp.width > 1 && bmp.height > 1)
+						loadGraphic(bmp);
+					else
+						loadGraphic(Paths.image('transitionSwag/stickers-set-1/$stickerPath'));
+				}
+				else
+					loadGraphic(Paths.image('transitionSwag/stickers-set-1/$stickerPath'));
+				#else
 				loadGraphic(Paths.image('transitionSwag/stickers-set-1/$stickerPath'));
+				#end
 			}
 		}
 		catch(e:Dynamic) {}
 		
 		if(graphic != null)
 		{
+			graphic.persist = true;
 			setGraphicSize(Std.int(graphic.width * stickerScale), Std.int(graphic.height * stickerScale));
 			updateHitbox();
 			scrollFactor.set();

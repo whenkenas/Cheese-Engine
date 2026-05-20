@@ -10,6 +10,7 @@ import states.StoryMenuState;
 import states.MainMenuState;
 import backend.StateManager;
 import flixel.graphics.frames.FlxFrame;
+import substates.StickerSubState;
 
 class TitleState extends MusicBeatState
 {
@@ -43,9 +44,11 @@ class TitleState extends MusicBeatState
 
 	override public function create():Void
 	{
-		Paths.clearStoredMemory();
+		if(StickerSubState.pendingStickers == null)
+			Paths.clearStoredMemory();
 		super.create();
-		Paths.clearUnusedMemory();
+		if(StickerSubState.pendingStickers == null)
+			Paths.clearUnusedMemory();
 
 		if(!initialized)
 		{
@@ -90,8 +93,12 @@ class TitleState extends MusicBeatState
 	function startIntro()
 	{
 		persistentUpdate = true;
-		if (!initialized && FlxG.sound.music == null)
+		if (FlxG.sound.music == null || !FlxG.sound.music.playing)
+		{
 			FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
+			if(initialized)
+				FlxG.sound.music.fadeIn(2, 0, 0.7);
+		}
 
 		#if DISCORD_ALLOWED
 		#if MODS_ALLOWED

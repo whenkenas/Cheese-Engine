@@ -5,18 +5,21 @@ import flixel.sound.FlxSound;
 import backend.Native;
 import lime.media.AudioManager;
 import lime.media.AudioSource;
+import lime._internal.backend.native.NativeAudioSource;
 import haxe.Timer;
 
 @:dox(hide)
 class AudioSwitchFix {
 	public static function onAudioDisconnected() @:privateAccess {
+		NativeAudioSource.audioDisconnected = true;
+
 		var sources:Array<{source:AudioSource, playing:Bool, time:Float, gain:Float, pitch:Float, position:lime.math.Vector4}> = [];
 		for (source in AudioSource.activeSources) {
 			var wasPlaying = source.playing;
 			sources.push({
 				source: source,
 				playing: wasPlaying,
-				time: source.currentTime,
+				time: wasPlaying ? source.__backend.lastKnownTime : source.currentTime,
 				gain: source.gain,
 				pitch: source.pitch,
 				position: source.position
@@ -39,6 +42,7 @@ class AudioSwitchFix {
 			if (d.playing) d.source.play();
 		}
 
+		NativeAudioSource.audioDisconnected = false;
 		Main.changeID++;
 		Main.audioDisconnected = false;
 	}
