@@ -42,6 +42,7 @@ class PsychUIInputText extends FlxSpriteGroup
 	static final KEY_ACUTE = 180;
 
 	public static var focusOn(default, set):PsychUIInputText = null;
+	public static var blockFocusOnClick:Bool = false;
 
 	public var name:String;
 	public var bg:FlxSprite;
@@ -441,14 +442,20 @@ class PsychUIInputText extends FlxSpriteGroup
 
 	public var unfocus:Void->Void;
 	public static function set_focusOn(v:PsychUIInputText)
-	{
-		if(focusOn != null && focusOn != v && focusOn.exists)
-		{
-			if(focusOn.unfocus != null) focusOn.unfocus();
-			focusOn.resetCaret();
-		}
-		return (focusOn = v);
-	}
+    {
+        if(focusOn != null && focusOn != v && focusOn.exists)
+        {
+            var oldFocus = focusOn;
+            if(oldFocus.unfocus != null) oldFocus.unfocus();
+            if(oldFocus != null && oldFocus.exists) oldFocus.resetCaret();
+        }
+        if(blockFocusOnClick)
+        {
+            blockFocusOnClick = false;
+            return focusOn;
+        }
+        return (focusOn = v);
+    }
 
 	override function update(elapsed:Float)
 	{

@@ -4748,7 +4748,7 @@ end
 		});
 
 		objY += 25;
-		changeBpmStepper = new PsychUINumericStepper(objX, objY, 1, 0, 1, 400, 3);
+		changeBpmStepper = new PsychUINumericStepper(objX, objY, 0.001, 0, 1, 400, 3);
 		changeBpmStepper.onValueChange = function()
 		{
 			var sec = getCurChartSection();
@@ -5223,7 +5223,7 @@ end
 		});
 
 		objY += 35;
-		bpmStepper = new PsychUINumericStepper(objX, objY, 1, 1, 1, 400, 3);
+		bpmStepper = new PsychUINumericStepper(objX, objY, 0.001, 1, 1, 400, 3);
 		bpmStepper.onValueChange = function()
 		{
 			var oldTimes:Array<Float> = cachedSectionTimes.copy();

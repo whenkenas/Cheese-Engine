@@ -751,9 +751,14 @@ class LuaState extends MusicBeatState
 				obj.setBorderStyle(borderStyle, CoolUtil.colorFromString(color), size);
 			}
 		});
-		Lua_helper.add_callback(lua, "setTextColor", function(tag:String, color:String) {
+		Lua_helper.add_callback(lua, "setTextColor", function(tag:String, color:Dynamic) {
 			var obj:flixel.text.FlxText = MusicBeatState.getVariables().get(tag);
-			if(obj != null) obj.color = CoolUtil.colorFromString(color);
+			if(obj != null) {
+				if(Std.isOfType(color, Int))
+					obj.color = cast(color, Int);
+				else
+					obj.color = CoolUtil.colorFromString(Std.string(color));
+			}
 		});
 		Lua_helper.add_callback(lua, "setTextFont", function(tag:String, font:String) {
 			var obj:flixel.text.FlxText = MusicBeatState.getVariables().get(tag);
@@ -779,9 +784,13 @@ class LuaState extends MusicBeatState
 			return (obj != null && Std.isOfType(obj, flixel.text.FlxText));
 		});
 
-		Lua_helper.add_callback(lua, "addLuaText", function(tag:String) {
+		Lua_helper.add_callback(lua, "addLuaText", function(tag:String, ?inFront:Bool = false) {
 			var obj:flixel.text.FlxText = MusicBeatState.getVariables().get(tag);
-			if(obj != null) add(obj);
+			if(obj != null) {
+				add(obj);
+				if(inFront) members.remove(obj);
+				if(inFront) members.push(obj);
+			}
 		});
 		Lua_helper.add_callback(lua, "removeLuaText", function(tag:String, destroy:Bool = true) {
 			var obj:flixel.text.FlxText = MusicBeatState.getVariables().get(tag);
@@ -2677,9 +2686,14 @@ class LoadingLuaScript
 				obj.setBorderStyle(borderStyle, CoolUtil.colorFromString(color), size);
 			}
 		});
-		Lua_helper.add_callback(lua, "setTextColor", function(tag:String, color:String) {
+		Lua_helper.add_callback(lua, "setTextColor", function(tag:String, color:Dynamic) {
 			var obj:flixel.text.FlxText = MusicBeatState.getVariables().get(tag);
-			if(obj != null) obj.color = CoolUtil.colorFromString(color);
+			if(obj != null) {
+				if(Std.isOfType(color, Int))
+					obj.color = cast(color, Int);
+				else
+					obj.color = CoolUtil.colorFromString(Std.string(color));
+			}
 		});
 		Lua_helper.add_callback(lua, "setTextFont", function(tag:String, font:String) {
 			var obj:flixel.text.FlxText = MusicBeatState.getVariables().get(tag);

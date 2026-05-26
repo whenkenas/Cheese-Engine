@@ -192,9 +192,11 @@ class PsychUIDropDownMenu extends PsychUIInputText
 	{
 		if(FlxG.mouse.justPressed)
 		{
-			for (item in _items) //extra update to fix a little bug where it wouldnt click on any option if another input text was behind the drop down
+			for (item in _items)
 				if(item != null && item.active && item.visible)
 					item.update(0);
+			if(!FlxG.mouse.justPressed)
+				PsychUIInputText.blockFocusOnClick = true;
 		}
 	}
 
