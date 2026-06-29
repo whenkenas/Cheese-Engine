@@ -51,6 +51,9 @@ class LuaState extends MusicBeatState
 	public var isInitialState:Bool = false;
 	public var closed:Bool = false;
 	public var lastCalledFunction:String = '';
+	public var luaArray:Array<LuaStateScript> = [];
+	public static var instance:LuaState = null;
+	public var scriptName:String = '';
 
 	#if HSCRIPT_ALLOWED
 	public var hscript:HScript = null;
@@ -80,6 +83,8 @@ class LuaState extends MusicBeatState
 		set('currentModDirectory', Mods.currentModDirectory);
 		set('stateName', name);
 
+		LuaState.instance = this;
+		this.scriptName = scriptPath;
 		registerCallbacks();
 
 		try {
@@ -109,15 +114,54 @@ class LuaState extends MusicBeatState
 		}
 	}
 
-	function registerCallbacks()
+	public function registerCallbacks(?targetLua:State = null)
 	{
+		if(targetLua == null) targetLua = lua;
+		var lua:State = targetLua;
 		Lua_helper.add_callback(lua, "switchState", function(stateName:String) {
 			if(stateName == 'PlayState' && states.PlayState.SONG != null) {
 				FlxG.state.persistentUpdate = false;
 				states.LoadingState.loadAndSwitchState(new states.PlayState());
 			} else {
-				backend.StateManager.switchState(stateName);
+				backend.MusicBeatState.switchStateByName(stateName);
 			}
+		});
+
+		Lua_helper.add_callback(lua, "switchStateDirect", function(stateName:String) {
+			if(stateName == 'PlayState' && states.PlayState.SONG != null) {
+				FlxG.state.persistentUpdate = false;
+				FlxTransitionableState.skipNextTransIn = true;
+				states.LoadingState.loadAndSwitchState(new states.PlayState());
+			} else {
+				backend.MusicBeatState.switchStateDirectByName(stateName);
+			}
+		});
+
+		Lua_helper.add_callback(lua, "switchStateWithStickers", function(stateName:String, ?mode:String, ?songName:String, ?difficulty:String) {
+			if(stateName.toLowerCase() == 'playstate')
+			{
+				if(songName != null && songName != '')
+				{
+					var diff:String = (difficulty != null && difficulty != '') ? difficulty : 'normal';
+					var diffIdx:Int = 0;
+					for(i in 0...backend.Difficulty.list.length)
+						if(backend.Difficulty.list[i].toLowerCase() == diff.toLowerCase()) { diffIdx = i; break; }
+					var jsonName:String = Paths.formatToSongPath(songName) + '-' + Paths.formatToSongPath(diff);
+					var folder:String = Paths.formatToSongPath(songName);
+					if(backend.Song.getChart(jsonName, folder) == null)
+						jsonName = Paths.formatToSongPath(songName);
+					backend.Song.loadFromJson(jsonName, folder);
+					states.PlayState.isStoryMode = false;
+					states.PlayState.storyDifficulty = diffIdx;
+				}
+				if(states.PlayState.SONG != null)
+					backend.MusicBeatState.switchStateWithStickers(new states.PlayState(), mode);
+			}
+			else
+			{
+				backend.MusicBeatState.switchStateWithStickersByName(stateName, mode);
+			}
+			return true;
 		});
 
 		Lua_helper.add_callback(lua, "isMusicPlaying", function() {
@@ -1492,6 +1536,10 @@ class LuaState extends MusicBeatState
 				for(luaInstance in PlayState.instance.luaArray)
 					if(luaInstance.scriptName == luaFile)
 						return luaInstance.call(funcName, args);
+			} else if(LuaState.instance != null) {
+				for(luaInstance in LuaState.instance.luaArray)
+					if(luaInstance.scriptName == luaFile)
+						return luaInstance.call(funcName, args);
 			}
 			return null;
 		});
@@ -1514,6 +1562,12 @@ class LuaState extends MusicBeatState
 					for(luaInstance in PlayState.instance.luaArray)
 						if(luaInstance.scriptName == luaFile) return;
 				new FunkinLua(luaFile);
+			} else if(LuaState.instance != null) {
+				if(!ignoreAlreadyRunning)
+					for(luaInstance in LuaState.instance.luaArray)
+						if(luaInstance.scriptName == luaFile) return;
+				var newScript = new LuaStateScript(luaFile, LuaState.instance.modDirectory);
+				LuaState.instance.luaArray.push(newScript);
 			}
 		});
 		Lua_helper.add_callback(lua, "addHScript", function(scriptFile:String, ?ignoreAlreadyRunning:Bool = false) {
@@ -1906,13 +1960,23 @@ class LuaState extends MusicBeatState
 	{
 		super.update(elapsed);
 
-		if(stateName == 'MainMenuState' && FlxG.keys.justPressed.TAB) {
-			FlxG.mouse.visible = false;
-			persistentUpdate = false;
-			openSubState(new backend.ModSelectorSubstate());
-		}
+		var _hasBlockingSubState:Bool = subState != null
+			&& !Std.isOfType(subState, CustomFadeTransition)
+			&& !Std.isOfType(subState, substates.StickerSubState);
 
-		call('onUpdate', [elapsed]);
+		if(!_hasBlockingSubState)
+		{
+			if(stateName == 'MainMenuState' && FlxG.keys.justPressed.TAB) {
+				var sub = new backend.ModSelectorSubstate();
+				sub._mouseWasVisible = FlxG.mouse.visible;
+				FlxG.mouse.visible = false;
+				openSubState(sub);
+			}
+
+			call('onUpdate', [elapsed]);
+			for(script in luaArray)
+				script.call('onUpdate', [elapsed]);
+		}
 	}
 
 	override function destroy()
@@ -2013,6 +2077,98 @@ class LuaState extends MusicBeatState
 	}
 }
 
+class LuaStateScript
+{
+	public var lua:State = null;
+	public var scriptName:String = '';
+	public var closed:Bool = false;
+
+	public function new(scriptPath:String, ?modDir:String)
+	{
+		this.scriptName = scriptPath;
+
+		if(modDir != null && modDir != '')
+			Mods.currentModDirectory = modDir;
+
+		lua = LuaL.newstate();
+		LuaL.openlibs(lua);
+
+		set('Function_Stop', LuaUtils.Function_Stop);
+		set('Function_Continue', LuaUtils.Function_Continue);
+		set('Function_StopLua', LuaUtils.Function_StopLua);
+		set('Function_StopHScript', LuaUtils.Function_StopHScript);
+		set('Function_StopAll', LuaUtils.Function_StopAll);
+		set('screenWidth', FlxG.width);
+		set('screenHeight', FlxG.height);
+		set('buildTarget', LuaUtils.getBuildTarget());
+		set('currentModDirectory', Mods.currentModDirectory);
+
+		if(LuaState.instance != null)
+			LuaState.instance.registerCallbacks(this.lua);
+
+		try {
+			var result:Dynamic = LuaL.dofile(lua, scriptPath);
+			var resultStr:String = Lua.tostring(lua, result);
+			if(resultStr != null && result != 0) {
+				trace('LuaStateScript: Error loading $scriptPath\n$resultStr');
+				lua = null;
+				return;
+			}
+		} catch(e:Dynamic) {
+			trace('LuaStateScript: Exception loading $scriptPath: $e');
+			lua = null;
+			return;
+		}
+
+		call('onCreate', []);
+	}
+
+	public function call(func:String, args:Array<Dynamic>):Dynamic
+	{
+		if(closed || lua == null) return LuaUtils.Function_Continue;
+		try {
+			Lua.getglobal(lua, func);
+			var type:Int = Lua.type(lua, -1);
+			if(type != Lua.LUA_TFUNCTION) {
+				Lua.pop(lua, 1);
+				return LuaUtils.Function_Continue;
+			}
+			for(arg in args) Convert.toLua(lua, arg);
+			var status:Int = Lua.pcall(lua, args.length, 1, 0);
+			if(status != Lua.LUA_OK) {
+				var error:String = Lua.tostring(lua, -1);
+				Lua.pop(lua, 1);
+				trace('LuaStateScript error in $func: $error');
+				return LuaUtils.Function_Continue;
+			}
+			var result:Dynamic = cast Convert.fromLua(lua, -1);
+			if(result == null) result = LuaUtils.Function_Continue;
+			Lua.pop(lua, 1);
+			return result;
+		} catch(e:Dynamic) {
+			trace('LuaStateScript exception in $func: $e');
+		}
+		return LuaUtils.Function_Continue;
+	}
+
+	public function set(variable:String, data:Dynamic)
+	{
+		if(lua == null) return;
+		Convert.toLua(lua, data);
+		Lua.setglobal(lua, variable);
+	}
+
+	public function stop()
+	{
+		closed = true;
+		if(lua != null) {
+			call('onDestroy', []);
+			Lua.close(lua);
+			lua = null;
+		}
+	}
+}
+
 class LuaStateLoader
 {
 	public static function loadStateScript(stateName:String, ?stickers:Array<substates.StickerSubState.StickerSprite>):FlxState
@@ -2023,7 +2179,7 @@ class LuaStateLoader
 		if(save != null && save.data != null && save.data.modMode != null)
 			modMode = save.data.modMode;
 
-		if(modMode == 'DISABLE MODS')
+		if(modMode == 'DISABLE MODS' || modMode == 'ALL MODS' || modMode == 'MODS + FNF SONGS')
 			return null;
 
 		var savedModDirectory = Mods.currentModDirectory;
@@ -2174,6 +2330,33 @@ class LoadingLuaScript
 			} else {
 				backend.StateManager.switchState(stateName);
 			}
+		});
+
+		Lua_helper.add_callback(lua, "switchStateWithStickers", function(stateName:String, ?mode:String, ?songName:String, ?difficulty:String) {
+			if(stateName.toLowerCase() == 'playstate')
+			{
+				if(songName != null && songName != '')
+				{
+					var diff:String = (difficulty != null && difficulty != '') ? difficulty : 'normal';
+					var diffIdx:Int = 0;
+					for(i in 0...backend.Difficulty.list.length)
+						if(backend.Difficulty.list[i].toLowerCase() == diff.toLowerCase()) { diffIdx = i; break; }
+					var jsonName:String = Paths.formatToSongPath(songName) + '-' + Paths.formatToSongPath(diff);
+					var folder:String = Paths.formatToSongPath(songName);
+					if(backend.Song.getChart(jsonName, folder) == null)
+						jsonName = Paths.formatToSongPath(songName);
+					backend.Song.loadFromJson(jsonName, folder);
+					states.PlayState.isStoryMode = false;
+					states.PlayState.storyDifficulty = diffIdx;
+				}
+				if(states.PlayState.SONG != null)
+					backend.MusicBeatState.switchStateWithStickers(new states.PlayState(), mode);
+			}
+			else
+			{
+				backend.MusicBeatState.switchStateWithStickersByName(stateName, mode);
+			}
+			return true;
 		});
 		Lua_helper.add_callback(lua, "isMusicPlaying", function() {
 			return FlxG.sound.music != null && FlxG.sound.music.playing;

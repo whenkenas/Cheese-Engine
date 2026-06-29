@@ -11,6 +11,7 @@ typedef SongMeta =
 {
     var credits:Array<CreditEntry>;
     var showAllCredits:Bool;
+    var ?pauseDisplayName:String;
 }
 
 class MetaData
@@ -75,7 +76,8 @@ class MetaData
                 
                 return {
                     credits: credits,
-                    showAllCredits: jsonData.showAllCredits != null ? jsonData.showAllCredits : false
+                    showAllCredits: jsonData.showAllCredits != null ? jsonData.showAllCredits : false,
+                    pauseDisplayName: jsonData.pauseDisplayName != null ? jsonData.pauseDisplayName : null
                 };
             }
             catch (e)
@@ -97,7 +99,8 @@ class MetaData
                 {role: "Charter", names: [""]},
                 {role: "Coder", names: [""]}
             ],
-            showAllCredits: false
+            showAllCredits: false,
+            pauseDisplayName: null
         };
     }
     static function findMatchingBrace(str:String, startPos:Int):Int

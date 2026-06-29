@@ -203,10 +203,10 @@ class VisualsSettingsSubState extends BaseOptionsMenu
 		
 		#if !mobile
 		var option:Option = new Option('FPS Counter:',
-			'Select FPS Counter mode.\nOff = Hidden, Simple = Basic info, Advanced = Detailed graphs.',
+			'Select FPS Counter mode.\nOff = Hidden, Simple = Basic info, Simplier = FPS + Memory only, Advanced = Detailed graphs.',
 			'fpsMode',
 			STRING,
-			['Off', 'Simple', 'Advanced']);
+			['Off', 'Simple', 'Advanced', 'Simplier']);
 		addOption(option);
 		option.onChange = onChangeFPSCounter;
 

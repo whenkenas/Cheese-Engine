@@ -36,6 +36,9 @@ class FlxView3D extends FlxSprite
 	 * @param width Leave as -1 for screen width
 	 * @param height Leave as -1 for screen height
 	 */
+	public var renderWidth(default, set):Int = -1;
+	public var renderHeight(default, set):Int = -1;
+
 	public function new(x:Float = 0, y:Float = 0, width:Int = -1, height:Int = -1)
 	{
 		super(x, y);
@@ -46,10 +49,13 @@ class FlxView3D extends FlxSprite
 		view.width = width == -1 ? FlxG.width : width;
 		view.height = height == -1 ? FlxG.height : height;
 
+		renderWidth = Std.int(view.width);
+		renderHeight = Std.int(view.height);
+
 		view.backgroundAlpha = 0;
 		FlxG.stage.addChildAt(view, 0);
 
-		bmp = new BitmapData(Std.int(view.width), Std.int(view.height), true, 0x0);
+		bmp = new BitmapData(renderWidth, renderHeight, true, 0x0);
 		loadGraphic(bmp);
 	}
 
@@ -114,5 +120,31 @@ class FlxView3D extends FlxSprite
 	{
 		super.set_height(newHeight);
 		return view != null ? view.height = height : height;
+	}
+
+	@:noCompletion function set_renderWidth(v:Int):Int
+	{
+		renderWidth = v;
+		if (view != null)
+		{
+			view.width = v;
+			if (bmp != null) bmp.dispose();
+			bmp = new BitmapData(v, renderHeight > 0 ? renderHeight : Std.int(view.height), true, 0x0);
+			loadGraphic(bmp);
+		}
+		return v;
+	}
+
+	@:noCompletion function set_renderHeight(v:Int):Int
+	{
+		renderHeight = v;
+		if (view != null)
+		{
+			view.height = v;
+			if (bmp != null) bmp.dispose();
+			bmp = new BitmapData(renderWidth > 0 ? renderWidth : Std.int(view.width), v, true, 0x0);
+			loadGraphic(bmp);
+		}
+		return v;
 	}
 }

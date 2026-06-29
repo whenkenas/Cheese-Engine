@@ -67,6 +67,8 @@ class Character extends FlxSprite
 
 	public var positionArray:Array<Float> = [0, 0];
 	public var cameraPosition:Array<Float> = [0, 0];
+	public var playerPositionArray:Array<Float> = [0, 0];
+	public var playerCameraPosition:Array<Float> = [0, 0];
 	public var healthColorArray:Array<Int> = [255, 0, 0];
 
 	public var missingCharacter:Bool = false;
@@ -138,6 +140,11 @@ class Character extends FlxSprite
 		skipDance = false;
 		hasMissAnimations = hasAnimation('singLEFTmiss') || hasAnimation('singDOWNmiss') || hasAnimation('singUPmiss') || hasAnimation('singRIGHTmiss');
 		recalculateDanceIdle();
+		if(_jsonDanceEvery != null)
+		{
+			danceEveryNumBeats = _jsonDanceEvery;
+			_jsonDanceEvery = null;
+		}
 		dance();
 	}
 
@@ -185,6 +192,8 @@ class Character extends FlxSprite
 		// positioning
 		positionArray = json.position;
 		cameraPosition = json.camera_position;
+		playerPositionArray = (json.player_position != null) ? json.player_position : [0, 0];
+		playerCameraPosition = (json.player_camera_position != null) ? json.player_camera_position : [0, 0];
 
 		// data
 		healthIcon = json.healthicon;
@@ -233,6 +242,11 @@ class Character extends FlxSprite
 		#if flxanimate
 		if(isAnimateAtlas) copyAtlasValues();
 		#end
+
+		if(json.dance_every_num_beats != null)
+			_jsonDanceEvery = Std.int(Math.max(1, json.dance_every_num_beats));
+		vsliceSustains = (json.vslice_sustains == true);
+		swapSingSides = (json.swap_sing_sides == true);
 		//trace('Loaded file to character ' + curCharacter);
 	}
 
@@ -431,12 +445,15 @@ class Character extends FlxSprite
 	}
 
 	public var danceEveryNumBeats:Int = 2;
+	public var vsliceSustains:Bool = false;
+	public var swapSingSides:Bool = false;
 	private var settingCharacterUp:Bool = true;
+	private var _jsonDanceEvery:Null<Int> = null;
 	public function recalculateDanceIdle() {
 		var lastDanceIdle:Bool = danceIdle;
 		danceIdle = (hasAnimation('danceLeft' + idleSuffix) && hasAnimation('danceRight' + idleSuffix));
 
-		if(settingCharacterUp)
+		if(settingCharacterUp && danceEveryNumBeats == 2)
 		{
 			danceEveryNumBeats = (danceIdle ? 1 : 2);
 		}

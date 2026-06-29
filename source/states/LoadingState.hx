@@ -181,7 +181,7 @@ class LoadingState extends MusicBeatState
 		var bg = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
 		bg.antialiasing = ClientPrefs.data.antialiasing;
 		bg.setGraphicSize(Std.int(FlxG.width));
-		bg.color = 0xFFD16FFF;
+		bg.color = 0xFFFFC300;
 		bg.updateHitbox();
 		addBehindBar(bg);
 	
@@ -195,7 +195,7 @@ class LoadingState extends MusicBeatState
 		logo.scale.set(0.75, 0.75);
 		logo.updateHitbox();
 		logo.screenCenter();
-		logo.x -= 50;
+		logo.x -= 120;
 		logo.y -= 40;
 		addBehindBar(logo);
 
@@ -464,6 +464,9 @@ class LoadingState extends MusicBeatState
 	static var imagesToPrepare:Array<String> = [];
 	static var soundsToPrepare:Array<String> = [];
 	static var musicToPrepare:Array<String> = [];
+	#if VIDEOS_ALLOWED
+	public static var videosToPrecache:Array<String> = [];
+	#end
 	static var songsToPrepare:Array<String> = [];
 	public static function prepare(images:Array<String> = null, sounds:Array<String> = null, music:Array<String> = null)
 	{
@@ -522,6 +525,36 @@ class LoadingState extends MusicBeatState
 
 		var song:SwagSong = PlayState.SONG;
 		var folder:String = Paths.formatToSongPath(Song.loadedSongName);
+
+		#if VIDEOS_ALLOWED
+		videosToPrecache = [];
+		try
+		{
+			var eventsChart:backend.Song.SwagSong = backend.Song.getChart('events', Song.loadedSongName);
+			if(eventsChart != null && eventsChart.events != null)
+			{
+				for(event in eventsChart.events)
+				{
+					for(i in 0...event[1].length)
+					{
+						var rawEvent:Array<Dynamic> = event[1][i];
+						if(rawEvent != null && rawEvent[0] == 'Video Player' && rawEvent[1] != null)
+						{
+							var params:Array<String> = Std.string(rawEvent[1]).split(',');
+							if(params.length > 0)
+							{
+								var vName:String = params[0].trim();
+								if(vName.length > 0 && !videosToPrecache.contains(vName))
+									videosToPrecache.push(vName);
+							}
+						}
+					}
+				}
+			}
+		}
+		catch(e:Dynamic) {}
+		#end
+
 		new Future<Bool>(() -> {
 			// LOAD NOTE IMAGE
 			var noteSkin:String = Note.defaultNoteSkin;

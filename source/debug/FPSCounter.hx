@@ -23,6 +23,8 @@ class FPSCounter extends Sprite
 
 	private var _isAdvanced:Bool = false;
 	public var isAdvanced(get, set):Bool;
+	private var _isSimplier:Bool = false;
+	public var isSimplier(get, set):Bool;
 	private var color:Int;
 
 	private var background:Shape;
@@ -78,7 +80,7 @@ class FPSCounter extends Sprite
 		#if html5
 		final BG_HEIGHT_MULTIPLIER:Float = advanced ? 0.45 : 0.15;
 		#else
-		final BG_HEIGHT_MULTIPLIER:Float = advanced ? 1 : MemoryUtils.supportsTaskMem() ? 0.3 : 0.2;
+		final BG_HEIGHT_MULTIPLIER:Float = advanced ? 1 : _isSimplier ? 0.22 : MemoryUtils.supportsTaskMem() ? 0.3 : 0.2;
 		#end
 
 		background = new Shape();
@@ -118,6 +120,7 @@ class FPSCounter extends Sprite
 		simpleInfo.defaultTextFormat = new TextFormat('Monsterrat', 12, color, JUSTIFY);
 		simpleInfo.antiAliasType = NORMAL;
 		simpleInfo.multiline = true;
+		simpleInfo.text = '';
 		addChild(simpleInfo);
 
 		infoDisplay = simpleInfo;
@@ -244,6 +247,17 @@ class FPSCounter extends Sprite
 	{
 		if (infoDisplay != null)
 		{
+			if (_isSimplier)
+			{
+				final info:Array<String> = [];
+				info.push('FPS: $currentFPS');
+				#if !html5
+				info.push('Memory: ${flixel.util.FlxStringUtil.formatBytes(gcMem)}');
+				#end
+				infoDisplay.text = info.join('\n');
+				return;
+			}
+
 			final info:Array<String> = [];
 			info.push('FPS: $currentFPS');
 
@@ -283,8 +297,21 @@ class FPSCounter extends Sprite
 
 	function set_isAdvanced(value:Bool):Bool
 	{
+		_isAdvanced = value;
 		buildDisplay(value);
+		return _isAdvanced;
+	}
 
-		return _isAdvanced = value;
+	function get_isSimplier():Bool
+	{
+		return _isSimplier;
+	}
+
+	function set_isSimplier(value:Bool):Bool
+	{
+		_isSimplier = value;
+		if (!_isAdvanced)
+			buildDisplay(false);
+		return _isSimplier;
 	}
 }

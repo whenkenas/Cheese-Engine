@@ -6,48 +6,6 @@ import flixel.util.FlxSave;
 import backend.PsychCamera;
 import debug.CMD;
 
-@:bitmap("assets/embed/images/ui/cursor.png")
-private class FunkinCursor extends BitmapData {}
-
-private class CursorLoader
-{
-	static var _lastMod:String = null;
-	static var _lastData:BitmapData = null;
-
-	public static function load():Void
-	{
-		#if MODS_ALLOWED
-		var curMod:String = Mods.currentModDirectory;
-		if (curMod == _lastMod && FlxG.mouse.cursor != null)
-			return;
-
-		_lastMod = curMod;
-
-		var modPath:String = Paths.mods(curMod + '/images/ui/cursor.png');
-		if (sys.FileSystem.exists(modPath))
-		{
-			_lastData = BitmapData.fromFile(modPath);
-			FlxG.mouse.load(_lastData);
-			return;
-		}
-
-		for (mod in Mods.getGlobalMods())
-		{
-			var globalPath:String = Paths.mods(mod + '/images/ui/cursor.png');
-			if (sys.FileSystem.exists(globalPath))
-			{
-				_lastData = BitmapData.fromFile(globalPath);
-				FlxG.mouse.load(_lastData);
-				return;
-			}
-		}
-		#end
-
-		if (!(FlxG.mouse.cursor?.bitmapData is FunkinCursor))
-			FlxG.mouse.load(new FunkinCursor(0, 0));
-	}
-}
-
 class MusicBeatState extends FlxState
 {
 	private var curSection:Int = 0;
@@ -72,7 +30,7 @@ class MusicBeatState extends FlxState
 
 	override function create() {
 		var skip:Bool = FlxTransitionableState.skipNextTransOut;
-		CursorLoader.load();
+		backend.CursorLoader.load();
 		#if MODS_ALLOWED Mods.updatedOnState = false; #end
 
 		try {
@@ -110,6 +68,8 @@ class MusicBeatState extends FlxState
 	}
 
 	public static var timePassedOnState:Float = 0;
+	public static var _cachedConsoleKeys:Array<flixel.input.keyboard.FlxKey> = null;
+
 	override function update(elapsed:Float)
 	{
 		//everyStep();
@@ -119,13 +79,36 @@ class MusicBeatState extends FlxState
 		updateCurStep();
 		updateBeat();
 
-		var consoleKeys = ClientPrefs.keyBinds.get('debug_console');
-		if (consoleKeys != null) {
-			for (key in consoleKeys) {
+		if(_cachedConsoleKeys == null)
+			_cachedConsoleKeys = ClientPrefs.keyBinds.get('debug_console');
+
+		if(_cachedConsoleKeys != null && ClientPrefs.data.developerMode) {
+			for (key in _cachedConsoleKeys) {
 				if (FlxG.keys.checkStatus(key, JUST_PRESSED)) {
 					CMD.openCMD();
 					break;
 				}
+			}
+		}
+
+		if(ClientPrefs.data.developerMode && FlxG.keys.justPressed.SEVEN && FlxG.state.subState == null)
+		{
+			var parts = Type.getClassName(Type.getClass(FlxG.state)).split('.');
+			var stateName = parts[parts.length - 1];
+			if(stateName == 'HScriptState' && Std.isOfType(FlxG.state, HScriptStateLoader.HScriptState))
+			{
+				var hscriptState:HScriptStateLoader.HScriptState = cast FlxG.state;
+				stateName = hscriptState.stateName;
+			}
+			else if(stateName == 'LuaState' && Std.isOfType(FlxG.state, psychlua.LuaStateLoader.LuaState))
+			{
+				var luaState:psychlua.LuaStateLoader.LuaState = cast FlxG.state;
+				stateName = luaState.stateName;
+			}
+			if(stateName.toLowerCase() == 'mainmenustate')
+			{
+				backend.EditorHelper.saveCurrentState();
+				FlxG.state.openSubState(new states.editors.EditorPickerSubstate());
 			}
 		}
 
@@ -143,7 +126,16 @@ class MusicBeatState extends FlxState
 			}
 		}
 
-		if(FlxG.save.data != null) FlxG.save.data.fullscreen = FlxG.fullscreen;
+		if(FlxG.save.data != null && FlxG.save.data.fullscreen != FlxG.fullscreen)
+			FlxG.save.data.fullscreen = FlxG.fullscreen;
+
+		#if DISCORD_ALLOWED
+		if(backend.DiscordClient._pendingPresenceUpdate)
+		{
+			backend.DiscordClient._pendingPresenceUpdate = false;
+			backend.DiscordClient.changePresence();
+		}
+		#end
 		
 		stagesFunc(function(stage:BaseStage) {
 			stage.update(elapsed);
@@ -200,6 +192,57 @@ class MusicBeatState extends FlxState
 		curStep = lastChange.stepTime + Math.floor(shit);
 	}
 
+	public static function switchStateWithStickers(nextState:FlxState, ?mode:String) {
+		if (nextState == null) return;
+		if (mode != null) substates.StickerSubState.stickerMode = mode;
+		FlxTransitionableState.skipNextTransIn = true;
+		FlxTransitionableState.skipNextTransOut = true;
+		FlxG.state.openSubState(new substates.StickerSubState(null, function(_) return nextState));
+	}
+
+	public static function switchStateWithStickersByName(stateName:String, ?mode:String) {
+		if (mode != null) substates.StickerSubState.stickerMode = mode;
+		FlxTransitionableState.skipNextTransIn = true;
+		FlxTransitionableState.skipNextTransOut = true;
+		FlxG.state.openSubState(new substates.StickerSubState(null, function(_) {
+			#if HSCRIPT_ALLOWED
+			var hscriptState = HScriptStateLoader.loadStateScript(stateName);
+			if (hscriptState != null) return hscriptState;
+			#end
+			#if LUA_ALLOWED
+			var luaState = psychlua.LuaStateLoader.loadStateScript(stateName);
+			if (luaState != null) return luaState;
+			#end
+			var stateClass = backend.StateManager.getStateClass(stateName);
+			if (stateClass != null) return Type.createInstance(stateClass, []);
+			return new states.MainMenuState();
+		}));
+	}
+
+	public static function switchStateDirect(nextState:FlxState = null) {
+		FlxTransitionableState.skipNextTransIn = true;
+		switchState(nextState);
+	}
+
+	public static function switchStateDirectByName(stateName:String) {
+		FlxTransitionableState.skipNextTransIn = true;
+		switchStateByName(stateName);
+	}
+
+	public static function switchStateByName(stateName:String) {
+		#if HSCRIPT_ALLOWED
+		var hscriptState = HScriptStateLoader.loadStateScript(stateName);
+		if (hscriptState != null) { switchState(hscriptState); return; }
+		#end
+		#if LUA_ALLOWED
+		var luaState = psychlua.LuaStateLoader.loadStateScript(stateName);
+		if (luaState != null) { switchState(luaState); return; }
+		#end
+		var stateClass = backend.StateManager.getStateClass(stateName);
+		if (stateClass != null) switchState(Type.createInstance(stateClass, []));
+		else switchState(new states.MainMenuState());
+	}
+
 	public static function switchState(nextState:FlxState = null) {
 		if(nextState == null) nextState = FlxG.state;
 		if(nextState == FlxG.state)
@@ -237,22 +280,29 @@ class MusicBeatState extends FlxState
 		FlxTransitionableState.skipNextTransIn = false;
 	}
 
+	static var _cachedModMode:String = null;
+
 	static function getCurrentModMode():String
 	{
-		var save:FlxSave = new FlxSave();
-		save.bind('funkin', CoolUtil.getSavePath());
-		
-		if(save != null && save.data != null && save.data.modMode != null)
+		if(_cachedModMode != null)
+			return _cachedModMode;
+
+		if(FlxG.save.data != null && FlxG.save.data.modMode != null)
 		{
-			var mode:String = save.data.modMode;
+			var mode:String = FlxG.save.data.modMode;
 			if(mode == 'MODS + FNF SONGS' || mode == 'ALL MODS' || mode == 'DISABLE MODS')
-				return mode;
+			{
+				_cachedModMode = mode;
+				return _cachedModMode;
+			}
 		}
-		
+
 		if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
-			return 'SINGLE MOD';
-		
-		return 'DISABLE MODS';
+			_cachedModMode = 'SINGLE MOD';
+		else
+			_cachedModMode = 'DISABLE MODS';
+
+		return _cachedModMode;
 	}
 
 	public static function hardResetToState(nextState:FlxState) {
@@ -370,5 +420,12 @@ class MusicBeatState extends FlxState
 		var val:Null<Float> = 4;
 		if(PlayState.SONG != null && PlayState.SONG.notes[curSection] != null) val = PlayState.SONG.notes[curSection].sectionBeats;
 		return val == null ? 4 : val;
+	}
+
+	override function destroy()
+	{
+		if (FlxG.camera != null)
+			FlxG.camera.bgColor = FlxColor.BLACK;
+		super.destroy();
 	}
 }

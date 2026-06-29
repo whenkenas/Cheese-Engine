@@ -16,6 +16,13 @@ class EditorHelper
 				var hscriptState:HScriptStateLoader.HScriptState = cast FlxG.state;
 				stateName = hscriptState.stateName;
 			}
+			else if(stateName == 'LuaState' && Std.isOfType(FlxG.state, psychlua.LuaStateLoader.LuaState))
+			{
+				var luaState:psychlua.LuaStateLoader.LuaState = cast FlxG.state;
+				stateName = luaState.stateName;
+			}
+			if(stateName == 'MasterEditorMenu')
+				stateName = 'MainMenuState';
 			returnToState = stateName;
 			trace('EditorHelper: Saved return state: $stateName');
 		}

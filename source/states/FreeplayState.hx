@@ -54,6 +54,12 @@ class FreeplayState extends MusicBeatState
 	var bottomString:String;
 	var bottomText:FlxText;
 	var bottomBG:FlxSprite;
+	var allSongs:Array<SongMetadata> = [];
+	var tabList:Array<String> = [];
+	var curTab:Int = 0;
+	var tabText:FlxText;
+	var tabHint:FlxText;
+	var isMultiModMode:Bool = false;
 
 	var player:MusicPlayer;
 
@@ -94,6 +100,15 @@ class FreeplayState extends MusicBeatState
 	{
 		//Paths.clearStoredMemory();
 		//Paths.clearUnusedMemory();
+
+		#if MODS_ALLOWED
+		var _initMode = getCurrentModMode();
+		if(_initMode == 'ALL MODS' || _initMode == 'MODS + FNF SONGS')
+		{
+			Mods.currentModDirectory = '';
+			Mods.clearGlobalMods();
+		}
+		#end
 		
 		persistentUpdate = true;
 		PlayState.isStoryMode = false;
@@ -179,7 +194,20 @@ class FreeplayState extends MusicBeatState
 				addSong(song[0], i, song[1], FlxColor.fromRGB(colors[0], colors[1], colors[2]));
 			}
 		}
+		#if MODS_ALLOWED
+		var _modeAfterLoad = getCurrentModMode();
+		if(_modeAfterLoad == 'ALL MODS' || _modeAfterLoad == 'MODS + FNF SONGS')
+		{
+			Mods.currentModDirectory = '';
+			Mods.clearGlobalMods();
+		}
+		else
+		{
+			Mods.loadTopMod();
+		}
+		#else
 		Mods.loadTopMod();
+		#end
 
 		if(songs.length < 1)
 		{
@@ -230,7 +258,7 @@ class FreeplayState extends MusicBeatState
 		scoreText = new FlxText(FlxG.width * 0.7, 5, 0, "", 32);
 		scoreText.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, RIGHT);
 
-		scoreBG = new FlxSprite(scoreText.x - 6, 0).makeGraphic(1, 66, 0xFF000000);
+		scoreBG = new FlxSprite(scoreText.x - 6, 0).makeGraphic(1, isMultiModMode ? 140 : 66, 0xFF000000);
 		scoreBG.alpha = 0.6;
 		add(scoreBG);
 
@@ -266,16 +294,53 @@ class FreeplayState extends MusicBeatState
 		bottomBG.alpha = 0.6;
 		add(bottomBG);
 
-		var leText:String = Language.getPhrase("freeplay_tip", "Press SPACE to listen to the Song / Press CTRL to open the Gameplay Changers Menu / Press RESET to Reset your Score and Accuracy.");
+		var _freeplayModMode = getCurrentModMode();
+		isMultiModMode = (_freeplayModMode == 'ALL MODS' || _freeplayModMode == 'MODS + FNF SONGS');
+
+		if(isMultiModMode)
+		{
+			allSongs = songs.copy();
+			tabList = ['All Songs'];
+			if(_freeplayModMode == 'MODS + FNF SONGS')
+				tabList.push('Friday Night Funkin\'');
+			var modDirs:Array<String> = [];
+			for(song in allSongs)
+				if(song.folder != '' && !modDirs.contains(song.folder))
+					modDirs.push(song.folder);
+			modDirs.sort((a, b) -> a.toLowerCase() < b.toLowerCase() ? -1 : 1);
+			for(dir in modDirs)
+				tabList.push(dir);
+		}
+
+		var leText:String = isMultiModMode ?
+			"Press SPACE to listen to the Song / Press CTRL to open the Gameplay Changers Menu / Press RESET to Reset your Score and Accuracy." :
+			Language.getPhrase("freeplay_tip", "Press SPACE to listen to the Song / Press CTRL to open the Gameplay Changers Menu / Press RESET to Reset your Score and Accuracy.");
 		bottomString = leText;
 		var size:Int = 16;
 		bottomText = new FlxText(bottomBG.x, bottomBG.y + 4, FlxG.width, leText, size);
 		bottomText.setFormat(Paths.font("vcr.ttf"), size, FlxColor.WHITE, CENTER);
 		bottomText.scrollFactor.set();
 		add(bottomText);
+
+		if(isMultiModMode)
+		{
+			tabText = new FlxText(scoreText.x, scoreText.y + 64, 0, '', 20);
+			tabText.font = scoreText.font;
+			tabText.color = FlxColor.WHITE;
+			tabText.scrollFactor.set();
+			add(tabText);
+
+			tabHint = new FlxText(scoreText.x, scoreText.y + 88, 0, 'Press TAB to switch MODS', 16);
+			tabHint.setFormat(Paths.font('vcr.ttf'), 16, 0xFF808080, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			tabHint.scrollFactor.set();
+			add(tabHint);
+		}
 		
 		player = new MusicPlayer(this);
 		add(player);
+
+		if(isMultiModMode)
+			updateTab();
 
 		previewSound = new FlxSound();
 		previewTimer = new FlxTimer();
@@ -433,6 +498,12 @@ class FreeplayState extends MusicBeatState
 			changeDiff(1);
 			_updateSongLastDifficulty();
 		}
+		}
+
+		if(isMultiModMode && FlxG.keys.justPressed.TAB && !player.playingMusic)
+		{
+			curTab = FlxMath.wrap(curTab + 1, 0, tabList.length - 1);
+			updateTab();
 		}
 
 		if (controls.BACK)
@@ -644,6 +715,7 @@ class FreeplayState extends MusicBeatState
 		if (player.playingMusic || songs.length < 1)
 			return;
 
+		if(songs.length < 1) return;
 		curSelected = FlxMath.wrap(curSelected + change, 0, songs.length-1);
 		_updateSongLastDifficulty();
 		if(playSound) FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
@@ -656,18 +728,41 @@ class FreeplayState extends MusicBeatState
 			FlxTween.color(bg, 1, bg.color, intendedColor);
 		}
 
-		for (num => item in grpSongs.members)
+		if(isMultiModMode)
 		{
-			var icon:HealthIcon = iconArray[num];
-			item.alpha = 0.6;
-			icon.alpha = 0.6;
-			if (item.targetY == curSelected)
+			for (num => item in grpSongs.members)
 			{
-				item.alpha = 1;
-				icon.alpha = 1;
+				var icon:HealthIcon = iconArray[num];
+				item.alpha = 0.6;
+				icon.alpha = 0.6;
+			}
+			if(songs.length > 0)
+			{
+				var activeSong:SongMetadata = songs[curSelected];
+				var realIdx:Int = allSongs.indexOf(activeSong);
+				if(realIdx >= 0)
+				{
+					grpSongs.members[realIdx].alpha = 1;
+					iconArray[realIdx].alpha = 1;
+				}
+			}
+		}
+		else
+		{
+			for (num => item in grpSongs.members)
+			{
+				var icon:HealthIcon = iconArray[num];
+				item.alpha = 0.6;
+				icon.alpha = 0.6;
+				if (item.targetY == curSelected)
+				{
+					item.alpha = 1;
+					icon.alpha = 1;
+				}
 			}
 		}
 		
+		if(songs.length < 1) return;
 		Mods.currentModDirectory = songs[curSelected].folder;
 		PlayState.storyWeek = songs[curSelected].week;
 		Difficulty.loadFromWeek();
@@ -761,10 +856,29 @@ class FreeplayState extends MusicBeatState
 	private function positionHighscore()
 	{
 		scoreText.x = FlxG.width - scoreText.width - 6;
-		scoreBG.scale.x = FlxG.width - scoreText.x + 6;
-		scoreBG.x = FlxG.width - (scoreBG.scale.x / 2);
-		diffText.x = Std.int(scoreBG.x + (scoreBG.width / 2));
-		diffText.x -= diffText.width / 2;
+		var bgWidth:Float = FlxG.width - scoreText.x + 6;
+		if(isMultiModMode && tabText != null && tabText.text != '')
+		{
+			var tabNeeded:Float = tabText.width + 12;
+			if(tabNeeded > bgWidth) bgWidth = tabNeeded;
+		}
+		if(isMultiModMode && tabHint != null && tabHint.text != '')
+		{
+			var hintNeeded:Float = tabHint.width + 12;
+			if(hintNeeded > bgWidth) bgWidth = hintNeeded;
+		}
+		var bgHeight:Int = isMultiModMode ? 112 : 66;
+		scoreBG.makeGraphic(Std.int(bgWidth), bgHeight, 0xFF000000);
+		scoreBG.x = FlxG.width - bgWidth;
+		scoreText.x = FlxG.width - scoreText.width - 6;
+		var bgCenterX:Float = scoreBG.x + scoreBG.width / 2;
+		diffText.x = Std.int(bgCenterX - diffText.width / 2);
+		if(isMultiModMode && tabText != null)
+		{
+			tabText.x = Std.int(bgCenterX - tabText.width / 2);
+			if(tabHint != null)
+				tabHint.x = Std.int(bgCenterX - tabHint.width / 2);
+		}
 	}
 
 	var _drawDistance:Int = 4;
@@ -772,6 +886,7 @@ class FreeplayState extends MusicBeatState
 	public function updateTexts(elapsed:Float = 0.0)
 	{
 		lerpSelected = FlxMath.lerp(curSelected, lerpSelected, Math.exp(-elapsed * 9.6));
+
 		for (i in _lastVisibles)
 		{
 			grpSongs.members[i].visible = grpSongs.members[i].active = false;
@@ -779,23 +894,96 @@ class FreeplayState extends MusicBeatState
 		}
 		_lastVisibles = [];
 
-		var min:Int = Math.round(Math.max(0, Math.min(songs.length, lerpSelected - _drawDistance)));
-		var max:Int = Math.round(Math.max(0, Math.min(songs.length, lerpSelected + _drawDistance)));
-		for (i in min...max)
+		if(!isMultiModMode)
 		{
-			var item:Alphabet = grpSongs.members[i];
-			item.visible = item.active = true;
-			item.x = ((item.targetY - lerpSelected) * item.distancePerItem.x) + item.startPosition.x;
-			item.y = ((item.targetY - lerpSelected) * 1.3 * item.distancePerItem.y) + item.startPosition.y;
-
-			var icon:HealthIcon = iconArray[i];
-			icon.visible = icon.active = true;
-			_lastVisibles.push(i);
+			var min:Int = Math.round(Math.max(0, Math.min(songs.length, lerpSelected - _drawDistance)));
+			var max:Int = Math.round(Math.max(0, Math.min(songs.length, lerpSelected + _drawDistance)));
+			for (i in min...max)
+			{
+				var item:Alphabet = grpSongs.members[i];
+				item.visible = item.active = true;
+				item.x = ((item.targetY - lerpSelected) * item.distancePerItem.x) + item.startPosition.x;
+				item.y = ((item.targetY - lerpSelected) * 1.3 * item.distancePerItem.y) + item.startPosition.y;
+				var icon:HealthIcon = iconArray[i];
+				icon.visible = icon.active = true;
+				_lastVisibles.push(i);
+			}
 		}
+		else
+		{
+			var min:Int = Math.round(Math.max(0, Math.min(songs.length, lerpSelected - _drawDistance)));
+			var max:Int = Math.round(Math.max(0, Math.min(songs.length, lerpSelected + _drawDistance)));
+			for (i in min...max)
+			{
+				var memberIdx:Int = allSongs.indexOf(songs[i]);
+				if(memberIdx < 0) continue;
+				var item:Alphabet = grpSongs.members[memberIdx];
+				item.visible = item.active = true;
+				item.isMenuItem = false;
+				item.x = ((i - lerpSelected) * item.distancePerItem.x) + item.startPosition.x;
+				item.y = ((i - lerpSelected) * 1.3 * item.distancePerItem.y) + item.startPosition.y;
+				var icon:HealthIcon = iconArray[memberIdx];
+				icon.visible = icon.active = true;
+				_lastVisibles.push(memberIdx);
+			}
+		}
+	}
+
+	function updateTab()
+	{
+		var tabName:String = tabList[curTab];
+		tabText.text = '[ ' + tabName + ' ]';
+
+		songs = [];
+		for(song in allSongs)
+		{
+			if(tabName == 'All Songs')
+				songs.push(song);
+			else if(tabName == 'Friday Night Funkin\'')
+			{
+				if(song.folder == '')
+					songs.push(song);
+			}
+			else
+			{
+				if(song.folder == tabName)
+					songs.push(song);
+			}
+		}
+
+		curSelected = 0;
+		lerpSelected = 0;
+
+		for(i in 0...grpSongs.members.length)
+		{
+			grpSongs.members[i].visible = grpSongs.members[i].active = grpSongs.members[i].isMenuItem = false;
+			iconArray[i].visible = iconArray[i].active = false;
+		}
+
+		for(i in 0...songs.length)
+		{
+			var idx:Int = allSongs.indexOf(songs[i]);
+			grpSongs.members[idx].targetY = i;
+			grpSongs.members[idx].visible = grpSongs.members[idx].active = grpSongs.members[idx].isMenuItem = true;
+			iconArray[idx].visible = iconArray[idx].active = true;
+		}
+
+		tabText.y = scoreText.y + 64;
+		positionHighscore();
+
+		if(songs.length > 0)
+			changeSelection(0, false);
 	}
 
 	override function destroy():Void
 	{
+		#if MODS_ALLOWED
+		var _destroyMode = getCurrentModMode();
+		if(_destroyMode != 'ALL MODS' && _destroyMode != 'MODS + FNF SONGS')
+			Mods.pushGlobalMods();
+		else
+			Mods.clearGlobalMods();
+		#end
 		stopPreview();
 
 		if (previewSound != null)

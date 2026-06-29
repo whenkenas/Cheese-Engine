@@ -31,6 +31,9 @@ import backend.StageData;
 import backend.Highscore;
 import backend.Difficulty;
 import backend.StateManager;
+import backend.CursorLoader.PointerCursor;
+import backend.CursorLoader.GrabbingCursor;
+import backend.CursorLoader.CellCursor;
 
 import objects.Character;
 import objects.HealthIcon;
@@ -38,15 +41,6 @@ import objects.Note;
 import objects.StrumNote;
 
 using DateTools;
-
-@:bitmap("assets/embed/images/ui/cursor-pointer.png")
-private class PointerCursor extends BitmapData {}
-
-@:bitmap("assets/embed/images/ui/cursor-grabbing.png")
-private class GrabbingCursor extends BitmapData {}
-
-@:bitmap("assets/embed/images/ui/cursor-cell.png")
-private class CellCursor extends BitmapData {}
 
 typedef UndoStruct = {
 	var action:UndoAction;
@@ -182,6 +176,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	
 	var camUI:FlxCamera;
 	var camNotifications:FlxCamera;
+	var previewBtn:PsychUIButton = null;
 
 	var prevGridBg:ChartingGridSprite;
 	var gridBg:ChartingGridSprite;
@@ -3418,6 +3413,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var metaDataCreditsCO:Array<String> = [];
 	var metaDataCreditsCH:Array<String> = [];
 	var metaDataCreditsCOD:Array<String> = [];
+	var pauseDisplayNameInputText:PsychUIInputText;
 
 	function addMetaDataTab()
 	{
@@ -3431,7 +3427,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		txt.alignment = CENTER;
 		tab_group.add(txt);
 
-		objY += 40;
+		objY += 20;
+		var pauseDisplayName:String = loadedMeta.pauseDisplayName != null ? loadedMeta.pauseDisplayName : '';
+		pauseDisplayNameInputText = new PsychUIInputText(objX + 40, objY + 15, 200, pauseDisplayName, 8);
+		var pauseLabel = new FlxText(objX + 40, objY, 200, 'Display Song Name:');
+		pauseLabel.alignment = CENTER;
+		tab_group.add(pauseLabel);
+		tab_group.add(pauseDisplayNameInputText);
+
+		objY += 45;
 		var artistNames:Array<String> = [""];
 		var composerNames:Array<String> = [""];
 		var charterNames:Array<String> = [""];
@@ -3445,14 +3449,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			else if(credit.role == "Coder") coderNames = credit.names;
 		}
 		
-		artistInputText = new PsychUIInputText(objX, objY, 120, artistNames.join(', '), 8);
+		artistInputText = new PsychUIInputText(objX, objY + 15, 120, artistNames.join(', '), 8);
 		metaDataCreditsA = artistNames.filter(function(s:String) return s.length > 0);
 		artistInputText.onChange = function(old:String, cur:String)
 		{
 			metaDataCreditsA = cur.split(',').map(function(s:String) return s.trim()).filter(function(s:String) return s.length > 0);
 		};
 		
-		composerInputText = new PsychUIInputText(objX + 150, objY, 120, composerNames.join(', '), 8);
+		composerInputText = new PsychUIInputText(objX + 150, objY + 15, 120, composerNames.join(', '), 8);
 		metaDataCreditsCO = composerNames.filter(function(s:String) return s.length > 0);
 		composerInputText.onChange = function(old:String, cur:String)
 		{
@@ -3460,21 +3464,21 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		};
 
 		objY += 40;
-		charterInputText = new PsychUIInputText(objX, objY, 120, charterNames.join(', '), 8);
+		charterInputText = new PsychUIInputText(objX, objY + 15, 120, charterNames.join(', '), 8);
 		metaDataCreditsCH = charterNames.filter(function(s:String) return s.length > 0);
 		charterInputText.onChange = function(old:String, cur:String)
 		{
 			metaDataCreditsCH = cur.split(',').map(function(s:String) return s.trim()).filter(function(s:String) return s.length > 0);
 		};
 		
-		coderInputText = new PsychUIInputText(objX + 150, objY, 120, coderNames.join(', '), 8);
+		coderInputText = new PsychUIInputText(objX + 150, objY + 15, 120, coderNames.join(', '), 8);
 		metaDataCreditsCOD = coderNames.filter(function(s:String) return s.length > 0);
 		coderInputText.onChange = function(old:String, cur:String)
 		{
 			metaDataCreditsCOD = cur.split(',').map(function(s:String) return s.trim()).filter(function(s:String) return s.length > 0);
 		};
 
-		objY += 40;
+		objY += 50;
 		var exportButton:PsychUIButton = new PsychUIButton(objX, objY, 'Export Metadata', function()
 		{
 			exportMetaData();
@@ -3515,7 +3519,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(metaDataCreditsCOD.length > 0)
 			creditLines.push('\t\t"Coder": ' + haxe.Json.stringify(metaDataCreditsCOD));
 		
-		var metadataJson:String = '{\n\t"credits": {\n' + creditLines.join(',\n') + '\n\t},\n\t"showAllCredits": ' + (showAllCreditsCheckBox.checked ? 'true' : 'false') + '\n}';
+		var pauseNameValue:String = pauseDisplayNameInputText.text.trim();
+		var pauseNameJson:String = pauseNameValue.length > 0 ? (',\n\t"pauseDisplayName": ' + haxe.Json.stringify(pauseNameValue)) : '';
+		var metadataJson:String = '{\n\t"credits": {\n' + creditLines.join(',\n') + '\n\t},\n\t"showAllCredits": ' + (showAllCreditsCheckBox.checked ? 'true' : 'false') + pauseNameJson + '\n}';
 		var songFolder:String = Paths.formatToSongPath(PlayState.SONG.song);
 		var chartName:String = 'metadata.json';
 

@@ -4,6 +4,7 @@ import flixel.graphics.FlxGraphic;
 
 import flixel.system.debug.interaction.tools.Pointer.GraphicCursorCross;
 import flixel.util.FlxDestroyUtil;
+import flixel.util.FlxSpriteUtil;
 
 import openfl.net.FileReference;
 import openfl.events.Event;
@@ -42,8 +43,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var _char:String = null;
 	var _goToPlayState:Bool = true;
 
-	var anims = null;
-	var animsTxt:FlxText;
+	var anims:Array<AnimArray> = null;
+	var animScrollList:AnimScrollList;
 	var curAnim = 0;
 
 	private var camEditor:FlxCamera;
@@ -54,7 +55,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 	var unsavedProgress:Bool = false;
 
-	var selectedFormat:FlxTextFormat = new FlxTextFormat(FlxColor.LIME);
 	var holdingObjectType:Int = -1;
 
 	public function new(char:String = null, goToPlayState:Bool = false)
@@ -102,11 +102,14 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		ghost.alpha = ghostAlpha;
 		add(ghost);
 		
-		animsTxt = new FlxText(10, 32, 400, '');
-		animsTxt.setFormat(null, 16, FlxColor.WHITE, LEFT, OUTLINE_FAST, FlxColor.BLACK);
-		animsTxt.scrollFactor.set();
-		animsTxt.borderSize = 1;
-		animsTxt.cameras = [camHUD];
+		animScrollList = new AnimScrollList(10, FlxG.height - 195, 210, 170);
+		animScrollList.scrollFactor.set();
+		animScrollList.cameras = [camHUD];
+		animScrollList.onSelect = function(idx:Int) {
+			undoOffsets = null;
+			curAnim = idx;
+			character.playAnim(getSwappedAnim(anims[curAnim].anim), true);
+		};
 
 		addCharacter();
 
@@ -114,18 +117,15 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		cameraFollowPointer.setGraphicSize(40, 40);
 		cameraFollowPointer.updateHitbox();
 
-		healthBar = new Bar(30, FlxG.height - 75);
+		healthBar = new Bar(0, 0);
 		healthBar.scrollFactor.set();
 		healthBar.cameras = [camHUD];
 
 		healthIcon = new HealthIcon(character.healthIcon, false, false);
-		healthIcon.y = FlxG.height - 150;
 		healthIcon.cameras = [camHUD];
 
 		add(cameraFollowPointer);
-		add(healthBar);
-		add(healthIcon);
-		add(animsTxt);
+		add(animScrollList);
 
 		var tipText:FlxText = new FlxText(FlxG.width - 300, FlxG.height - 24, 300, "Press F1 for Help", 20);
 		tipText.cameras = [camHUD];
@@ -248,11 +248,11 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 	function makeUIMenu()
 	{
-		UI_box = new PsychUIBox(FlxG.width - 275, 25, 250, 120, ['Ghost', 'Settings']);
+		UI_box = new PsychUIBox(FlxG.width - 255, 10, 250, 140, ['Ghost', 'Settings']);
 		UI_box.scrollFactor.set();
 		UI_box.cameras = [camHUD];
 
-		UI_characterbox = new PsychUIBox(UI_box.x - 100, UI_box.y + UI_box.height + 10, 350, 280, ['Animations', 'Character']);
+		UI_characterbox = new PsychUIBox(FlxG.width - 430, UI_box.y + UI_box.height + 5, 425, 390, ['Animations', 'Character']);
 		UI_characterbox.scrollFactor.set();
 		UI_characterbox.cameras = [camHUD];
 		add(UI_characterbox);
@@ -388,7 +388,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			updatePointerPos(false);
 		};
 
-		var reloadCharacter:PsychUIButton = new PsychUIButton(140, 20, "Reload Char", function()
+		var reloadCharacter:PsychUIButton = new PsychUIButton(140, 50, "Reload Char", function()
 		{
 			addCharacter(true);
 			updatePointerPos();
@@ -396,7 +396,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			reloadCharacterDropDown();
 		});
 
-		var templateCharacter:PsychUIButton = new PsychUIButton(140, 50, "Load Template", function()
+		var templateCharacter:PsychUIButton = new PsychUIButton(140, 80, "Load Template", function()
 		{
 			final _template:CharacterFile =
 			{
@@ -462,8 +462,13 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		reloadCharacterDropDown();
 		charDropDown.selectedLabel = _char;
 
+		var saveCharacterButton:PsychUIButton = new PsychUIButton(140, 20, "Save Character", function() {
+			saveCharacter();
+		});
+
 		tab_group.add(new FlxText(charDropDown.x, charDropDown.y - 18, 80, 'Character:'));
 		tab_group.add(check_player);
+		tab_group.add(saveCharacterButton);
 		tab_group.add(reloadCharacter);
 		tab_group.add(templateCharacter);
 		tab_group.add(charDropDown);
@@ -607,17 +612,34 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 	var singDurationStepper:PsychUINumericStepper;
 	var scaleStepper:PsychUINumericStepper;
+	var danceEveryBeatsStepper:PsychUINumericStepper;
 	var positionXStepper:PsychUINumericStepper;
 	var positionYStepper:PsychUINumericStepper;
 	var positionCameraXStepper:PsychUINumericStepper;
 	var positionCameraYStepper:PsychUINumericStepper;
+	var playerPositionXStepper:PsychUINumericStepper;
+	var playerPositionYStepper:PsychUINumericStepper;
+	var playerCameraXStepper:PsychUINumericStepper;
+	var playerCameraYStepper:PsychUINumericStepper;
 
 	var flipXCheckBox:PsychUICheckBox;
 	var noAntialiasingCheckBox:PsychUICheckBox;
+	var vsliceSustainsCheckBox:PsychUICheckBox;
+	var swapSingSidesCheckBox:PsychUICheckBox;
 
 	var healthColorStepperR:PsychUINumericStepper;
 	var healthColorStepperG:PsychUINumericStepper;
 	var healthColorStepperB:PsychUINumericStepper;
+	var healthBarDisplay:FlxSprite;
+	var colorPickerSprite:FlxSprite;
+	var hueSliderSprite:FlxSprite;
+	var colorPickerDot:FlxSprite;
+	var hueSliderLine:FlxSprite;
+	var colorPickerHue:Float = 0;
+	var colorPickerS:Float = 1;
+	var colorPickerV:Float = 1;
+	var colorPickerDragging:Int = 0;
+	var hexColorInput:PsychUIInputText;
 	function addCharacterUI()
 	{
 		var tab_group = UI_characterbox.getTab('Character').menu;
@@ -642,25 +664,71 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				updateHealthBar();
 			});
 
-		healthIconInputText = new PsychUIInputText(15, imageInputText.y + 35, 75, healthIcon.getCharacter(), 8);
+		healthIconInputText = new PsychUIInputText(0, imageInputText.y + 35, 80, healthIcon.getCharacter(), 8);
 
-		vocalsInputText = new PsychUIInputText(15, healthIconInputText.y + 35, 75, character.vocalsFile != null ? character.vocalsFile : '', 8);
+		vocalsInputText = new PsychUIInputText(15, healthIconInputText.y + 35, 100, character.vocalsFile != null ? character.vocalsFile : '', 8);
 
-		singDurationStepper = new PsychUINumericStepper(15, vocalsInputText.y + 45, 0.1, 4, 0, 999, 1);
+		singDurationStepper = new PsychUINumericStepper(15, imageInputText.y + 50, 0.1, 4, 0, 999, 1);
 
 		scaleStepper = new PsychUINumericStepper(15, singDurationStepper.y + 40, 0.1, 1, 0.05, 10, 2);
 
-		flipXCheckBox = new PsychUICheckBox(singDurationStepper.x + 80, singDurationStepper.y, "Flip X", 50);
+		danceEveryBeatsStepper = new PsychUINumericStepper(15, scaleStepper.y + 40, 1, character.danceEveryNumBeats, 1, 32, 0);
+
+		flipXCheckBox = new PsychUICheckBox(290, singDurationStepper.y, "Flip X", 50);
 		flipXCheckBox.checked = character.flipX;
 		if(character.isPlayer) flipXCheckBox.checked = !flipXCheckBox.checked;
 		flipXCheckBox.onClick = function() {
+			var prev = character.originalFlipX;
+			_pushUndo(function() {
+				character.originalFlipX = prev;
+				character.flipX = (prev != character.isPlayer);
+				flipXCheckBox.checked = prev;
+				if(character.isPlayer) flipXCheckBox.checked = !flipXCheckBox.checked;
+				unsavedProgress = true;
+			});
 			character.originalFlipX = !character.originalFlipX;
 			character.flipX = (character.originalFlipX != character.isPlayer);
 		};
 
-		noAntialiasingCheckBox = new PsychUICheckBox(flipXCheckBox.x, flipXCheckBox.y + 40, "No Antialiasing", 80);
+		noAntialiasingCheckBox = new PsychUICheckBox(290, singDurationStepper.y + 40, "No Antialiasing", 80);
+
+		vsliceSustainsCheckBox = new PsychUICheckBox(290, singDurationStepper.y + 80, "VSlice Sustains", 100);
+		vsliceSustainsCheckBox.checked = character.vsliceSustains;
+		vsliceSustainsCheckBox.onClick = function() {
+			var prev = character.vsliceSustains;
+			_pushUndo(function() {
+				character.vsliceSustains = prev;
+				vsliceSustainsCheckBox.checked = prev;
+				unsavedProgress = true;
+			});
+			character.vsliceSustains = vsliceSustainsCheckBox.checked;
+			unsavedProgress = true;
+		};
+
+		swapSingSidesCheckBox = new PsychUICheckBox(290, singDurationStepper.y + 120, "Swap Sing Sides", 100);
+		swapSingSidesCheckBox.checked = character.swapSingSides;
+		swapSingSidesCheckBox.onClick = function() {
+			if(character.editorIsPlayer == true) return;
+			var prev = character.swapSingSides;
+			_pushUndo(function() {
+				character.swapSingSides = prev;
+				swapSingSidesCheckBox.checked = prev;
+				previewAsPlayer(prev);
+				unsavedProgress = true;
+			});
+			character.swapSingSides = swapSingSidesCheckBox.checked;
+			previewAsPlayer(swapSingSidesCheckBox.checked);
+			unsavedProgress = true;
+		};
 		noAntialiasingCheckBox.checked = character.noAntialiasing;
 		noAntialiasingCheckBox.onClick = function() {
+			var prev = character.noAntialiasing;
+			_pushUndo(function() {
+				character.noAntialiasing = prev;
+				character.antialiasing = !prev && ClientPrefs.data.antialiasing;
+				noAntialiasingCheckBox.checked = prev;
+				unsavedProgress = true;
+			});
 			character.antialiasing = false;
 			if(!noAntialiasingCheckBox.checked && ClientPrefs.data.antialiasing) {
 				character.antialiasing = true;
@@ -668,45 +736,176 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			character.noAntialiasing = noAntialiasingCheckBox.checked;
 		};
 
-		positionXStepper = new PsychUINumericStepper(flipXCheckBox.x + 110, flipXCheckBox.y, 10, character.positionArray[0], -9000, 9000, 0);
+		var iconAreaY:Float = scaleStepper.y + 140;
+		var iconBg:FlxSprite = new FlxSprite(10, iconAreaY).makeGraphic(100, 90, 0xFF222222);
+		healthIcon.setGraphicSize(100, 100);
+		healthIcon.updateHitbox();
+		healthIcon.setPosition(-10, iconAreaY - 20);
+		var iconBgX:Int = 10;
+		var iconBgW:Int = 100;
+		var iconBgH:Int = 90;
+		var barX:Int = iconBgX + iconBgW + 5;
+		var barW:Int = 105;
+		var barH:Int = 20;
+		var barY:Float = iconAreaY + (iconBgH - barH) / 1.02;
+		decideIconColor.setPosition(barX + 3, barY - 30);
+		var healthBarBg:FlxSprite = new FlxSprite(barX, barY).makeGraphic(barW, barH, FlxColor.BLACK);
+		healthBarDisplay = new FlxSprite(barX + 3, barY + 3).makeGraphic(barW - 6, barH - 6, FlxColor.WHITE);
+		healthBarDisplay.color = FlxColor.fromRGB(character.healthColorArray[0], character.healthColorArray[1], character.healthColorArray[2]);
+
+		var pickerW:Int = 90;
+		var pickerH:Int = 90;
+		var pickerX:Int = barX + barW + 5;
+		var hueW:Int = 18;
+
+		var initColor:FlxColor = FlxColor.fromRGB(character.healthColorArray[0], character.healthColorArray[1], character.healthColorArray[2]);
+		colorPickerHue = initColor.hue;
+		colorPickerS = initColor.saturation;
+		colorPickerV = initColor.brightness;
+
+		var pickerOffY:Float = 0;
+		colorPickerSprite = new FlxSprite(pickerX, iconAreaY + pickerOffY);
+		colorPickerSprite.makeGraphic(pickerW, pickerH, FlxColor.WHITE);
+
+		hueSliderSprite = new FlxSprite(pickerX + pickerW + 4, iconAreaY + pickerOffY);
+		hueSliderSprite.makeGraphic(hueW, pickerH, FlxColor.WHITE);
+		hueSliderSprite.pixels.lock();
+		for (py in 0...pickerH)
+		{
+			var hue:Float = (py / pickerH) * 360;
+			var col:FlxColor = FlxColor.fromHSB(hue, 1.0, 1.0);
+			for (px in 0...hueW)
+				hueSliderSprite.pixels.setPixel32(px, py, col);
+		}
+		hueSliderSprite.pixels.unlock();
+		hueSliderSprite.dirty = true;
+
+		redrawColorPicker();
+
+		positionXStepper = new PsychUINumericStepper(140, singDurationStepper.y, 10, character.positionArray[0], -9000, 9000, 0);
 		positionYStepper = new PsychUINumericStepper(positionXStepper.x + 70, positionXStepper.y, 10, character.positionArray[1], -9000, 9000, 0);
 
 		positionCameraXStepper = new PsychUINumericStepper(positionXStepper.x, positionXStepper.y + 40, 10, character.cameraPosition[0], -9000, 9000, 0);
 		positionCameraYStepper = new PsychUINumericStepper(positionYStepper.x, positionYStepper.y + 40, 10, character.cameraPosition[1], -9000, 9000, 0);
 
-		var saveCharacterButton:PsychUIButton = new PsychUIButton(reloadImage.x, noAntialiasingCheckBox.y + 40, "Save Character", function() {
-			saveCharacter();
-		});
+		playerPositionXStepper = new PsychUINumericStepper(positionXStepper.x, positionCameraXStepper.y + 40, 10, character.playerPositionArray[0], -9000, 9000, 0);
+		playerPositionYStepper = new PsychUINumericStepper(positionYStepper.x, positionCameraYStepper.y + 40, 10, character.playerPositionArray[1], -9000, 9000, 0);
 
-		healthColorStepperR = new PsychUINumericStepper(singDurationStepper.x, saveCharacterButton.y, 20, character.healthColorArray[0], 0, 255, 0);
-		healthColorStepperG = new PsychUINumericStepper(singDurationStepper.x + 65, saveCharacterButton.y, 20, character.healthColorArray[1], 0, 255, 0);
-		healthColorStepperB = new PsychUINumericStepper(singDurationStepper.x + 130, saveCharacterButton.y, 20, character.healthColorArray[2], 0, 255, 0);
+		playerCameraXStepper = new PsychUINumericStepper(positionXStepper.x, playerPositionXStepper.y + 40, 10, character.playerCameraPosition[0], -9000, 9000, 0);
+		playerCameraYStepper = new PsychUINumericStepper(positionYStepper.x, playerPositionYStepper.y + 40, 10, character.playerCameraPosition[1], -9000, 9000, 0);
+
+		var rgbX:Float = pickerX + pickerW + hueW + 10;
+		var rgbY:Float = colorPickerSprite.y - 12;
+		healthColorStepperR = new PsychUINumericStepper(rgbX, rgbY + 14, 20, character.healthColorArray[0], 0, 255, 0);
+		healthColorStepperG = new PsychUINumericStepper(rgbX, rgbY + 50, 20, character.healthColorArray[1], 0, 255, 0);
+		healthColorStepperB = new PsychUINumericStepper(rgbX, rgbY + 86, 20, character.healthColorArray[2], 0, 255, 0);
 
 		tab_group.add(new FlxText(15, imageInputText.y - 18, 100, 'Image file name:'));
-		tab_group.add(new FlxText(15, healthIconInputText.y - 18, 100, 'Health icon name:'));
-		tab_group.add(new FlxText(15, vocalsInputText.y - 18, 100, 'Vocals File Postfix:'));
 		tab_group.add(new FlxText(15, singDurationStepper.y - 18, 120, 'Sing Animation length:'));
 		tab_group.add(new FlxText(15, scaleStepper.y - 18, 100, 'Scale:'));
+		tab_group.add(new FlxText(15, danceEveryBeatsStepper.y - 18, 100, 'Dance every:'));
+		tab_group.add(danceEveryBeatsStepper);
 		tab_group.add(new FlxText(positionXStepper.x, positionXStepper.y - 18, 100, 'Character X/Y:'));
 		tab_group.add(new FlxText(positionCameraXStepper.x, positionCameraXStepper.y - 18, 100, 'Camera X/Y:'));
-		tab_group.add(new FlxText(healthColorStepperR.x, healthColorStepperR.y - 18, 100, 'Health Bar R/G/B:'));
-		tab_group.add(imageInputText);
-		tab_group.add(reloadImage);
-		tab_group.add(decideIconColor);
+		tab_group.add(new FlxText(playerPositionXStepper.x, playerPositionXStepper.y - 18, 160, 'Character Playable X/Y:'));
+		tab_group.add(new FlxText(playerCameraXStepper.x, playerCameraXStepper.y - 18, 120, 'Camera Playable X/Y:'));
+		healthIconInputText.width = decideIconColor.width;
+		healthIconInputText.setPosition(117, decideIconColor.y - 24);
+		vocalsInputText.setPosition(reloadImage.x + reloadImage.width + 5, imageInputText.y);
+		tab_group.add(new FlxText(117, decideIconColor.y - 42, 100, 'Health icon name:'));
+		tab_group.add(new FlxText(reloadImage.x + reloadImage.width + 5, imageInputText.y - 18, 100, 'Vocals File Postfix:'));
 		tab_group.add(healthIconInputText);
 		tab_group.add(vocalsInputText);
+		tab_group.add(imageInputText);
+		tab_group.add(reloadImage);
 		tab_group.add(singDurationStepper);
 		tab_group.add(scaleStepper);
 		tab_group.add(flipXCheckBox);
 		tab_group.add(noAntialiasingCheckBox);
+		tab_group.add(vsliceSustainsCheckBox);
+		tab_group.add(swapSingSidesCheckBox);
+		tab_group.add(healthBarBg);
+		tab_group.add(healthBarDisplay);
+		tab_group.add(iconBg);
+		tab_group.add(healthIcon);
+		tab_group.add(decideIconColor);
 		tab_group.add(positionXStepper);
 		tab_group.add(positionYStepper);
 		tab_group.add(positionCameraXStepper);
 		tab_group.add(positionCameraYStepper);
+		tab_group.add(playerPositionXStepper);
+		tab_group.add(playerPositionYStepper);
+		tab_group.add(playerCameraXStepper);
+		tab_group.add(playerCameraYStepper);
+		colorPickerDot = new FlxSprite(0, 0);
+		colorPickerDot.makeGraphic(8, 8, FlxColor.TRANSPARENT, true);
+		FlxSpriteUtil.drawCircle(colorPickerDot, 4, 4, 3, FlxColor.WHITE);
+		colorPickerDot.setPosition(
+			colorPickerSprite.x + colorPickerS * colorPickerSprite.width - 3,
+			colorPickerSprite.y + (1 - colorPickerV) * colorPickerSprite.height - 3
+		);
+
+		hueSliderLine = new FlxSprite(0, 0);
+		hueSliderLine.makeGraphic(Std.int(hueSliderSprite.width), 2, FlxColor.WHITE);
+		hueSliderLine.setPosition(
+			hueSliderSprite.x,
+			hueSliderSprite.y + (colorPickerHue / 360) * hueSliderSprite.height - 1
+		);
+
+		tab_group.add(new FlxText(rgbX, rgbY, 30, 'R:'));
+		tab_group.add(new FlxText(rgbX, rgbY + 36, 30, 'G:'));
+		tab_group.add(new FlxText(rgbX, rgbY + 72, 30, 'B:'));
 		tab_group.add(healthColorStepperR);
 		tab_group.add(healthColorStepperG);
 		tab_group.add(healthColorStepperB);
-		tab_group.add(saveCharacterButton);
+		var initHex:String = '#' + StringTools.hex(character.healthColorArray[0], 2) + StringTools.hex(character.healthColorArray[1], 2) + StringTools.hex(character.healthColorArray[2], 2);
+		tab_group.add(new FlxText(pickerX, colorPickerSprite.y - 34, pickerW, 'Hex Color:'));
+		hexColorInput = new PsychUIInputText(pickerX, colorPickerSprite.y - 20, pickerW, initHex, 8);
+		hexColorInput.onChange = function(prev:String, next:String) {
+			if (!StringTools.startsWith(next, '#'))
+			{
+				hexColorInput.text = '#' + StringTools.ltrim(next.replace('#', ''));
+				return;
+			}
+			var clean:String = next.substr(1).toUpperCase();
+			if (clean.length == 6) {
+				var r:Int = Std.parseInt('0x' + clean.substr(0, 2));
+				var g:Int = Std.parseInt('0x' + clean.substr(2, 2));
+				var b:Int = Std.parseInt('0x' + clean.substr(4, 2));
+				if (!Math.isNaN(r) && !Math.isNaN(g) && !Math.isNaN(b)) {
+					var pr = character.healthColorArray.copy();
+					_pushUndo(function() {
+						character.healthColorArray = pr.copy();
+						updateHealthBar();
+						unsavedProgress = true;
+					});
+					character.healthColorArray[0] = r;
+					character.healthColorArray[1] = g;
+					character.healthColorArray[2] = b;
+					updateHealthBar();
+					unsavedProgress = true;
+				}
+			}
+		};
+
+		tab_group.add(hexColorInput);
+		tab_group.add(colorPickerSprite);
+		tab_group.add(hueSliderSprite);
+		tab_group.add(colorPickerDot);
+		tab_group.add(hueSliderLine);
+	}
+
+	function redrawColorPicker()
+	{
+		if (colorPickerSprite == null) return;
+		var w:Int = colorPickerSprite.pixels.width;
+		var h:Int = colorPickerSprite.pixels.height;
+		colorPickerSprite.pixels.lock();
+		for (py in 0...h)
+			for (px in 0...w)
+				colorPickerSprite.pixels.setPixel32(px, py, FlxColor.fromHSB(colorPickerHue, px / w, 1.0 - py / h));
+		colorPickerSprite.pixels.unlock();
+		colorPickerSprite.dirty = true;
 	}
 
 	public function UIEvent(id:String, sender:Dynamic) {
@@ -738,56 +937,191 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		{
 			if (sender == scaleStepper)
 			{
-				reloadCharacterImage();
+				var prev = character.jsonScale;
+				_pushUndo(function() {
+					character.jsonScale = prev;
+					character.scale.set(prev, prev);
+					character.updateHitbox();
+					scaleStepper.value = prev;
+					updatePointerPos(false);
+					unsavedProgress = true;
+				});
 				character.jsonScale = sender.value;
 				character.scale.set(character.jsonScale, character.jsonScale);
 				character.updateHitbox();
+				reloadCharacterImage();
 				updatePointerPos(false);
 				unsavedProgress = true;
 			}
 			else if(sender == positionXStepper)
 			{
+				var prev = character.positionArray[0];
+				_pushUndo(function() {
+					character.positionArray[0] = prev;
+					positionXStepper.value = prev;
+					previewAsPlayer(false);
+					unsavedProgress = true;
+				});
 				character.positionArray[0] = positionXStepper.value;
-				updateCharacterPositions();
+				previewAsPlayer(false);
 				unsavedProgress = true;
 			}
 			else if(sender == positionYStepper)
 			{
+				var prev = character.positionArray[1];
+				_pushUndo(function() {
+					character.positionArray[1] = prev;
+					positionYStepper.value = prev;
+					previewAsPlayer(false);
+					unsavedProgress = true;
+				});
 				character.positionArray[1] = positionYStepper.value;
-				updateCharacterPositions();
+				previewAsPlayer(false);
 				unsavedProgress = true;
 			}
 			else if(sender == singDurationStepper)
 			{
+				var prev = character.singDuration;
+				_pushUndo(function() {
+					character.singDuration = prev;
+					singDurationStepper.value = prev;
+					unsavedProgress = true;
+				});
 				character.singDuration = singDurationStepper.value;
+				unsavedProgress = true;
+			}
+			else if(sender == danceEveryBeatsStepper)
+			{
+				var prev = character.danceEveryNumBeats;
+				_pushUndo(function() {
+					character.danceEveryNumBeats = prev;
+					danceEveryBeatsStepper.value = prev;
+					unsavedProgress = true;
+				});
+				character.danceEveryNumBeats = Math.round(danceEveryBeatsStepper.value);
 				unsavedProgress = true;
 			}
 			else if(sender == positionCameraXStepper)
 			{
+				var prev = character.cameraPosition[0];
+				_pushUndo(function() {
+					character.cameraPosition[0] = prev;
+					positionCameraXStepper.value = prev;
+					previewAsPlayer(false, true);
+					unsavedProgress = true;
+				});
 				character.cameraPosition[0] = positionCameraXStepper.value;
-				updatePointerPos();
+				previewAsPlayer(false, true);
 				unsavedProgress = true;
 			}
 			else if(sender == positionCameraYStepper)
 			{
+				var prev = character.cameraPosition[1];
+				_pushUndo(function() {
+					character.cameraPosition[1] = prev;
+					positionCameraYStepper.value = prev;
+					previewAsPlayer(false, true);
+					unsavedProgress = true;
+				});
 				character.cameraPosition[1] = positionCameraYStepper.value;
-				updatePointerPos();
+				previewAsPlayer(false, true);
 				unsavedProgress = true;
+			}
+			else if(sender == playerPositionXStepper)
+			{
+				if(character.editorIsPlayer != true) {
+					var prev = character.playerPositionArray[0];
+					_pushUndo(function() {
+						character.playerPositionArray[0] = prev;
+						playerPositionXStepper.value = prev;
+						previewAsPlayer(true);
+						unsavedProgress = true;
+					});
+					character.playerPositionArray[0] = playerPositionXStepper.value;
+					previewAsPlayer(true);
+					unsavedProgress = true;
+				}
+			}
+			else if(sender == playerPositionYStepper)
+			{
+				if(character.editorIsPlayer != true) {
+					var prev = character.playerPositionArray[1];
+					_pushUndo(function() {
+						character.playerPositionArray[1] = prev;
+						playerPositionYStepper.value = prev;
+						previewAsPlayer(true);
+						unsavedProgress = true;
+					});
+					character.playerPositionArray[1] = playerPositionYStepper.value;
+					previewAsPlayer(true);
+					unsavedProgress = true;
+				}
+			}
+			else if(sender == playerCameraXStepper)
+			{
+				if(character.editorIsPlayer != true) {
+					var prev = character.playerCameraPosition[0];
+					_pushUndo(function() {
+						character.playerCameraPosition[0] = prev;
+						playerCameraXStepper.value = prev;
+						previewAsPlayer(true, true);
+						unsavedProgress = true;
+					});
+					character.playerCameraPosition[0] = playerCameraXStepper.value;
+					previewAsPlayer(true, true);
+					unsavedProgress = true;
+				}
+			}
+			else if(sender == playerCameraYStepper)
+			{
+				if(character.editorIsPlayer != true) {
+					var prev = character.playerCameraPosition[1];
+					_pushUndo(function() {
+						character.playerCameraPosition[1] = prev;
+						playerCameraYStepper.value = prev;
+						previewAsPlayer(true, true);
+						unsavedProgress = true;
+					});
+					character.playerCameraPosition[1] = playerCameraYStepper.value;
+					previewAsPlayer(true, true);
+					unsavedProgress = true;
+				}
 			}
 			else if(sender == healthColorStepperR)
 			{
+				var prev = character.healthColorArray[0];
+				_pushUndo(function() {
+					character.healthColorArray[0] = prev;
+					healthColorStepperR.value = prev;
+					updateHealthBar();
+					unsavedProgress = true;
+				});
 				character.healthColorArray[0] = Math.round(healthColorStepperR.value);
 				updateHealthBar();
 				unsavedProgress = true;
 			}
 			else if(sender == healthColorStepperG)
 			{
+				var prev = character.healthColorArray[1];
+				_pushUndo(function() {
+					character.healthColorArray[1] = prev;
+					healthColorStepperG.value = prev;
+					updateHealthBar();
+					unsavedProgress = true;
+				});
 				character.healthColorArray[1] = Math.round(healthColorStepperG.value);
 				updateHealthBar();
 				unsavedProgress = true;
 			}
 			else if(sender == healthColorStepperB)
 			{
+				var prev = character.healthColorArray[2];
+				_pushUndo(function() {
+					character.healthColorArray[2] = prev;
+					healthColorStepperB.value = prev;
+					updateHealthBar();
+					unsavedProgress = true;
+				});
 				character.healthColorArray[2] = Math.round(healthColorStepperB.value);
 				updateHealthBar();
 				unsavedProgress = true;
@@ -849,12 +1183,19 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		vocalsInputText.text = character.vocalsFile != null ? character.vocalsFile : '';
 		singDurationStepper.value = character.singDuration;
 		scaleStepper.value = character.jsonScale;
+		if(danceEveryBeatsStepper != null) danceEveryBeatsStepper.value = character.danceEveryNumBeats;
+		if(vsliceSustainsCheckBox != null) vsliceSustainsCheckBox.checked = character.vsliceSustains;
+		if(swapSingSidesCheckBox != null) swapSingSidesCheckBox.checked = character.swapSingSides;
 		flipXCheckBox.checked = character.originalFlipX;
 		noAntialiasingCheckBox.checked = character.noAntialiasing;
 		positionXStepper.value = character.positionArray[0];
 		positionYStepper.value = character.positionArray[1];
 		positionCameraXStepper.value = character.cameraPosition[0];
 		positionCameraYStepper.value = character.cameraPosition[1];
+		playerPositionXStepper.value = character.playerPositionArray[0];
+		playerPositionYStepper.value = character.playerPositionArray[1];
+		playerCameraXStepper.value = character.playerCameraPosition[0];
+		playerCameraYStepper.value = character.playerCameraPosition[1];
 		reloadAnimationDropDown();
 		updateHealthBar();
 	}
@@ -864,9 +1205,85 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var holdingFrameTime:Float = 0;
 	var holdingFrameElapsed:Float = 0;
 	var undoOffsets:Array<Float> = null;
+
+	var _undoStack:Array<Void->Void> = [];
+	static inline final MAX_UNDO:Int = 50;
+
+	function _pushUndo(undoFn:Void->Void) {
+		_undoStack.push(undoFn);
+		if (_undoStack.length > MAX_UNDO) _undoStack.shift();
+	}
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
+
+		if (colorPickerSprite != null && UI_characterbox.selectedName == 'Character')
+		{
+			if (FlxG.mouse.justPressed)
+			{
+				if (FlxG.mouse.overlaps(hueSliderSprite, camHUD))
+				{
+					var pr = character.healthColorArray.copy();
+					_pushUndo(function() {
+						character.healthColorArray = pr.copy();
+						updateHealthBar();
+						unsavedProgress = true;
+					});
+					colorPickerDragging = 1;
+				}
+				else if (FlxG.mouse.overlaps(colorPickerSprite, camHUD))
+				{
+					var pr = character.healthColorArray.copy();
+					_pushUndo(function() {
+						character.healthColorArray = pr.copy();
+						updateHealthBar();
+						unsavedProgress = true;
+					});
+					colorPickerDragging = 2;
+				}
+				else
+					colorPickerDragging = 0;
+			}
+			else if (FlxG.mouse.justReleased)
+				colorPickerDragging = 0;
+
+			if (FlxG.mouse.pressed && colorPickerDragging == 1)
+			{
+				var mousePos:FlxPoint = FlxG.mouse.getWorldPosition(camHUD);
+				var bounds = hueSliderSprite.getScreenBounds(camHUD);
+				var relY:Float = Math.max(0, Math.min(1, (mousePos.y - bounds.y) / bounds.height));
+				colorPickerHue = relY * 360;
+				mousePos.put();
+				bounds.put();
+				redrawColorPicker();
+				if (hueSliderLine != null)
+					hueSliderLine.y = hueSliderSprite.y + (colorPickerHue / 360) * hueSliderSprite.height - 1;
+				var col:FlxColor = FlxColor.fromHSB(colorPickerHue, colorPickerS, colorPickerV);
+				character.healthColorArray[0] = col.red;
+				character.healthColorArray[1] = col.green;
+				character.healthColorArray[2] = col.blue;
+				updateHealthBar();
+			}
+			else if (FlxG.mouse.pressed && colorPickerDragging == 2)
+			{
+				var mousePos:FlxPoint = FlxG.mouse.getWorldPosition(camHUD);
+				var bounds = colorPickerSprite.getScreenBounds(camHUD);
+				colorPickerS = Math.max(0, Math.min(1, (mousePos.x - bounds.x) / bounds.width));
+				colorPickerV = Math.max(0, Math.min(1, 1.0 - (mousePos.y - bounds.y) / bounds.height));
+				mousePos.put();
+				bounds.put();
+				var col:FlxColor = FlxColor.fromHSB(colorPickerHue, colorPickerS, colorPickerV);
+				character.healthColorArray[0] = col.red;
+				character.healthColorArray[1] = col.green;
+				character.healthColorArray[2] = col.blue;
+				updateHealthBar();
+				if (colorPickerDot != null)
+					colorPickerDot.setPosition(
+						colorPickerSprite.x + colorPickerS * colorPickerSprite.width - 3,
+						colorPickerSprite.y + (1 - colorPickerV) * colorPickerSprite.height - 3
+					);
+			}
+		}
 
 		if(PsychUIInputText.focusOn != null)
 		{
@@ -887,7 +1304,9 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 		if(FlxG.mouse.justPressed)
 	{
-		if(FlxG.mouse.pressedRight) holdingObjectType = 0;
+		var overUI:Bool = colorPickerDragging > 0 || FlxG.mouse.overlaps(animScrollList, camHUD);
+		if (overUI) holdingObjectType = -1;
+		else if(FlxG.mouse.pressedRight) holdingObjectType = 0;
 		else if(FlxG.mouse.pressedMiddle) holdingObjectType = 2;
 		else if(FlxG.mouse.pressed) holdingObjectType = 1;
 	}
@@ -951,7 +1370,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			{
 				undoOffsets = null;
 				curAnim = FlxMath.wrap(curAnim, 0, anims.length-1);
-				character.playAnim(anims[curAnim].anim, true);
+				character.playAnim(getSwappedAnim(anims[curAnim].anim), true);
 				updateText();
 			}
 		}
@@ -961,6 +1380,13 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		var moveKeys = [FlxG.keys.pressed.LEFT, FlxG.keys.pressed.RIGHT, FlxG.keys.pressed.UP, FlxG.keys.pressed.DOWN];
 		if(moveKeysP.contains(true))
 		{
+			var prevX = character.offset.x;
+			var prevY = character.offset.y;
+			_pushUndo(function() {
+				character.offset.x = prevX;
+				character.offset.y = prevY;
+				unsavedProgress = true;
+			});
 			character.offset.x += ((moveKeysP[0] ? 1 : 0) - (moveKeysP[1] ? 1 : 0)) * shiftMultBig;
 			character.offset.y += ((moveKeysP[2] ? 1 : 0) - (moveKeysP[3] ? 1 : 0)) * shiftMultBig;
 			changedOffset = true;
@@ -982,6 +1408,17 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			}
 		}
 		else holdingArrowsTime = 0;
+
+		if(FlxG.mouse.justPressedRight)
+		{
+			var prevX = character.offset.x;
+			var prevY = character.offset.y;
+			_pushUndo(function() {
+				character.offset.x = prevX;
+				character.offset.y = prevY;
+				unsavedProgress = true;
+			});
+		}
 
 		if(FlxG.mouse.pressedRight && (FlxG.mouse.deltaScreenX != 0 || FlxG.mouse.deltaScreenY != 0))
 		{
@@ -1011,11 +1448,16 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				character.offset.set(0, 0);
 				changedOffset = true;
 			}
-			else if(FlxG.keys.justPressed.Z && undoOffsets != null)
+			else if(FlxG.keys.justPressed.Z)
 			{
-				character.offset.x = undoOffsets[0];
-				character.offset.y = undoOffsets[1];
-				changedOffset = true;
+				if (_undoStack.length > 0)
+					_undoStack.pop()();
+				else if(undoOffsets != null)
+				{
+					character.offset.x = undoOffsets[0];
+					character.offset.y = undoOffsets[1];
+					changedOffset = true;
+				}
 			}
 		}
 
@@ -1041,7 +1483,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			else holdingFrameTime = 0;
 
 			if(FlxG.keys.justPressed.SPACE)
-				character.playAnim(character.getAnimationName(), true);
+				character.playAnim(getSwappedAnim(anims[curAnim].anim), true);
 
 			var frames:Int = -1;
 			var length:Int = -1;
@@ -1149,15 +1591,16 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 		var offX:Float = 0;
 		var offY:Float = 0;
-		if(!character.isPlayer)
+		var camArray:Array<Float> = (_previewingAsPlayer) ? character.playerCameraPosition : character.cameraPosition;
+		if(!character.isPlayer && !_previewingAsPlayer)
 		{
-			offX = character.getMidpoint().x + 150 + character.cameraPosition[0];
-			offY = character.getMidpoint().y - 100 + character.cameraPosition[1];
+			offX = character.getMidpoint().x + 150 + camArray[0];
+			offY = character.getMidpoint().y - 100 + camArray[1];
 		}
 		else
 		{
-			offX = character.getMidpoint().x - 100 - character.cameraPosition[0];
-			offY = character.getMidpoint().y - 100 + character.cameraPosition[1];
+			offX = character.getMidpoint().x - 100 - camArray[0];
+			offY = character.getMidpoint().y - 100 + camArray[1];
 		}
 		cameraFollowPointer.setPosition(offX, offY);
 
@@ -1174,8 +1617,24 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		healthColorStepperG.value = character.healthColorArray[1];
 		healthColorStepperB.value = character.healthColorArray[2];
 		healthBar.leftBar.color = healthBar.rightBar.color = FlxColor.fromRGB(character.healthColorArray[0], character.healthColorArray[1], character.healthColorArray[2]);
+		if(healthBarDisplay != null) healthBarDisplay.color = FlxColor.fromRGB(character.healthColorArray[0], character.healthColorArray[1], character.healthColorArray[2]);
 		healthIcon.changeIcon(character.healthIcon, false);
 		updatePresence();
+
+		var newColor:FlxColor = FlxColor.fromRGB(character.healthColorArray[0], character.healthColorArray[1], character.healthColorArray[2]);
+		colorPickerHue = newColor.hue;
+		colorPickerS = newColor.saturation;
+		colorPickerV = newColor.brightness;
+		redrawColorPicker();
+		if (hexColorInput != null)
+			hexColorInput.text = '#' + StringTools.hex(character.healthColorArray[0], 2) + StringTools.hex(character.healthColorArray[1], 2) + StringTools.hex(character.healthColorArray[2], 2);
+		if(colorPickerDot != null)
+			colorPickerDot.setPosition(
+				colorPickerSprite.x + colorPickerS * colorPickerSprite.width - 4,
+				colorPickerSprite.y + (1 - colorPickerV) * colorPickerSprite.height - 4
+			);
+		if(hueSliderLine != null)
+			hueSliderLine.y = hueSliderSprite.y + (colorPickerHue / 360) * hueSliderSprite.height - 1;
 	}
 
 	inline function updatePresence() {
@@ -1192,27 +1651,14 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		curAnim = 0;
 
 		updateText();
+		if(animScrollList != null) animScrollList.setList(anims, curAnim);
 		if(animationDropDown != null) reloadAnimationDropDown();
 	}
 
 	inline function updateText()
 	{
-		animsTxt.removeFormat(selectedFormat);
-
-		var intendText:String = '';
-		for (num => anim in anims)
-		{
-			if(num > 0) intendText += '\n';
-
-			if(num == curAnim)
-			{
-				var n:Int = intendText.length;
-				intendText += anim.anim + ": " + anim.offsets;
-				animsTxt.addFormat(selectedFormat, n, intendText.length);
-			}
-			else intendText += anim.anim + ": " + anim.offsets;
-		}
-		animsTxt.text = intendText;
+		if (animScrollList != null)
+			animScrollList.setCurrent(curAnim);
 	}
 
 	inline function updateCharacterPositions()
@@ -1223,6 +1669,33 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		character.x += character.positionArray[0];
 		character.y += character.positionArray[1];
 		updatePointerPos(false);
+	}
+
+	function getSwappedAnim(animName:String):String
+	{
+		if(!character.swapSingSides) return animName;
+		if(animName.startsWith('singLEFT')) return 'singRIGHT' + animName.substr('singLEFT'.length);
+		if(animName.startsWith('singRIGHT')) return 'singLEFT' + animName.substr('singRIGHT'.length);
+		return animName;
+	}
+
+	var _previewingAsPlayer:Bool = false;
+	function previewAsPlayer(active:Bool, snapCamera:Bool = false)
+	{
+		_previewingAsPlayer = active;
+		if(active)
+		{
+			character.setPosition(bfPosition.x, bfPosition.y);
+			character.x += character.playerPositionArray[0];
+			character.y += character.playerPositionArray[1];
+			character.flipX = !character.originalFlipX;
+		}
+		else
+		{
+			character.flipX = (character.originalFlipX != character.isPlayer);
+			updateCharacterPositions();
+		}
+		updatePointerPos(snapCamera);
 	}
 
 	inline function predictCharacterIsNotPlayer(name:String)
@@ -1354,11 +1827,16 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 			"position":	character.positionArray,
 			"camera_position": character.cameraPosition,
+			"player_position": character.playerPositionArray,
+			"player_camera_position": character.playerCameraPosition,
 
 			"flip_x": character.originalFlipX,
 			"no_antialiasing": character.noAntialiasing,
 			"healthbar_colors": character.healthColorArray,
 			"vocals_file": character.vocalsFile,
+			"dance_every_num_beats": character.danceEveryNumBeats,
+			"vslice_sustains": character.vsliceSustains,
+			"swap_sing_sides": character.swapSingSides,
 			"_editor_isPlayer": character.isPlayer
 		};
 
@@ -1373,4 +1851,15 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			_file.save(data, '$_char.json');
 		}
 	}
+}
+
+typedef EditorSnapshot = {
+	offsetX:Float, offsetY:Float,
+	posX:Float, posY:Float,
+	scaleJ:Float,
+	flipX:Bool,
+	noAntialiasing:Bool,
+	healthColor:Array<Int>,
+	singDuration:Float,
+	cameraPos:Array<Float>
 }

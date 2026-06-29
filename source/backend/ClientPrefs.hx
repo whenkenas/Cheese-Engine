@@ -29,6 +29,7 @@ import backend.ui.PsychUITheme;
 	public var lowQuality:Bool = false;
 	public var shaders:Bool = true;
 	public var cacheOnGPU:Bool = #if !switch false #else true #end; // GPU Caching made by Raltyro
+	public var multithreadedCache:Bool = true;
 	public var framerate:Int = 60;
 	public var camZooms:Bool = true;
 	public var hideHud:Bool = false;
@@ -84,6 +85,7 @@ import backend.ui.PsychUITheme;
 	public var guitarHeroSustains:Bool = true;
 	public var discordRPC:Bool = true;
 	public var loadingScreen:Bool = true;
+	public var developerMode:Bool = false;
 	public var language:String = 'en-US';
 	public var windowTheme:String = 'PC Theme';
 	public var windowColor:String = 'Default';
@@ -258,6 +260,7 @@ class ClientPrefs {
 			
 			Main.fpsVar.visible = isVisible;
 			Main.fpsVar.isAdvanced = data.fpsMode == 'Advanced';
+			Main.fpsVar.isSimplier = data.fpsMode == 'Simplier';
 			
 			if(Main.fpsVar.fpsValue != null)
 			{
@@ -295,6 +298,7 @@ class ClientPrefs {
 		TitleState.volumeDownKeys = keyBinds.get('volume_down').copy();
 		TitleState.volumeUpKeys = keyBinds.get('volume_up').copy();
 		toggleVolumeKeys(true);
+		MusicBeatState._cachedConsoleKeys = null;
 	}
 	public static function toggleVolumeKeys(?turnOn:Bool = true)
 	{

@@ -26,10 +26,19 @@ class StrumNote extends FlxSprite
 	}
 
 	public var useRGBShader:Bool = true;
+	public var originalR:FlxColor = 0xFFFFFFFF;
+	public var originalG:FlxColor = 0xFFFFFFFF;
+	public var originalB:FlxColor = 0xFFFFFFFF;
+	public var lastQuantR:FlxColor = 0xFFFFFFFF;
+	public var lastQuantG:FlxColor = 0xFFFFFFFF;
+	public var lastQuantB:FlxColor = 0xFFFFFFFF;
+	public var hasQuantColor:Bool = false;
+
 	public function new(x:Float, y:Float, leData:Int, player:Int) {
 		animation = new PsychAnimationController(this);
 
-		rgbShader = new RGBShaderReference(this, Note.initializeGlobalRGBShader(leData));
+		var ownPalette:RGBPalette = new RGBPalette();
+		rgbShader = new RGBShaderReference(this, ownPalette);
 		rgbShader.enabled = false;
 		if(PlayState.SONG != null && PlayState.SONG.disableNoteRGB) useRGBShader = false;
 		
@@ -38,12 +47,12 @@ class StrumNote extends FlxSprite
 		
 		if(leData <= arr.length)
 		{
-			@:bypassAccessor
-			{
-				rgbShader.r = arr[0];
-				rgbShader.g = arr[1];
-				rgbShader.b = arr[2];
-			}
+			originalR = arr[0];
+			originalG = arr[1];
+			originalB = arr[2];
+			rgbShader.parent.r = arr[0];
+			rgbShader.parent.g = arr[1];
+			rgbShader.parent.b = arr[2];
 		}
 
 		noteData = leData;
@@ -187,6 +196,30 @@ class StrumNote extends FlxSprite
 			centerOffsets();
 			centerOrigin();
 		}
-		if(useRGBShader) rgbShader.enabled = (animation.curAnim != null && animation.curAnim.name != 'static');
+		if(animation.curAnim != null)
+		{
+			var isStatic:Bool = animation.curAnim.name == 'static';
+			if(hasQuantColor && !isStatic)
+			{
+				rgbShader.parent.r = lastQuantR;
+				rgbShader.parent.g = lastQuantG;
+				rgbShader.parent.b = lastQuantB;
+				rgbShader.enabled = true;
+			}
+			else if(!isStatic)
+			{
+				rgbShader.parent.r = originalR;
+				rgbShader.parent.g = originalG;
+				rgbShader.parent.b = originalB;
+				rgbShader.enabled = useRGBShader;
+			}
+			else
+			{
+				rgbShader.parent.r = originalR;
+				rgbShader.parent.g = originalG;
+				rgbShader.parent.b = originalB;
+				rgbShader.enabled = false;
+			}
+		}
 	}
 }

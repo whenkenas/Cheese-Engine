@@ -79,7 +79,7 @@ class AchievementPopup extends openfl.display.Sprite {
 		FlxG.stage.addEventListener(Event.RESIZE, onResize);
 		addEventListener(Event.ENTER_FRAME, update);
 
-		FlxG.game.addChild(this); //Don't add it below mouse, or it will disappear once the game changes states
+		FlxG.game.addChildAt(this, FlxG.game.numChildren); //Don't add it below mouse, or it will disappear once the game changes states
 
 		// fix scale
 		lastScale = (FlxG.stage.stageHeight / FlxG.height);

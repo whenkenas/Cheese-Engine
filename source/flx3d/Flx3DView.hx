@@ -49,8 +49,10 @@ class Flx3DView extends FlxView3D {
 
 		var context = new AssetLoaderContext();
 		var noExt = Path.withoutExtension(assetPath);
+		var baseDir = Path.directory(assetPath) + '/';
 		trace(noExt);
 		context.mapUrlToData('${Path.withoutDirectory(noExt)}.mtl', '$noExt.mtl');
+		context.dependencyBaseUrl = baseDir;
 
 		var material:TextureMaterial = null;
 		#if sys

@@ -49,12 +49,11 @@ class HScriptState extends MusicBeatState
 			}
 		}
 		
-		if(oldStickers != null && oldStickers.length > 0)
+		var pending = substates.StickerSubState.pendingStickers;
+		if(pending != null && pending.length > 0)
 		{
 			this.persistentUpdate = false;
 			this.persistentDraw = true;
-			var stickerSubState = new substates.StickerSubState(oldStickers, null);
-			openSubState(stickerSubState);
 		}
 	}
 	
@@ -76,15 +75,23 @@ class HScriptState extends MusicBeatState
 	{
 		super.update(elapsed);
 		
-		if(stateName == 'MainMenuState' && FlxG.keys.justPressed.TAB)
+		var _hasBlockingSubState:Bool = subState != null
+			&& !Std.isOfType(subState, CustomFadeTransition)
+			&& !Std.isOfType(subState, substates.StickerSubState);
+
+		if(!_hasBlockingSubState)
 		{
-			FlxG.mouse.visible = false;
-			persistentUpdate = false;
-			openSubState(new backend.ModSelectorSubstate());
+			if(stateName == 'MainMenuState' && FlxG.keys.justPressed.TAB)
+			{
+				var sub = new backend.ModSelectorSubstate();
+				sub._mouseWasVisible = FlxG.mouse.visible;
+				FlxG.mouse.visible = false;
+				openSubState(sub);
+			}
+
+			if(hscript != null && hscript.exists('update'))
+				hscript.call('update', [elapsed]);
 		}
-		
-		if(hscript != null && hscript.exists('update'))
-			hscript.call('update', [elapsed]);
 	}	
 	
 	override function destroy()
@@ -152,7 +159,10 @@ class HScriptStateLoader
 					hscript.set('sound', FlxG.sound);
 					hscript.set('openSubState', function(substate:Dynamic) { stateInstance.openSubState(substate); });
 					hscript.set('closeSubState', function() { stateInstance.closeSubState(); });
-					hscript.set('switchState', function(nextState:Dynamic) { FlxG.switchState(nextState); });
+					hscript.set('switchState', function(nextState:Dynamic) { backend.MusicBeatState.switchState(nextState); });
+					hscript.set('switchStateDirect', function(nextState:Dynamic) { backend.MusicBeatState.switchStateDirect(nextState); });
+					hscript.set('switchStateByName', function(name:String) { backend.MusicBeatState.switchStateByName(name); });
+					hscript.set('switchStateDirectByName', function(name:String) { backend.MusicBeatState.switchStateDirectByName(name); });
 					hscript.set('resetState', function() { FlxG.resetState(); });
 					hscript.set('persistentUpdate', stateInstance.persistentUpdate);
 					hscript.set('persistentDraw', stateInstance.persistentDraw);

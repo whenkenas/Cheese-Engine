@@ -25,6 +25,7 @@ class StickerSubState extends MusicBeatSubstate
 	var switchingState:Bool = false;
 	public static var transitionSprite:StickerTransitionSprite = null;
 	public static var pendingStickers:Array<StickerSprite> = null;
+	public static var stickerMode:String = 'random';
 	var sounds:Array<String> = [];
 	var loadingText:FlxText;
 	var isWaitingForLoad:Bool = false;
@@ -80,7 +81,6 @@ class StickerSubState extends MusicBeatSubstate
 			transitionSprite = new StickerTransitionSprite();
 
 		grpStickers = new FlxTypedGroup<StickerSprite>();
-		add(grpStickers);
 
 		if (oldStickers != null)
 		{
@@ -126,6 +126,11 @@ class StickerSubState extends MusicBeatSubstate
 				if (stickersRemoved >= totalStickers)
 				{
 					transitionSprite.clear();
+					for (sticker in grpStickers.members)
+					{
+						if (sticker != null && sticker.graphic != null)
+							Paths.dumpExclusions.remove(sticker.graphic.key);
+					}
 					onComplete();
 				}
 			});
@@ -357,51 +362,67 @@ class StickerSubState extends MusicBeatSubstate
 			grpStickers.add(sticky);
 		}
 
-		FlxG.random.shuffle(grpStickers.members);
+		switch(stickerMode)
+		{
+			case 'left-to-right':
+				grpStickers.members.sort((a, b) -> FlxSort.byValues(FlxSort.ASCENDING, a.x, b.x));
+			case 'right-to-left':
+				grpStickers.members.sort((a, b) -> FlxSort.byValues(FlxSort.DESCENDING, a.x, b.x));
+			case 'top-to-bottom':
+				grpStickers.members.sort((a, b) -> FlxSort.byValues(FlxSort.ASCENDING, a.y, b.y));
+			case 'bottom-to-top':
+				grpStickers.members.sort((a, b) -> FlxSort.byValues(FlxSort.DESCENDING, a.y, b.y));
+			default:
+				FlxG.random.shuffle(grpStickers.members);
+		}
 
 		var totalStickers:Int = grpStickers.members.length;
 		var lastStickerIndex:Int = totalStickers - 1;
 
 		var lastOne:StickerSprite = grpStickers.members[lastStickerIndex];
-		if(lastOne != null)
-		{
-			lastOne.updateHitbox();
-			lastOne.screenCenter();
-			lastOne.angle = 0;
-		}
 
 		for (ind => sticker in grpStickers.members)
 		{
 			sticker.timing = FlxMath.remapToRange(ind, 0, totalStickers, 0, 0.9);
+			sticker.drawOrder = ind;
 		}
-
-		grpStickers.members.sort((a, b) -> {
-			return FlxSort.byValues(FlxSort.ASCENDING, a.timing, b.timing);
-		});
 
 		transitionSprite.setupStickers(grpStickers);
 
-		for (ind => sticker in grpStickers.members)
+		var timerList:Array<{sticker:StickerSprite, timing:Float, isLast:Bool}> = [];
+		for (sticker in grpStickers.members)
+			timerList.push({sticker: sticker, timing: sticker.timing, isLast: (sticker.drawOrder == lastStickerIndex)});
+
+		for (entry in timerList)
 		{
-			new FlxTimer().start(sticker.timing, _ -> {
+			var sticker = entry.sticker;
+			var isLast  = entry.isLast;
+			new FlxTimer().start(entry.timing, _ -> {
 				if(grpStickers == null) return;
-				
+
 				if(sticker != null)
 				{
 					var daSound:String = FlxG.random.getObject(sounds);
 					FlxG.sound.play(Paths.sound(daSound), 0.6);
+
+					if(isLast)
+					{
+						sticker.updateHitbox();
+						sticker.screenCenter();
+						sticker.angle = 0;
+					}
+
 					sticker.visible = true;
-					
-					var isLast:Bool = (ind == lastStickerIndex);
-					var frameTimer:Int = (isLast ? 2 : FlxG.random.int(0, 2));
-					
+
+					var frameTimer:Int = (isLast ? 2 : FlxG.random.int(1, 2));
+
 					new FlxTimer().start((1 / 24) * frameTimer, _ -> {
 						if(sticker != null && sticker.exists)
 						{
 							var baseScale:Float = sticker.stickerScale;
 							sticker.scale.x = sticker.scale.y = FlxG.random.float(0.97 * baseScale, 1.02 * baseScale);
 							sticker.updateHitbox();
-							
+
 							if(isLast)
 							{
 								new FlxTimer().start(0.5, _ -> {
@@ -410,12 +431,18 @@ class StickerSubState extends MusicBeatSubstate
 									FlxTransitionableState.skipNextTransOut = true;
 
 									var nextState:FlxState = targetState(this);
-										if(nextState == null) return;
+									if(nextState == null) return;
 
-										pendingStickers = grpStickers != null ? grpStickers.members.copy() : null;
-										FlxTransitionableState.skipNextTransIn = true;
-										FlxTransitionableState.skipNextTransOut = false;
-										FlxG.switchState(nextState);
+									if(grpStickers != null)
+									{
+										for(s in grpStickers.members)
+											if(s != null && s.graphic != null)
+												s.graphic.persist = true;
+										pendingStickers = grpStickers.members.copy();
+									}
+									FlxTransitionableState.skipNextTransIn = true;
+									FlxTransitionableState.skipNextTransOut = false;
+									FlxG.switchState(nextState);
 								});
 							}
 						}
@@ -468,6 +495,8 @@ class StickerSprite extends FlxSprite
 {
 	public var timing:Float = 0;
 	public var stickerScale:Float = 1.0;
+	public var cachedBitmap:openfl.display.BitmapData = null;
+	public var drawOrder:Int = 0;
 
 	public function new(x:Float, y:Float, stickerPath:String, scale:Float = 1.0):Void
 	{
@@ -479,40 +508,61 @@ class StickerSprite extends FlxSprite
 			if(stickerPath.startsWith('mods/'))
 			{
 				#if sys
-				var fullPath = stickerPath + '.png';
-				var loaded:Bool = false;
-				if(FileSystem.exists(fullPath))
+				var modKey:String = stickerPath.contains('/images/')
+					? stickerPath.substr(stickerPath.indexOf('/images/') + 8)
+					: stickerPath.substr(stickerPath.indexOf('/', 5) + 1);
+				var cachedGraphic = flixel.graphics.FlxGraphic.fromAssetKey(stickerPath + '.png');
+				if(cachedGraphic != null)
 				{
-					var bmp = BitmapData.fromFile(fullPath);
-					if(bmp != null && bmp.width > 1 && bmp.height > 1)
-					{
-						loadGraphic(bmp);
-						loaded = true;
-					}
+					loadGraphic(cachedGraphic);
 				}
-				if(!loaded)
+				else
 				{
-					var modKey:String = stickerPath.substr(stickerPath.indexOf('/images/') + 8);
-					loadGraphic(Paths.image(modKey));
+					var fullPath = stickerPath + '.png';
+					if(FileSystem.exists(fullPath))
+					{
+						var bmp = BitmapData.fromFile(fullPath);
+						if(bmp != null && bmp.width > 1 && bmp.height > 1)
+						{
+							cachedBitmap = bmp;
+							var g = flixel.graphics.FlxGraphic.fromBitmapData(bmp, false, stickerPath);
+							g.persist = true;
+							Paths.currentTrackedAssets.set(stickerPath, g);
+							Paths.dumpExclusions.push(stickerPath);
+							loadGraphic(g);
+						}
+						else
+							loadGraphic(Paths.image(modKey));
+					}
+					else
+						loadGraphic(Paths.image(modKey));
 				}
 				#end
 			}
 			else
 			{
+				var cacheKey:String = 'transitionSwag/stickers-set-1/$stickerPath';
 				#if sys
-				var fnfPath = 'assets/shared/images/transitionSwag/stickers-set-1/$stickerPath.png';
+				var fnfPath = 'assets/shared/images/$cacheKey.png';
 				if(FileSystem.exists(fnfPath))
 				{
 					var bmp = BitmapData.fromFile(fnfPath);
 					if(bmp != null && bmp.width > 1 && bmp.height > 1)
-						loadGraphic(bmp);
+					{
+						cachedBitmap = bmp;
+						var g = flixel.graphics.FlxGraphic.fromBitmapData(bmp, false, cacheKey);
+						g.persist = true;
+						Paths.currentTrackedAssets.set(cacheKey, g);
+						Paths.dumpExclusions.push(cacheKey);
+						loadGraphic(g);
+					}
 					else
-						loadGraphic(Paths.image('transitionSwag/stickers-set-1/$stickerPath'));
+						loadGraphic(Paths.image(cacheKey));
 				}
 				else
-					loadGraphic(Paths.image('transitionSwag/stickers-set-1/$stickerPath'));
+					loadGraphic(Paths.image(cacheKey));
 				#else
-				loadGraphic(Paths.image('transitionSwag/stickers-set-1/$stickerPath'));
+				loadGraphic(Paths.image(cacheKey));
 				#end
 			}
 		}
@@ -549,28 +599,47 @@ class StickerTransitionSprite extends openfl.display.Sprite
 	public function update(elapsed:Float):Void
 	{
 		stickersCamera.visible = visible;
-		if (!visible) return;
-		grpStickers?.update(elapsed);
+		if (!visible || grpStickers == null) return;
+		grpStickers.update(elapsed);
 		stickersCamera.update(elapsed);
 
-		stickersCamera?.clearDrawStack();
-		stickersCamera?.canvas?.graphics.clear();
+		stickersCamera.clearDrawStack();
+		stickersCamera.canvas?.graphics.clear();
 
-		grpStickers?.draw();
+		grpStickers.draw();
 
 		stickersCamera.render();
 	}
 
 	public function insert():Void
 	{
-		FlxG.addChildBelowMouse(this, 9999);
+		var mouseIdx:Int = -1;
+		for(i in 0...FlxG.game.numChildren)
+		{
+			var child = FlxG.game.getChildAt(i);
+			if(Std.isOfType(child, openfl.display.Sprite) && child == FlxG.mouse.cursorContainer)
+			{
+				mouseIdx = i;
+				break;
+			}
+		}
+		if(parent == null)
+		{
+			if(mouseIdx < 0)
+				FlxG.game.addChild(this);
+			else
+				FlxG.game.addChildAt(this, mouseIdx);
+		}
+		else if(mouseIdx > 0 && FlxG.game.getChildIndex(this) != mouseIdx - 1)
+		{
+			FlxG.game.setChildIndex(this, mouseIdx - 1);
+		}
 		visible = true;
 		onResize();
 	}
 
 	public function clear():Void
 	{
-		FlxG.removeChild(this);
 		visible = false;
 		grpStickers = null;
 		stickersCamera?.clearDrawStack();
@@ -588,6 +657,7 @@ class StickerTransitionSprite extends openfl.display.Sprite
 	public function setupStickers(group:FlxTypedGroup<StickerSprite>):Void
 	{
 		grpStickers = group;
+		grpStickers.members.sort((a, b) -> FlxSort.byValues(FlxSort.ASCENDING, a.drawOrder, b.drawOrder));
 		grpStickers.camera = stickersCamera;
 	}
 }

@@ -93,6 +93,16 @@ class TitleState extends MusicBeatState
 	function startIntro()
 	{
 		persistentUpdate = true;
+
+		#if MODS_ALLOWED
+		var _tsModMode:String = (FlxG.save.data != null && FlxG.save.data.modMode != null) ? FlxG.save.data.modMode : '';
+		if(_tsModMode == 'ALL MODS' || _tsModMode == 'MODS + FNF SONGS')
+		{
+			Mods.currentModDirectory = '';
+			Mods.clearGlobalMods();
+		}
+		#end
+
 		if (FlxG.sound.music == null || !FlxG.sound.music.playing)
 		{
 			FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);

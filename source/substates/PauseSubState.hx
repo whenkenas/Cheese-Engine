@@ -86,14 +86,27 @@ class PauseSubState extends MusicBeatSubstate
 		bg.scrollFactor.set();
 		add(bg);
 
-		var displaySongName:String = PlayState.SONG.song.replace("-", " ");
-		var words:Array<String> = displaySongName.split(" ");
-		for (i in 0...words.length)
+		var displaySongName:String;
+		if(PlayState.songmeta != null && PlayState.songmeta.pauseDisplayName != null && PlayState.songmeta.pauseDisplayName.trim().length > 0)
 		{
-			if(words[i].length > 0)
-				words[i] = words[i].charAt(0).toUpperCase() + words[i].substr(1).toLowerCase();
+			displaySongName = PlayState.songmeta.pauseDisplayName;
 		}
-		displaySongName = words.join(" ");
+		else
+		{
+			displaySongName = PlayState.SONG.song.replace("-", " ");
+			var words:Array<String> = displaySongName.split(" ");
+			for (i in 0...words.length)
+			{
+				if(words[i].length > 0)
+				{
+					var j:Int = 0;
+					while(j < words[i].length && (words[i].charCodeAt(j) < 65 || (words[i].charCodeAt(j) > 90 && words[i].charCodeAt(j) < 97) || words[i].charCodeAt(j) > 122)) j++;
+					if(j < words[i].length)
+						words[i] = words[i].substr(0, j) + words[i].charAt(j).toUpperCase() + words[i].substr(j + 1).toLowerCase();
+				}
+			}
+			displaySongName = words.join(" ");
+		}
 
 		var levelInfo:FlxText = new FlxText(20, 15, 0, displaySongName, 32);
 		levelInfo.scrollFactor.set();

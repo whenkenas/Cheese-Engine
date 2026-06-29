@@ -36,6 +36,9 @@ class Mods
 	inline public static function getGlobalMods()
 		return globalMods;
 
+	inline public static function clearGlobalMods()
+		globalMods = [];
+
 	inline public static function pushGlobalMods()
 	{
 		globalMods = [];

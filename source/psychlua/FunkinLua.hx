@@ -738,6 +738,36 @@ class FunkinLua {
 			game.endSong();
 			return true;
 		});
+		Lua_helper.add_callback(lua, "switchStateWithStickers", function(stateName:String, ?mode:String, ?songName:String, ?difficulty:String) {
+			if(stateName.toLowerCase() == 'playstate')
+			{
+				if(songName != null && songName != '')
+				{
+					var diff:String = (difficulty != null && difficulty != '') ? difficulty : 'normal';
+					var diffIdx:Int = 0;
+					for(i in 0...backend.Difficulty.list.length)
+						if(backend.Difficulty.list[i].toLowerCase() == diff.toLowerCase()) { diffIdx = i; break; }
+					var jsonName:String = Paths.formatToSongPath(songName) + '-' + Paths.formatToSongPath(diff);
+					var folder:String = Paths.formatToSongPath(songName);
+					if(backend.Song.getChart(jsonName, folder) == null)
+						jsonName = Paths.formatToSongPath(songName);
+					backend.Song.loadFromJson(jsonName, folder);
+					states.PlayState.isStoryMode = false;
+					states.PlayState.storyDifficulty = diffIdx;
+				}
+				if(states.PlayState.SONG != null)
+					backend.MusicBeatState.switchStateWithStickers(new states.PlayState(), mode);
+			}
+			else
+			{
+				backend.MusicBeatState.switchStateWithStickersByName(stateName, mode);
+			}
+			return true;
+		});
+		Lua_helper.add_callback(lua, "switchStateDirect", function(stateName:String) {
+			backend.MusicBeatState.switchStateDirectByName(stateName);
+			return true;
+		});
 		Lua_helper.add_callback(lua, "restartSong", function(?skipTransition:Bool = false) {
 			game.persistentUpdate = false;
 			FlxG.camera.followLerp = 0;

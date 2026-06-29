@@ -47,6 +47,8 @@ class DiscordClient
 		Discord.Shutdown();
 	}
 	
+	public static var _pendingPresenceUpdate:Bool = false;
+
 	private static function onReady(request:cpp.RawConstPointer<DiscordUser>):Void
 	{
 		final user = cast (request[0].username, String);
@@ -59,7 +61,7 @@ class DiscordClient
 			message += '($user)';
 
 		trace(message);
-		changePresence();
+		_pendingPresenceUpdate = true;
 	}
 
 	private static function onError(errorCode:Int, message:cpp.ConstCharStar):Void
@@ -94,6 +96,11 @@ class DiscordClient
 						Discord.UpdateConnection();
 						#end
 						Discord.RunCallbacks();
+					}
+
+					if(_pendingPresenceUpdate)
+					{
+						_pendingPresenceUpdate = false;
 					}
 
 					Sys.sleep(1.0);

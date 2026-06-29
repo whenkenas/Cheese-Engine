@@ -50,9 +50,19 @@ class StoryMenuState extends MusicBeatState
 	{
 		savedModDirectory = Mods.currentModDirectory;
 		trace('DEBUG StoryMenu: Saved mod directory = $savedModDirectory');
-		
-		Paths.clearStoredMemory();
-		Paths.clearUnusedMemory();
+
+		var hasPendingStickers:Bool = substates.StickerSubState.pendingStickers != null;
+		trace('StoryMenu create - hasPendingStickers: $hasPendingStickers');
+
+		if(!hasPendingStickers)
+		{
+			trace('StoryMenu - clearing memory');
+			Paths.clearStoredMemory();
+			trace('StoryMenu - clearStoredMemory done');
+			Paths.clearUnusedMemory();
+			trace('StoryMenu - clearUnusedMemory done');
+		}
+		trace('StoryMenu - starting UI build');
 
 		persistentUpdate = persistentDraw = true;
 		PlayState.isStoryMode = true;
@@ -191,7 +201,9 @@ class StoryMenuState extends MusicBeatState
 		changeWeek();
 		changeDifficulty();
 
+		trace('StoryMenu - calling super.create()');
 		super.create();
+		trace('StoryMenu - super.create() done');
 	}
 
 	override function closeSubState() {
@@ -322,6 +334,7 @@ class StoryMenuState extends MusicBeatState
 			{
 				PlayState.storyPlaylist = songArray;
 				PlayState.isStoryMode = true;
+				PlayState.returnAfterSongState = 'StoryMenuState';
 				selectedWeek = true;
 	
 				var diffic = Difficulty.getFilePath(curDifficulty);

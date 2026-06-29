@@ -49,8 +49,11 @@ class Paths
 			}
 		}
 
-		// run the garbage collector for good measure lmfao
+		#if cpp
+		cpp.vm.Gc.compact();
+		#else
 		System.gc();
+		#end
 	}
 
 	// define the locally tracked assets
@@ -62,8 +65,12 @@ class Paths
 		// clear anything not in the tracked assets list
 		for (key in FlxG.bitmap._cache.keys())
 		{
-			if (!currentTrackedAssets.exists(key))
-				destroyGraphic(FlxG.bitmap.get(key));
+			if (!currentTrackedAssets.exists(key) && !dumpExclusions.contains(key))
+			{
+				var graphic = FlxG.bitmap.get(key);
+				if(graphic != null && !graphic.persist)
+					destroyGraphic(graphic);
+			}
 		}
 
 		// clear all sounds that are cached
@@ -274,6 +281,7 @@ class Paths
 		if (bitmap == null)
 		{
 			var file:String = getPath(key, IMAGE, parentFolder, true);
+
 			#if MODS_ALLOWED
 			if (FileSystem.exists(file))
 				bitmap = BitmapData.fromFile(file);
@@ -327,12 +335,20 @@ class Paths
 		#end
 	}
 
-	inline static public function font(key:String)
+	static public function font(key:String)
 	{
 		var folderKey:String = Language.getFileTranslation('fonts/$key');
 		#if MODS_ALLOWED
-		var file:String = modFolders(folderKey);
-		if(FileSystem.exists(file)) return file;
+		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+		{
+			var modFile:String = mods(Mods.currentModDirectory + '/' + folderKey);
+			if(FileSystem.exists(modFile)) return modFile;
+		}
+		for(mod in Mods.getGlobalMods())
+		{
+			var modFile:String = mods(mod + '/' + folderKey);
+			if(FileSystem.exists(modFile)) return modFile;
+		}
 		#end
 		return 'assets/$folderKey';
 	}
@@ -462,17 +478,16 @@ class Paths
 	{
 		var file:String = getPath(Language.getFileTranslation(key) + '.$SOUND_EXT', SOUND, path, modsAllowed);
 
-		//trace('precaching sound: $file');
-		if(!currentTrackedSounds.exists(file))
+		if (!currentTrackedSounds.exists(file))
 		{
 			#if sys
-			if(FileSystem.exists(file))
+			if (FileSystem.exists(file))
 				currentTrackedSounds.set(file, Sound.fromFile(file));
 			#else
-			if(OpenFlAssets.exists(file, SOUND))
+			if (OpenFlAssets.exists(file, SOUND))
 				currentTrackedSounds.set(file, OpenFlAssets.getSound(file));
 			#end
-			else if(beepOnNull)
+			else if (beepOnNull)
 			{
 				trace('SOUND NOT FOUND: $key, PATH: $path');
 				FlxG.log.error('SOUND NOT FOUND: $key, PATH: $path');

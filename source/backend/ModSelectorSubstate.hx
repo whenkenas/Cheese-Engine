@@ -36,6 +36,8 @@ class ModSelectorSubstate extends MusicBeatSubstate
 		return 'DISABLE MODS';
 	}
 
+	var _justOpened:Bool = true;
+
 	public function new()
 	{
 		super();
@@ -141,9 +143,15 @@ class ModSelectorSubstate extends MusicBeatSubstate
 	{
 		super.update(elapsed);
 
+		if (_justOpened)
+		{
+			_justOpened = false;
+			return;
+		}
+
 		changeSelection((controls.UI_DOWN_P ? 1 : 0) + (controls.UI_UP_P ? -1 : 0) - FlxG.mouse.wheel);
 
-		if (controls.BACK || FlxG.keys.justPressed.TAB)
+		if (!_justOpened && (controls.BACK || FlxG.keys.justPressed.TAB))
 		{
 			FlxG.sound.play(Paths.sound('cancelMenu'));
 			FlxTween.tween(bgAnim, {alpha: 0}, 0.25, {ease: FlxEase.cubeOut});
@@ -157,6 +165,7 @@ class ModSelectorSubstate extends MusicBeatSubstate
 			}
 			
 			new FlxTimer().start(0.25, function(tmr:FlxTimer) {
+				FlxG.mouse.visible = _mouseWasVisible;
 				close();
 			});
 		}
@@ -274,10 +283,10 @@ class ModSelectorSubstate extends MusicBeatSubstate
 			Mods.updatedOnState = false;
 			var currentMode = getCurrentModMode();
 			
-			if(currentMode == 'MODS + FNF SONGS' || currentMode == 'ALL MODS' || currentMode == 'DISABLE MODS')
+			if(currentMode == 'MODS + FNF SONGS' || currentMode == 'ALL MODS')
 			{
-				Mods.loadTopMod();
 				Mods.currentModDirectory = '';
+				Mods.clearGlobalMods();
 			}
 			else
 			{
@@ -344,12 +353,17 @@ class ModSelectorSubstate extends MusicBeatSubstate
 				}
 				else
 				{
+					#if (cpp && windows)
+					winapi.WindowsCPP.resetWindowIconFromExe();
+					#else
 					var defaultIconPath:String = "icon.png";
 					if (sys.FileSystem.exists(defaultIconPath))
 					{
 						var icon = lime.graphics.Image.fromFile(defaultIconPath);
-						lime.app.Application.current.window.setIcon(icon);
+						if (icon != null)
+							lime.app.Application.current.window.setIcon(icon);
 					}
+					#end
 				}
 			}
 		} catch(e:Dynamic) {}
@@ -363,34 +377,31 @@ class ModSelectorSubstate extends MusicBeatSubstate
 			backend.Highscore.load();
 		} catch(e:Dynamic) {}
 
+		var isMultiModMode = (_selectedModForReset == 'ALL MODS' || _selectedModForReset == 'MODS + FNF SONGS');
+
+		try {
+			Mods.clearGlobalMods();
+			if(!isMultiModMode)
+				Mods.loadTopMod();
+			else
+				Mods.currentModDirectory = '';
+		} catch(e:Dynamic) {}
+
 		try {
 			Paths.dumpExclusions = ['assets/shared/music/freakyMenu.${Paths.SOUND_EXT}'];
 			Paths.localTrackedAssets = [];
-			Paths.clearStoredMemory();
+			Paths.currentTrackedSounds.clear();
 			Paths.currentTrackedAssets.clear();
 			FlxG.bitmap.clearCache();
 		} catch(e:Dynamic) {}
-		
+
 		TitleState.initialized = false;
 		TitleState.closedState = false;
 		
 		FlxTransitionableState.skipNextTransIn = false;
 		FlxTransitionableState.skipNextTransOut = false;
-		
-		var hscriptState = HScriptStateLoader.loadStateScript('TitleState');
-		if(hscriptState != null)
-		{
-			MusicBeatState.switchState(hscriptState);
-		}
-		else
-		{
-			var stateClass = backend.StateManager.getStateClass('TitleState');
-			if(stateClass != null)
-			{
-				var stateInstance = Type.createInstance(stateClass, []);
-				MusicBeatState.switchState(stateInstance);
-			}
-		}
+
+		MusicBeatState.switchState(new states.InitialState());
 	}
 
 	function changeSelection(change:Int = 0, force:Bool = false)
@@ -452,6 +463,7 @@ class ModSelectorSubstate extends MusicBeatSubstate
 		}
 	}
 
+	public var _mouseWasVisible:Bool = false;
 	override function destroy()
 	{
 		super.destroy();

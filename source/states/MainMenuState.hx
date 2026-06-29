@@ -17,7 +17,7 @@ enum MainMenuColumn {
 class MainMenuState extends MusicBeatState
 {
 	public static var psychEngineVersion:String = '1.0.4'; // This is also used for Discord RPC
-	public static var cheeseEngineVersion:String = '1.48';
+	public static var cheeseEngineVersion:String = '1.5';
 	public static var curSelected:Int = 0;
 	public static var curColumn:MainMenuColumn = CENTER;
 	var allowMouse:Bool = true; //Turn this off to block mouse movement in menus
@@ -46,9 +46,19 @@ class MainMenuState extends MusicBeatState
 		super.create();
 
 		#if MODS_ALLOWED
-		Mods.pushGlobalMods();
+		var _mmModMode:String = (FlxG.save.data != null && FlxG.save.data.modMode != null) ? FlxG.save.data.modMode : '';
+		var _mmIsMulti:Bool = (_mmModMode == 'ALL MODS' || _mmModMode == 'MODS + FNF SONGS');
+		if(_mmIsMulti)
+		{
+			Mods.currentModDirectory = '';
+			Mods.clearGlobalMods();
+		}
+		else
+		{
+			Mods.pushGlobalMods();
+			Mods.loadTopMod();
+		}
 		#end
-		Mods.loadTopMod();
 
 		#if DISCORD_ALLOWED
 		#if MODS_ALLOWED
@@ -159,7 +169,7 @@ class MainMenuState extends MusicBeatState
 	var timeNotMoving:Float = 0;
 	override function update(elapsed:Float)
 	{
-		if (FlxG.sound.music.volume < 0.8)
+		if (FlxG.sound.music != null && FlxG.sound.music.volume < 0.8)
 			FlxG.sound.music.volume = Math.min(FlxG.sound.music.volume + 0.5 * elapsed, 0.8);
 
 		if (!selectedSomethin)
@@ -351,13 +361,13 @@ class MainMenuState extends MusicBeatState
 					FlxTween.tween(memb, {alpha: 0}, 0.4, {ease: FlxEase.quadOut});
 				}
 			}
-			if (FlxG.keys.justPressed.TAB)
+			if (FlxG.keys.justPressed.TAB && subState == null)
 			{
 				FlxG.mouse.visible = false;
 				persistentUpdate = false;
 				openSubState(new ModSelectorSubstate());
 			}
-			if (FlxG.keys.justPressed.SEVEN)
+			if (FlxG.keys.justPressed.SEVEN && ClientPrefs.data.developerMode && subState == null)
 			{
 				FlxG.mouse.visible = false;
 				persistentUpdate = false;
@@ -370,9 +380,9 @@ class MainMenuState extends MusicBeatState
 
 	override function closeSubState()
 	{
+		persistentUpdate = true;
 		super.closeSubState();
 		selectedSomethin = false;
-		persistentUpdate = true;
 	}
 
 	function changeItem(change:Int = 0)

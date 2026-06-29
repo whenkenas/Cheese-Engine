@@ -21,6 +21,7 @@ import crowplexus.hscript.Printer;
 
 import haxe.ValueException;
 import openfl.display.BlendMode;
+import openfl.system.Capabilities;
 
 typedef HScriptInfos = {
 	> haxe.PosInfos,
@@ -163,6 +164,7 @@ class HScript extends Iris
 		set('FlxTween', flixel.tweens.FlxTween);
 		set('FlxEase', flixel.tweens.FlxEase);
 		set('FlxColor', CustomFlxColor);
+		set('Capabilities', openfl.system.Capabilities);
 		set('ADD', BlendMode.ADD);
 		set('ALPHA', BlendMode.ALPHA);
 		set('DARKEN', BlendMode.DARKEN);
@@ -191,6 +193,21 @@ class HScript extends Iris
 			XY: flixel.util.FlxAxes.XY
 		});
 		set('LoadingState', states.LoadingState);
+		set('StickerSubState', substates.StickerSubState);
+		set('switchStateWithStickers', function(nextState:flixel.FlxState, ?mode:String) {
+			backend.MusicBeatState.switchStateWithStickers(nextState, mode);
+		});
+		set('StateManager', backend.StateManager);
+		set('switchState', function(nextState:Dynamic) {
+			if (Std.isOfType(nextState, String))
+				backend.MusicBeatState.switchStateByName(nextState);
+			else
+				backend.MusicBeatState.switchState(nextState);
+		});
+		set('switchStateDirect', function(nextState:Dynamic) { backend.MusicBeatState.switchStateDirect(nextState); });
+		set('switchStateByName', function(name:String) { backend.MusicBeatState.switchStateByName(name); });
+		set('switchStateDirectByName', function(name:String) { backend.MusicBeatState.switchStateDirectByName(name); });
+		set('resetState', function() { FlxG.resetState(); });
 		set('ClientPrefs', ClientPrefs);
 		set('Mods', Mods);
 		#if ACHIEVEMENTS_ALLOWED
@@ -239,6 +256,10 @@ class HScript extends Iris
 		#end
 		set('ShaderFilter', openfl.filters.ShaderFilter);
 		set('StringTools', StringTools);
+		set('FillScaleMode', flixel.system.scaleModes.FillScaleMode);
+		set('RatioScaleMode', flixel.system.scaleModes.RatioScaleMode);
+		set('FixedScaleMode', flixel.system.scaleModes.FixedScaleMode);
+		set('StageSizeScaleMode', flixel.system.scaleModes.StageSizeScaleMode);
 		set('Sound', flash.media.Sound);
 		set('Json', haxe.Json);
 		set('ColorSwap', shaders.ColorSwap);
@@ -251,6 +272,11 @@ class HScript extends Iris
 		set('Flx3DView', flx3d.Flx3DView);
 		set('Flx3DUtil', flx3d.Flx3DUtil);
 		set('Flx3DCamera', flx3d.Flx3DCamera);
+		set('Asset3DType', away3d.library.assets.Asset3DType);
+		set('Mesh', away3d.entities.Mesh);
+		set('PerspectiveLens', away3d.cameras.lenses.PerspectiveLens);
+		set('ColorMaterial', away3d.materials.ColorMaterial);
+		set('Vector3D', openfl.geom.Vector3D);
 
 		// Functions & Variables
 		#if sys
@@ -429,6 +455,10 @@ class HScript extends Iris
 
 		set('setReturnState', function(stateName:String) {
 			states.PlayState.returnAfterSongState = stateName;
+		});
+
+		set('switchStateDirect', function(stateName:String) {
+			backend.MusicBeatState.switchStateDirectByName(stateName);
 		});
 		
 		set('getReturnState', function() {

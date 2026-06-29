@@ -44,102 +44,137 @@ class InitialState extends MusicBeatState
 		add(blackScreen);
 	}
 	
+	var _pendingState:String = null;
+	var _scanDone:Bool = false;
+	var _scanFallback:Bool = false;
+
 	override public function update(elapsed:Float):Void
 	{
 		super.update(elapsed);
-		
+
 		if(!loadedState)
 		{
 			loadedState = true;
-			
+
 			#if MODS_ALLOWED
 			if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
 			{
-				var statesDir = Paths.modFolders('${Mods.currentModDirectory}/states/');
-				if(sys.FileSystem.exists(statesDir) && sys.FileSystem.isDirectory(statesDir))
-				{
-					#if HSCRIPT_ALLOWED
-					for(file in sys.FileSystem.readDirectory(statesDir))
+				var modDir = Mods.currentModDirectory;
+				var statesDir = Paths.modFolders('$modDir/states/');
+
+				sys.thread.Thread.create(() -> {
+					var found:String = null;
+					var fallback:Bool = false;
+
+					if(sys.FileSystem.exists(statesDir) && sys.FileSystem.isDirectory(statesDir))
 					{
-						if(file.endsWith('.hx'))
+						#if HSCRIPT_ALLOWED
+						for(file in sys.FileSystem.readDirectory(statesDir))
 						{
-							var stateName = file.substr(0, file.length - 3);
-							var fullPath = statesDir + file;
-							
-							if(sys.FileSystem.exists(fullPath))
+							if(file.endsWith('.hx'))
 							{
-								try {
-									var hscript = new psychlua.HScript(null, fullPath, null, false);
-									if(hscript.exists('isInitialState'))
-									{
-										var result = hscript.call('isInitialState', []);
-										if(result != null && result.returnValue == true)
+								var stateName = file.substr(0, file.length - 3);
+								var fullPath = statesDir + file;
+								if(sys.FileSystem.exists(fullPath))
+								{
+									try {
+										var hscript = new psychlua.HScript(null, fullPath, null, false);
+										if(hscript.exists('isInitialState'))
 										{
-											trace('InitialState: Found initial state: $stateName');
-											hscript.destroy();
-											StateManager.switchState(stateName);
-											return;
+											var result = hscript.call('isInitialState', []);
+											if(result != null && result.returnValue == true)
+											{
+												trace('InitialState: Found initial state: $stateName');
+												hscript.destroy();
+												found = stateName;
+												break;
+											}
+										}
+										hscript.destroy();
+									} catch(e:Dynamic) {
+										trace('InitialState: Error checking $stateName: $e');
+									}
+								}
+							}
+						}
+						#end
+						#if LUA_ALLOWED
+						if(found == null)
+						{
+							for(file in sys.FileSystem.readDirectory(statesDir))
+							{
+								if(file.endsWith('.lua'))
+								{
+									var stateName = file.substr(0, file.length - 4);
+									var fullPath = statesDir + file;
+									if(sys.FileSystem.exists(fullPath))
+									{
+										try {
+											var luaState = new psychlua.LuaStateLoader.LuaState(fullPath, stateName, modDir, null);
+											if(luaState.isInitialState)
+											{
+												trace('InitialState: Found Lua initial state: $stateName');
+												luaState.destroy();
+												found = stateName;
+												break;
+											}
+											luaState.destroy();
+										} catch(e:Dynamic) {
+											trace('InitialState: Error checking Lua $stateName: $e');
 										}
 									}
-									hscript.destroy();
-								} catch(e:Dynamic) {
-									trace('InitialState: Error checking $stateName: $e');
 								}
 							}
 						}
+						#end
 					}
-					#end
-					#if LUA_ALLOWED
-					for(file in sys.FileSystem.readDirectory(statesDir))
-					{
-						if(file.endsWith('.lua'))
-						{
-							var stateName = file.substr(0, file.length - 4);
-							var fullPath = statesDir + file;
-							
-							if(sys.FileSystem.exists(fullPath))
-							{
-								try {
-									var luaState = new psychlua.LuaStateLoader.LuaState(fullPath, stateName, Mods.currentModDirectory, null);
-									if(luaState.isInitialState)
-									{
-										trace('InitialState: Found Lua initial state: $stateName');
-										luaState.destroy();
-										StateManager.switchState(stateName);
-										return;
-									}
-									luaState.destroy();
-								} catch(e:Dynamic) {
-									trace('InitialState: Error checking Lua $stateName: $e');
-								}
-							}
-						}
-					}
-					#end
-				}
 
-				var statesDirFallback = Paths.modFolders('${Mods.currentModDirectory}/states/');
-				#if HSCRIPT_ALLOWED
-				var titleHx = backend.HScriptStateLoader.findScriptInDir(statesDirFallback, 'TitleState.hx');
-				if(titleHx != null)
-				{
-					StateManager.switchState('TitleState');
-					return;
-				}
-				#end
-				#if LUA_ALLOWED
-				var titleLua = psychlua.LuaStateLoader.findScriptInDir(statesDirFallback, 'TitleState.lua');
-				if(titleLua != null)
-				{
-					StateManager.switchState('TitleState');
-					return;
-				}
-				#end
+					if(found == null)
+					{
+						#if HSCRIPT_ALLOWED
+						var titleHx = backend.HScriptStateLoader.findScriptInDir(statesDir, 'TitleState.hx');
+						if(titleHx != null) { found = 'TitleState'; fallback = true; }
+						#end
+						#if LUA_ALLOWED
+						if(found == null)
+						{
+							var titleLua = psychlua.LuaStateLoader.findScriptInDir(statesDir, 'TitleState.lua');
+							if(titleLua != null) { found = 'TitleState'; fallback = true; }
+						}
+						#end
+					}
+
+					_pendingState = found;
+					_scanFallback = fallback;
+					_scanDone = true;
+				});
+				return;
 			}
 			#end
-			
+
 			MusicBeatState.switchState(new states.TitleState());
 		}
+
+		#if MODS_ALLOWED
+		if(_scanDone)
+		{
+			_scanDone = false;
+			if(_pendingState != null)
+			{
+				var modDir = Mods.currentModDirectory;
+				if(modDir == null || modDir == '')
+				{
+					if(FlxG.save.data != null && FlxG.save.data.currentMod != null && FlxG.save.data.currentMod != '')
+						modDir = FlxG.save.data.currentMod;
+				}
+				if(modDir != null && modDir != '')
+					Mods.currentModDirectory = modDir;
+				StateManager.switchState(_pendingState);
+			}
+			else
+				MusicBeatState.switchState(new states.TitleState());
+		}
+		#end
 	}
 
 	static function scanScriptsRecursive(dir:String, ext:String):Array<String>

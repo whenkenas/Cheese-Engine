@@ -46,6 +46,7 @@ import haxe.io.Path;
 #end
 
 import backend.Highscore;
+import backend.ThreadedCache;
 
 #if (cpp && windows)
 import hxwindowmode.WindowColorMode;
@@ -314,6 +315,9 @@ class Main extends Sprite
 			if (FlxG.game != null)
 			resetSpriteCache(FlxG.game);
 		});
+		#if sys
+		FlxG.signals.postUpdate.add(() -> ThreadedCache.processPending());
+		#end
 	}
 
 	static function resetSpriteCache(sprite:Sprite):Void {
@@ -335,7 +339,7 @@ class Main extends Sprite
 		}
 
 		var consoleKeys = ClientPrefs.keyBinds.get('debug_console');
-		if (consoleKeys != null) {
+		if (consoleKeys != null && ClientPrefs.data.developerMode) {
 			for (key in consoleKeys) {
 				if (event.keyCode == key) {
 					CMD.openCMD();
