@@ -1023,7 +1023,7 @@ class PlayState extends MusicBeatState
 			char.setPosition(GF_X, GF_Y);
 			char.danceEveryNumBeats = 2;
 		}
-		if(char.isPlayer && char.editorIsPlayer != true) {
+		if(char.isPlayer && char.editorIsPlayer != true && (char.playerPositionArray[0] != 0 || char.playerPositionArray[1] != 0)) {
 			char.x += char.playerPositionArray[0];
 			char.y += char.playerPositionArray[1];
 		} else {
@@ -2147,13 +2147,18 @@ class PlayState extends MusicBeatState
 		}
 	}
 
-	#if DISCORD_ALLOWED
 	override public function onFocus():Void
 	{
 		super.onFocus();
 		if (!paused && health > 0)
 		{
+			#if VIDEOS_ALLOWED
+			if(videoCutscene != null && videoCutscene.videoSprite != null)
+				videoCutscene.videoSprite.resume();
+			#end
+			#if DISCORD_ALLOWED
 			resetRPC(Conductor.songPosition > 0.0);
+			#end
 		}
 	}
 
@@ -2162,14 +2167,19 @@ class PlayState extends MusicBeatState
 		super.onFocusLost();
 		if (!paused && health > 0)
 		{
+			#if VIDEOS_ALLOWED
+			if(videoCutscene != null && videoCutscene.videoSprite != null)
+				videoCutscene.videoSprite.pause();
+			#end
+			#if DISCORD_ALLOWED
 			if (autoUpdateRPC)
 			{
 				var presenceState:String = SONG.song + " (" + storyDifficultyText + ")";
 				DiscordClient.changePresence(detailsPausedText, presenceState, iconP2.getCharacter(), false, 0, null, SONG.song);
 			}
+			#end
 		}
 	}
-	#end
 
 	// Updating Discord Rich Presence.
 	public var autoUpdateRPC:Bool = true; //performance setting for custom RPC things

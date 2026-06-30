@@ -139,13 +139,18 @@ class WeekData {
 
 	private static function addWeek(weekToCheck:String, path:String, directory:String, i:Int, originalLength:Int)
 	{
-		if(!weeksLoaded.exists(weekToCheck))
+		var isModWeek:Bool = i >= originalLength;
+		var existingWeek:WeekData = weeksLoaded.get(weekToCheck);
+		var vanillaAlreadyLoaded:Bool = existingWeek != null && existingWeek.folder == '';
+		if(!weeksLoaded.exists(weekToCheck) || (isModWeek && vanillaAlreadyLoaded))
 		{
+			if(isModWeek && vanillaAlreadyLoaded)
+				weeksList.remove(weekToCheck);
 			var week:WeekFile = getWeekFile(path);
 			if(week != null)
 			{
 				var weekFile:WeekData = new WeekData(week, weekToCheck);
-				if(i >= originalLength)
+				if(isModWeek)
 				{
 					#if MODS_ALLOWED
 					weekFile.folder = directory.substring(Paths.mods().length, directory.length-1);

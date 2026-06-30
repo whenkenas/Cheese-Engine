@@ -20,8 +20,7 @@ class ModSelectorSubstate extends MusicBeatSubstate
 
 	function getCurrentModMode():String
 	{
-		var save:FlxSave = new FlxSave();
-		save.bind('funkin', CoolUtil.getSavePath());
+		var save = FlxG.save;
 		
 		if(save != null && save.data != null && save.data.modMode != null)
 		{

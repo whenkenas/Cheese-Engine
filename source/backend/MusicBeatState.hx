@@ -251,6 +251,8 @@ class MusicBeatState extends FlxState
 			return;
 		}
 
+		_cachedModMode = null;
+
 		#if MODS_ALLOWED
 		var currentMode = getCurrentModMode();
 		if(currentMode != 'DISABLE MODS' && Mods.currentModDirectory != null && Mods.currentModDirectory != '')

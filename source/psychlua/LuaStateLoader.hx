@@ -1557,26 +1557,28 @@ class LuaState extends MusicBeatState
 			return (lua != null && !closed);
 		});
 		Lua_helper.add_callback(lua, "addLuaScript", function(luaFile:String, ?ignoreAlreadyRunning:Bool = false) {
+			var resolvedFile:String = resolveLuaScriptPath(luaFile);
 			if(PlayState.instance != null) {
 				if(!ignoreAlreadyRunning)
 					for(luaInstance in PlayState.instance.luaArray)
-						if(luaInstance.scriptName == luaFile) return;
-				new FunkinLua(luaFile);
+						if(luaInstance.scriptName == resolvedFile) return;
+				new FunkinLua(resolvedFile);
 			} else if(LuaState.instance != null) {
 				if(!ignoreAlreadyRunning)
 					for(luaInstance in LuaState.instance.luaArray)
-						if(luaInstance.scriptName == luaFile) return;
-				var newScript = new LuaStateScript(luaFile, LuaState.instance.modDirectory);
+						if(luaInstance.scriptName == resolvedFile) return;
+				var newScript = new LuaStateScript(resolvedFile, LuaState.instance.modDirectory);
 				LuaState.instance.luaArray.push(newScript);
 			}
 		});
 		Lua_helper.add_callback(lua, "addHScript", function(scriptFile:String, ?ignoreAlreadyRunning:Bool = false) {
 			#if HSCRIPT_ALLOWED
+			var resolvedFile:String = resolveHScriptPath(scriptFile);
 			if(PlayState.instance != null) {
 				if(!ignoreAlreadyRunning)
 					for(script in PlayState.instance.hscriptArray)
-						if(script.origin == scriptFile) return;
-				PlayState.instance.initHScript(scriptFile);
+						if(script.origin == resolvedFile) return;
+				PlayState.instance.initHScript(resolvedFile);
 			}
 			#end
 		});
@@ -1942,6 +1944,16 @@ class LuaState extends MusicBeatState
 		backend.Highscore.load();
 		call('onCreate', []);
 
+		#if CHECK_FOR_UPDATES
+		if(stateName == 'MainMenuState' && ClientPrefs.data.checkForUpdates
+			&& substates.OutdatedSubState.updateVersion != null
+			&& Std.parseFloat(substates.OutdatedSubState.updateVersion) > Std.parseFloat(states.MainMenuState.cheeseEngineVersion))
+		{
+			persistentUpdate = false;
+			openSubState(new substates.OutdatedSubState());
+		}
+		#end
+
 		if(oldStickers != null && oldStickers.length > 0) {
 			this.persistentUpdate = false;
 			this.persistentDraw = true;
@@ -2074,6 +2086,37 @@ class LuaState extends MusicBeatState
 			}
 		}
 		return null;
+	}
+public static function resolveLuaScriptPath(path:String):String
+	{
+		#if (sys && MODS_ALLOWED)
+		if(sys.FileSystem.exists(path)) return path;
+		var modDir:String = Mods.currentModDirectory;
+		if(modDir != null && modDir != '')
+		{
+			var inMod:String = 'mods/$modDir/$path';
+			if(sys.FileSystem.exists(inMod)) return inMod;
+		}
+		var inMods:String = 'mods/$path';
+		if(sys.FileSystem.exists(inMods)) return inMods;
+		#end
+		return path;
+	}
+
+	public static function resolveHScriptPath(path:String):String
+	{
+		#if (sys && MODS_ALLOWED)
+		if(sys.FileSystem.exists(path)) return path;
+		var modDir:String = Mods.currentModDirectory;
+		if(modDir != null && modDir != '')
+		{
+			var inMod:String = 'mods/$modDir/$path';
+			if(sys.FileSystem.exists(inMod)) return inMod;
+		}
+		var inMods:String = 'mods/$path';
+		if(sys.FileSystem.exists(inMods)) return inMods;
+		#end
+		return path;
 	}
 }
 

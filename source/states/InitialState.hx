@@ -57,7 +57,10 @@ class InitialState extends MusicBeatState
 			loadedState = true;
 
 			#if MODS_ALLOWED
-			if(Mods.currentModDirectory != null && Mods.currentModDirectory != '')
+			var _saveForInit = FlxG.save;
+			var _initModMode:String = (_saveForInit != null && _saveForInit.data != null && _saveForInit.data.modMode != null) ? _saveForInit.data.modMode : null;
+			var _initIsSingle:Bool = (_initModMode == null || _initModMode == 'SINGLE MOD');
+			if(_initIsSingle && Mods.currentModDirectory != null && Mods.currentModDirectory != '')
 			{
 				var modDir = Mods.currentModDirectory;
 				var statesDir = Paths.modFolders('$modDir/states/');

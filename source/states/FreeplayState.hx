@@ -80,8 +80,7 @@ class FreeplayState extends MusicBeatState
 
 	function getCurrentModMode():String
 	{
-		var save:FlxSave = new FlxSave();
-		save.bind('funkin', CoolUtil.getSavePath());
+		var save = FlxG.save;
 		
 		if(save != null && save.data != null && save.data.modMode != null)
 		{
@@ -102,8 +101,8 @@ class FreeplayState extends MusicBeatState
 		//Paths.clearUnusedMemory();
 
 		#if MODS_ALLOWED
-		var _initMode = getCurrentModMode();
-		if(_initMode == 'ALL MODS' || _initMode == 'MODS + FNF SONGS')
+		var currentMode = getCurrentModMode();
+		if(currentMode == 'ALL MODS' || currentMode == 'MODS + FNF SONGS')
 		{
 			Mods.currentModDirectory = '';
 			Mods.clearGlobalMods();
@@ -115,7 +114,6 @@ class FreeplayState extends MusicBeatState
 		WeekData.reloadWeekFiles(false);
 
 		#if MODS_ALLOWED
-		var currentMode = getCurrentModMode();
 		if(currentMode == 'MODS + FNF SONGS' || currentMode == 'ALL MODS' || currentMode == 'DISABLE MODS')
 		{
 			lime.app.Application.current.window.title = "Friday Night Funkin': Psych Engine";
@@ -140,10 +138,6 @@ class FreeplayState extends MusicBeatState
 			return;
 		}
 
-		#if MODS_ALLOWED
-		var currentMode = getCurrentModMode();
-		#end
-		
 		for (i in 0...WeekData.weeksList.length)
 		{
 			if(weekIsLocked(WeekData.weeksList[i])) continue;

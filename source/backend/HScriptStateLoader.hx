@@ -48,7 +48,27 @@ class HScriptState extends MusicBeatState
 				isInitialState = true;
 			}
 		}
-		
+
+		#if CHECK_FOR_UPDATES
+		if(stateName == 'MainMenuState' && substates.OutdatedSubState.updateVersion != null
+			&& ClientPrefs.data.checkForUpdates
+			&& Std.parseFloat(substates.OutdatedSubState.updateVersion) > Std.parseFloat(states.MainMenuState.cheeseEngineVersion))
+		{
+			persistentUpdate = false;
+			openSubState(new substates.OutdatedSubState());
+		}
+		#end
+
+		#if CHECK_FOR_UPDATES
+		if(stateName == 'MainMenuState' && ClientPrefs.data.checkForUpdates
+			&& substates.OutdatedSubState.updateVersion != null
+			&& Std.parseFloat(substates.OutdatedSubState.updateVersion) > Std.parseFloat(states.MainMenuState.cheeseEngineVersion))
+		{
+			persistentUpdate = false;
+			openSubState(new substates.OutdatedSubState());
+		}
+		#end
+
 		var pending = substates.StickerSubState.pendingStickers;
 		if(pending != null && pending.length > 0)
 		{
