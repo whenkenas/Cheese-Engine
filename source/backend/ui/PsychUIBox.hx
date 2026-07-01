@@ -454,7 +454,7 @@ class PsychUIBox extends FlxSpriteGroup
 		if(v && !visible)
 		{
 			_currentHeight = tabHeight;
-			_targetHeight = _originalHeight;
+			_targetHeight = isMinimized ? (tabHeight + 20) : _originalHeight;
 			_animating = true;
 			if(ClientPrefs.data.uiTheme == 'Cheese')
 				_redrawBg(Std.int(bg.width), Std.int(_currentHeight));

@@ -40,12 +40,34 @@ class HScript extends Iris
 
 	#if LUA_ALLOWED
 	public var parentLua:FunkinLua;
+	static var pendingLibraries:Map<FunkinLua, Array<{name:String, pkg:String}>> = new Map();
+
+	static function reapplyPendingLibraries(parent:FunkinLua)
+	{
+		var list = pendingLibraries.get(parent);
+		if(list == null || parent.hscript == null) return;
+
+		for(lib in list)
+		{
+			var str:String = (lib.pkg.length > 0) ? (lib.pkg + '.') : '';
+			var c:Dynamic = Type.resolveClass(str + lib.name);
+			if(c == null) c = Type.resolveEnum(str + lib.name);
+
+			if(c != null)
+			{
+				try parent.hscript.set(lib.name, c)
+				catch(e:IrisError) {}
+			}
+		}
+	}
+
 	public static function initHaxeModule(parent:FunkinLua)
 	{
 		if(parent.hscript == null)
 		{
 			trace('initializing haxe interp for: ${parent.scriptName}');
 			parent.hscript = new HScript(parent);
+			reapplyPendingLibraries(parent);
 		}
 	}
 
@@ -57,6 +79,7 @@ class HScript extends Iris
 			trace('initializing haxe interp for: ${parent.scriptName}');
 			try {
 				parent.hscript = new HScript(parent, code, varsToBring);
+				reapplyPendingLibraries(parent);
 			}
 			catch(e:IrisError) {
 				var pos:HScriptInfos = cast {fileName: parent.scriptName, isLua: true};
@@ -585,6 +608,10 @@ class HScript extends Iris
 			var c:Dynamic = Type.resolveClass(str + libName);
 			if (c == null)
 				c = Type.resolveEnum(str + libName);
+
+			if (pendingLibraries.get(funk) == null)
+				pendingLibraries.set(funk, []);
+			pendingLibraries.get(funk).push({name: libName, pkg: libPackage});
 
 			if (funk.hscript == null)
 				initHaxeModule(funk);

@@ -5,12 +5,14 @@ class Highscore
 	public static var weekScores:Map<String, Int> = new Map();
 	public static var songScores:Map<String, Int> = new Map<String, Int>();
 	public static var songRating:Map<String, Float> = new Map<String, Float>();
+	public static var songMisses:Map<String, Int> = new Map<String, Int>();
 
 	public static function resetSong(song:String, diff:Int = 0):Void
 	{
 		var daSong:String = formatSong(song, diff);
 		setScore(daSong, 0);
 		setRating(daSong, 0);
+		setMisses(daSong, 0);
 	}
 
 	public static function resetWeek(week:String, diff:Int = 0):Void
@@ -19,7 +21,7 @@ class Highscore
 		setWeekScore(daWeek, 0);
 	}
 
-	public static function saveScore(song:String, score:Int = 0, ?diff:Int = 0, ?rating:Float = -1):Void
+	public static function saveScore(song:String, score:Int = 0, ?diff:Int = 0, ?rating:Float = -1, ?misses:Int = -1):Void
 	{
 		if(song == null) return;
 		var daSong:String = formatSong(song, diff);
@@ -30,12 +32,14 @@ class Highscore
 			{
 				setScore(daSong, score);
 				if(rating >= 0) setRating(daSong, rating);
+				if(misses >= 0) setMisses(daSong, misses);
 			}
 		}
 		else
 		{
 			setScore(daSong, score);
 			if(rating >= 0) setRating(daSong, rating);
+			if(misses >= 0) setMisses(daSong, misses);
 		}
 	}
 
@@ -77,6 +81,14 @@ class Highscore
 		FlxG.save.flush();
 	}
 
+	static function setMisses(song:String, misses:Int):Void
+	{
+		// Reminder that I don't need to format this song, it should come formatted!
+		songMisses.set(song, misses);
+		FlxG.save.data.songMisses = songMisses;
+		FlxG.save.flush();
+	}
+
 	public static function formatSong(song:String, diff:Int):String
 	{
 		return Paths.formatToSongPath(song) + Difficulty.getFilePath(diff);
@@ -114,6 +126,15 @@ class Highscore
 		return songRating.get(daSong);
 	}
 
+	public static function getMisses(song:String, diff:Dynamic):Int
+	{
+		var daSong:String = formatSong(song, resolveDiff(diff));
+		if (!songMisses.exists(daSong))
+			return -1;
+
+		return songMisses.get(daSong);
+	}
+
 	public static function getWeekScore(week:String, diff:Int):Int
 	{
 		var daWeek:String = formatSong(week, diff);
@@ -133,5 +154,8 @@ class Highscore
 
 		if (FlxG.save.data.songRating != null)
 			songRating = FlxG.save.data.songRating;
+
+		if (FlxG.save.data.songMisses != null)
+			songMisses = FlxG.save.data.songMisses;
 	}
 }

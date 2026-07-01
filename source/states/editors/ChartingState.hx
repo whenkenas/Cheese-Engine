@@ -2278,9 +2278,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			{
 				notes.remove(note);
 				var secNum:Int = 0;
-				for (time in cachedSectionTimes)
+				for (i in 1...cachedSectionTimes.length)
 				{
-					if(time > note.strumTime) break;
+					if(cachedSectionTimes[i] > note.strumTime) break;
 					secNum++;
 				}
 				originalNotes.push(note);
@@ -2852,12 +2852,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	function createNote(note:Dynamic, ?secNum:Null<Int> = null)
 	{
 		if(secNum == null) secNum = curSec;
+		secNum = Std.int(FlxMath.bound(secNum, 0, PlayState.SONG.notes.length - 1));
 		var section = PlayState.SONG.notes[secNum];
 
 		var daStrumTime:Float = note[0];
-		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
-		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
-		var strumlineIndex:Int = Math.floor(note[1] / GRID_COLUMNS_PER_PLAYER);
+		var noteColumn:Int = (note[1] != null) ? Std.int(note[1]) : 0;
+		var daNoteData:Int = Std.int(noteColumn % GRID_COLUMNS_PER_PLAYER);
+		var gottaHitNote:Bool = (noteColumn < GRID_COLUMNS_PER_PLAYER);
+		var strumlineIndex:Int = Math.floor(noteColumn / GRID_COLUMNS_PER_PLAYER);
 
 		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
 		swagNote.mustPress = gottaHitNote;
@@ -6894,6 +6896,7 @@ end
 		ClientPrefs.toggleVolumeKeys(true);
 		super.closeSubState();
 		upperBox.isMinimized = true;
+		upperBox.bg.visible = false;
 		upperBox.visible = mainBox.visible = infoBox.visible = true;
 		updateAudioVolume();
 	}
