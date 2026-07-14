@@ -43,6 +43,7 @@ class MainMenuState extends MusicBeatState
 	static var showOutdatedWarning:Bool = true;
 	override function create()
 	{
+		Paths.clearStoredMemory();
 		super.create();
 
 		#if MODS_ALLOWED
@@ -147,6 +148,7 @@ class MainMenuState extends MusicBeatState
 		#end
 
 		FlxG.camera.follow(camFollow, null, 0.15);
+		Paths.clearUnusedMemory();
 	}
 
 	function createMenuItem(name:String, x:Float, y:Float):FlxSprite

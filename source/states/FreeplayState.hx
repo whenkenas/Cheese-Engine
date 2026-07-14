@@ -97,8 +97,7 @@ class FreeplayState extends MusicBeatState
 
 	override function create()
 	{
-		//Paths.clearStoredMemory();
-		//Paths.clearUnusedMemory();
+		Paths.clearStoredMemory();
 
 		#if MODS_ALLOWED
 		var currentMode = getCurrentModMode();
@@ -347,6 +346,7 @@ class FreeplayState extends MusicBeatState
 		changeSelection();
 		updateTexts();
 		super.create();
+		Paths.clearUnusedMemory();
 
 		if(oldStickers != null && oldStickers.length > 0)
 		{
