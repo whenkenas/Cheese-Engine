@@ -568,6 +568,10 @@ class FunkinLua {
 			backend.MusicBeatState.switchStateDirectByName(stateName);
 			return true;
 		});
+		Lua_helper.add_callback(lua, "switchState", function(stateName:String) {
+			backend.MusicBeatState.switchStateByName(stateName);
+			return true;
+		});
 		Lua_helper.add_callback(lua, "restartSong", function(?skipTransition:Bool = false) {
 			game.persistentUpdate = false;
 			FlxG.camera.followLerp = 0;

@@ -4741,7 +4741,12 @@ class PlayState extends MusicBeatState
 					FlxG.sound.playMusic(Paths.music('freakyMenu'));
 
 					canResync = false;
-					MusicBeatState.switchState(new StoryMenuState());
+					var storyEndState:String = returnAfterSongState;
+					returnAfterSongState = null;
+					if(storyEndState != null)
+						MusicBeatState.switchStateByName(storyEndState);
+					else
+						MusicBeatState.switchState(new StoryMenuState());
 
 					// if ()
 					if(!ClientPrefs.getGameplaySetting('practice') && !ClientPrefs.getGameplaySetting('botplay')) {
