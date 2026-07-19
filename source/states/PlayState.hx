@@ -2398,6 +2398,9 @@ class PlayState extends MusicBeatState
 
 			if(ClientPrefs.data.timeBarType != 'Song Name')
 				timeTxt.text = FlxStringUtil.formatTime(secondsTotal, false);
+
+			if(!endingSong && curTime >= songLength + 250)
+				finishSong();
 		}
 
 		if (camZooming)

@@ -23,7 +23,7 @@ class VideoSprite extends FlxSpriteGroup {
 	public var waiting:Bool = false;
 	public static var precachedVideos:Map<String, VideoSprite> = new Map();
 
-	public function new(videoName:String, isWaiting:Bool, canSkip:Bool = false, shouldLoop:Dynamic = false) {
+	public function new(videoName:String, isWaiting:Bool, ?canSkip:Null<Bool> = null, shouldLoop:Dynamic = false, ?antialiasing:Null<Bool> = null) {
 		super();
 
 		this.videoName = videoName;
@@ -41,10 +41,12 @@ class VideoSprite extends FlxSpriteGroup {
 		}
 
 		// initialize sprites
-		videoSprite = new FlxVideoSprite();
-		videoSprite.antialiasing = ClientPrefs.data.antialiasing;
-		add(videoSprite);
-		if(canSkip) this.canSkip = true;
+			videoSprite = new FlxVideoSprite();
+			var finalAntialiasing:Bool = antialiasing != null ? antialiasing : ClientPrefs.data.antialiasing;
+			videoSprite.antialiasing = finalAntialiasing;
+			add(videoSprite);
+			if(canSkip == null) canSkip = ClientPrefs.data.canSkipVideos;
+			if(canSkip) this.canSkip = true;
 
 		// callbacks
 		if(!shouldLoop) videoSprite.bitmap.onEndReached.add(finishVideo);
