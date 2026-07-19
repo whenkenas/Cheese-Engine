@@ -146,9 +146,16 @@ class Main extends Sprite
 			var modMode:String = save.data.modMode;
 			if(modMode == null || modMode == 'SINGLE MOD')
 			{
-				if(save.data.currentMod != null && save.data.currentMod != '')
+				if(save.data.currentMod != null && save.data.currentMod != '' && FileSystem.exists(Paths.mods(save.data.currentMod)))
 				{
 					Mods.currentModDirectory = save.data.currentMod;
+				}
+				else if(save.data.currentMod != null && save.data.currentMod != '')
+				{
+					Mods.currentModDirectory = '';
+					save.data.currentMod = '';
+					save.data.modMode = 'DISABLE MODS';
+					save.flush();
 				}
 				else
 				{
