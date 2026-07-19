@@ -21,9 +21,7 @@ class VideoSprite extends FlxSpriteGroup {
 	private var videoName:String;
 
 	public var waiting:Bool = false;
-	#if VIDEOS_ALLOWED
 	public static var precachedVideos:Map<String, VideoSprite> = new Map();
-	#end
 
 	public function new(videoName:String, isWaiting:Bool, canSkip:Bool = false, shouldLoop:Dynamic = false) {
 		super();
@@ -61,7 +59,8 @@ class VideoSprite extends FlxSpriteGroup {
 			{
 				var scaleX:Float = FlxG.width / wd;
 				var scaleY:Float = FlxG.height / hg;
-				videoSprite.scale.set(scaleX, scaleY);
+				var uniformScale:Float = Math.min(scaleX, scaleY);
+				videoSprite.scale.set(uniformScale, uniformScale);
 				videoSprite.updateHitbox();
 			}
 			else
@@ -76,21 +75,8 @@ class VideoSprite extends FlxSpriteGroup {
 			videoSprite.screenCenter();
 		});
 
-		var vlcOptions:Array<String> = [
-			'avcodec-hw=any',
-			'avcodec-fast',
-			'avcodec-skiploopfilter=0',
-			'avcodec-skip-frame=0',
-			'avcodec-skip-idct=0',
-			'sout-transcode-high-quality',
-			'no-drop-late-frames',
-			'no-skip-frames'
-		];
-		if(shouldLoop) vlcOptions.push('input-repeat=65545');
-		if(waiting)
-			videoSprite.bitmap.load(videoName, vlcOptions);
-		else
-			videoSprite.load(videoName, vlcOptions);
+		// start video and adjust resolution to screen size
+		videoSprite.load(videoName, shouldLoop ? ['input-repeat=65545'] : null);
 	}
 
 	var alreadyDestroyed:Bool = false;
@@ -131,43 +117,11 @@ class VideoSprite extends FlxSpriteGroup {
 		}
 	}
 
-	override function set_alpha(value:Float):Float
-	{
-		super.set_alpha(value);
-		if(videoSprite != null) videoSprite.alpha = value;
-		if(cover != null) cover.alpha = value;
-		return alpha;
-	}
-
-	override function set_x(value:Float):Float
-	{
-		super.set_x(value);
-		if(videoSprite != null) videoSprite.x = value;
-		return x;
-	}
-
-	override function set_y(value:Float):Float
-	{
-		super.set_y(value);
-		if(videoSprite != null) videoSprite.y = value;
-		return y;
-	}
-
-	override function set_angle(value:Float):Float
-	{
-		super.set_angle(value);
-		if(videoSprite != null) videoSprite.angle = value;
-		return angle;
-	}
-
 	override function update(elapsed:Float)
 	{
 		if(canSkip)
 		{
-			var isHolding:Bool = Controls.instance.pressed('accept')
-				|| FlxG.keys.pressed.ENTER
-				|| FlxG.keys.pressed.SPACE;
-			if(isHolding)
+			if(Controls.instance.pressed('accept'))
 			{
 				holdingTime = Math.max(0, Math.min(_timeToSkip, holdingTime + elapsed));
 			}
@@ -180,11 +134,9 @@ class VideoSprite extends FlxSpriteGroup {
 			if(holdingTime >= _timeToSkip)
 			{
 				if(onSkip != null) onSkip();
-				trace('Skipped video');
-				var cb = finishCallback;
 				finishCallback = null;
-				if(cb != null) cb();
-				destroy();
+				videoSprite.bitmap.onEndReached.dispatch();
+				trace('Skipped video');
 				return;
 			}
 		}
@@ -226,30 +178,5 @@ class VideoSprite extends FlxSpriteGroup {
 	public function play() videoSprite?.play();
 	public function resume() videoSprite?.resume();
 	public function pause() videoSprite?.pause();
-	
-	public function setTime(time:Float)
-	{
-		if(videoSprite != null && videoSprite.bitmap != null)
-		{
-			var videoTime:Int = Std.int(time);
-			var videoDuration:Int = haxe.Int64.toInt(videoSprite.bitmap.duration);
-			if(videoTime >= 0 && videoTime < videoDuration)
-				videoSprite.bitmap.time = videoTime;
-		}
-	}
-	
-	public function getTime():Float
-	{
-		if(videoSprite != null && videoSprite.bitmap != null)
-			return haxe.Int64.toInt(videoSprite.bitmap.time);
-		return 0;
-	}
-	
-	public function getDuration():Float
-	{
-		if(videoSprite != null && videoSprite.bitmap != null)
-			return haxe.Int64.toInt(videoSprite.bitmap.duration);
-		return 0;
-	}
 	#end
 }

@@ -67,8 +67,6 @@ class Character extends FlxSprite
 
 	public var positionArray:Array<Float> = [0, 0];
 	public var cameraPosition:Array<Float> = [0, 0];
-	public var playerPositionArray:Array<Float> = [0, 0];
-	public var playerCameraPosition:Array<Float> = [0, 0];
 	public var healthColorArray:Array<Int> = [255, 0, 0];
 
 	public var missingCharacter:Bool = false;
@@ -112,25 +110,42 @@ class Character extends FlxSprite
 		var characterPath:String = 'characters/$character.json';
 
 		var path:String = Paths.getPath(characterPath, TEXT);
+		var isCodenameXML:Bool = false;
+
 		#if MODS_ALLOWED
 		if (!FileSystem.exists(path))
 		#else
 		if (!Assets.exists(path))
 		#end
 		{
-			path = Paths.getSharedPath('characters/' + DEFAULT_CHARACTER + '.json'); //If a character couldn't be found, change him to BF just to prevent a crash
-			missingCharacter = true;
-			missingText = new FlxText(0, 0, 300, 'ERROR:\n$character.json', 16);
-			missingText.alignment = CENTER;
+			var xmlPath:String = Paths.getPath('characters/$character.xml', TEXT);
+			#if MODS_ALLOWED
+			if (FileSystem.exists(xmlPath))
+			#else
+			if (Assets.exists(xmlPath))
+			#end
+			{
+				path = xmlPath;
+				isCodenameXML = true;
+			}
+			else
+			{
+				path = Paths.getSharedPath('characters/' + DEFAULT_CHARACTER + '.json'); //If a character couldn't be found, change him to BF just to prevent a crash
+				missingCharacter = true;
+				missingText = new FlxText(0, 0, 300, 'ERROR:\n$character.json', 16);
+				missingText.alignment = CENTER;
+			}
 		}
 
 		try
 		{
 			#if MODS_ALLOWED
-			loadCharacterFile(Json.parse(File.getContent(path)));
+			var rawContent:String = File.getContent(path);
 			#else
-			loadCharacterFile(Json.parse(Assets.getText(path)));
+			var rawContent:String = Assets.getText(path);
 			#end
+
+			loadCharacterFile(isCodenameXML ? backend.CodenameCharacterCompat.convert(rawContent, character) : Json.parse(rawContent));
 		}
 		catch(e:Dynamic)
 		{
@@ -192,8 +207,6 @@ class Character extends FlxSprite
 		// positioning
 		positionArray = json.position;
 		cameraPosition = json.camera_position;
-		playerPositionArray = (json.player_position != null) ? json.player_position : [0, 0];
-		playerCameraPosition = (json.player_camera_position != null) ? json.player_camera_position : [0, 0];
 
 		// data
 		healthIcon = json.healthicon;
@@ -246,7 +259,6 @@ class Character extends FlxSprite
 		if(json.dance_every_num_beats != null)
 			_jsonDanceEvery = Std.int(Math.max(1, json.dance_every_num_beats));
 		vsliceSustains = (json.vslice_sustains == true);
-		swapSingSides = (json.swap_sing_sides == true);
 		//trace('Loaded file to character ' + curCharacter);
 	}
 
@@ -446,7 +458,6 @@ class Character extends FlxSprite
 
 	public var danceEveryNumBeats:Int = 2;
 	public var vsliceSustains:Bool = false;
-	public var swapSingSides:Bool = false;
 	private var settingCharacterUp:Bool = true;
 	private var _jsonDanceEvery:Null<Int> = null;
 	public function recalculateDanceIdle() {

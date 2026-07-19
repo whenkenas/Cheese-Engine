@@ -184,10 +184,11 @@ class HScript extends Iris
 		set('FlxCamera', flixel.FlxCamera);
 		set('PsychCamera', backend.PsychCamera);
 		set('FlxTimer', flixel.util.FlxTimer);
-		set('FlxTween', flixel.tweens.FlxTween);
+		set('FlxTween', HScriptTweenCompat);
 		set('FlxEase', flixel.tweens.FlxEase);
 		set('FlxColor', CustomFlxColor);
 		set('Capabilities', openfl.system.Capabilities);
+		set('Application', lime.app.Application);
 		set('ADD', BlendMode.ADD);
 		set('ALPHA', BlendMode.ALPHA);
 		set('DARKEN', BlendMode.DARKEN);

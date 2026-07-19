@@ -72,6 +72,7 @@ class NativeAudioSource {
 	}
 
 	private static function resetTimer(timer:Timer, time:Float, callback:Void->Void):Timer {
+		timerMutex.acquire();
 		if (timer == null) (timer = new Timer(time)).run = callback;
 		else {
 			timer.mTime = time;
@@ -81,6 +82,7 @@ class NativeAudioSource {
 
 			if (!Timer.sRunningTimers.contains(timer)) Timer.sRunningTimers.push(timer);
 		}
+		timerMutex.release();
 		return timer;
 	}
 
@@ -127,6 +129,7 @@ class NativeAudioSource {
 	static var queuedStreamSources:Array<NativeAudioSource> = [];
 
 	static var streamMutex:Mutex = new Mutex();
+	static var timerMutex:Mutex = new Mutex();
 	static var streamTimer:Timer;
 	public static var audioDisconnected:Bool = false;
 
@@ -578,7 +581,9 @@ class NativeAudioSource {
 			return;
 		}
 
+		timerMutex.acquire();
 		completeTimer.stop();
+		timerMutex.release();
 
 		if (loops == 0) return complete();
 
@@ -627,7 +632,11 @@ class NativeAudioSource {
 		lastTime = getCurrentTime();
 		playing = false;
 		stopStream();
-		if (completeTimer != null) completeTimer.stop();
+		if (completeTimer != null) {
+			timerMutex.acquire();
+			completeTimer.stop();
+			timerMutex.release();
+		}
 	}
 
 	public function stop() {
@@ -636,7 +645,11 @@ class NativeAudioSource {
 		streamLoops = 0;
 		playing = false;
 		stopStream();
-		if (completeTimer != null) completeTimer.stop();
+		if (completeTimer != null) {
+			timerMutex.acquire();
+			completeTimer.stop();
+			timerMutex.release();
+		}
 	}
 
 	public function complete() {

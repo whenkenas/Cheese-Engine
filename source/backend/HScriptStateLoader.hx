@@ -110,9 +110,41 @@ class HScriptState extends MusicBeatState
 			}
 
 			if(hscript != null && hscript.exists('update'))
-				hscript.call('update', [elapsed]);
+			hscript.call('update', [elapsed]);
 		}
 	}	
+	
+	var lastStepHit:Int = -1;
+	override function stepHit()
+	{
+		super.stepHit();
+		
+		if(curStep == lastStepHit)
+			return;
+		
+		lastStepHit = curStep;
+		if(hscript != null && hscript.exists('onStepHit'))
+		{
+			hscript.set('curStep', curStep);
+			hscript.call('onStepHit', []);
+		}
+	}
+	
+	var lastBeatHit:Int = -1;
+	override function beatHit()
+	{
+		super.beatHit();
+		
+		if(curBeat == lastBeatHit)
+			return;
+		
+		lastBeatHit = curBeat;
+		if(hscript != null && hscript.exists('onBeatHit'))
+		{
+			hscript.set('curBeat', curBeat);
+			hscript.call('onBeatHit', []);
+		}
+	}
 	
 	override function destroy()
 	{

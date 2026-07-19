@@ -113,6 +113,11 @@ class PsychUIInputText extends FlxSpriteGroup
 	var _handledByKeyDown:Bool = false;
 	public var inInsertMode:Bool = false;
 
+	var _lastClickTime:Float = 999;
+	var _clickCount:Int = 0;
+	var _isDragging:Bool = false;
+	var _dragAnchor:Int = 0;
+
 	function onTextInput(e:TextEvent)
 	{
 		if(focusOn != this) return;
@@ -220,6 +225,8 @@ class PsychUIInputText extends FlxSpriteGroup
 					else deleteSelection();
 
 				case LEFT:
+					if(!e.shiftKey) selectIndex = -1;
+					else if(selectIndex == -1) selectIndex = caretIndex;
 					if(caretIndex > 0)
 					{
 						do
@@ -233,6 +240,8 @@ class PsychUIInputText extends FlxSpriteGroup
 					}
 
 				case RIGHT:
+					if(!e.shiftKey) selectIndex = -1;
+					else if(selectIndex == -1) selectIndex = caretIndex;
 					if(caretIndex < text.length)
 					{
 						do
@@ -465,30 +474,58 @@ class PsychUIInputText extends FlxSpriteGroup
 		{
 			if(FlxG.mouse.overlaps(behindText, camera))
 			{
-				if(!FlxG.keys.pressed.SHIFT) selectIndex = -1;
-				else if(selectIndex == -1) selectIndex = caretIndex;
 				focusOn = this;
-				caretIndex = 0;
-				var lastBound:Float = 0;
-				var textObjX:Float = textObj.getScreenPosition(camera).x;
-				var mousePosX:Float = FlxG.mouse.getScreenPosition(camera).x;
-				var txtX:Float = textObjX - textObj.textField.scrollH;
+				var clickIndex:Int = caretIndexAtMouse();
 
-				for (i => bound in _boundaries)
+				if(_lastClickTime < 0.4) _clickCount++;
+				else _clickCount = 0;
+				_lastClickTime = 0;
+
+				if(_clickCount >= 2)
 				{
-					if(mousePosX >= txtX + (bound - lastBound)/2)
-					{
-						caretIndex = i+1;
-						txtX += bound - lastBound;
-						lastBound = bound;
-					}
-					else break;
+					selectIndex = 0;
+					caretIndex = text.length;
 				}
+				else if(_clickCount == 1)
+				{
+					var bounds = wordBoundsAt(clickIndex);
+					selectIndex = bounds.start;
+					caretIndex = bounds.end;
+				}
+				else
+				{
+					if(!FlxG.keys.pressed.SHIFT) selectIndex = -1;
+					else if(selectIndex == -1) selectIndex = caretIndex;
+					caretIndex = clickIndex;
+				}
+
+				_isDragging = true;
+				_dragAnchor = (selectIndex == -1) ? caretIndex : selectIndex;
 				updateCaret();
 			}
-			else if(focusOn == this)
-				focusOn = null;
+			else
+			{
+				_clickCount = 0;
+				if(focusOn == this) focusOn = null;
+			}
 		}
+		else if(_isDragging)
+		{
+			if(FlxG.mouse.pressed && focusOn == this)
+			{
+				var dragIndex:Int = caretIndexAtMouse();
+				if(dragIndex != _dragAnchor)
+				{
+					selectIndex = _dragAnchor;
+					caretIndex = dragIndex;
+				}
+				else selectIndex = -1;
+				updateCaret();
+			}
+			else _isDragging = false;
+		}
+
+		_lastClickTime += elapsed;
 
 		if(focusOn == this)
 		{
@@ -531,6 +568,36 @@ class PsychUIInputText extends FlxSpriteGroup
 		selectIndex = -1;
 		caretIndex = 0;
 		updateCaret();
+	}
+
+	function caretIndexAtMouse():Int
+	{
+		var index:Int = 0;
+		var lastBound:Float = 0;
+		var textObjX:Float = textObj.getScreenPosition(camera).x;
+		var mousePosX:Float = FlxG.mouse.getScreenPosition(camera).x;
+		var txtX:Float = textObjX - textObj.textField.scrollH;
+
+		for (i => bound in _boundaries)
+		{
+			if(mousePosX >= txtX + (bound - lastBound)/2)
+			{
+				index = i+1;
+				txtX += bound - lastBound;
+				lastBound = bound;
+			}
+			else break;
+		}
+		return index;
+	}
+
+	function wordBoundsAt(index:Int):{start:Int, end:Int}
+	{
+		var start:Int = index;
+		var end:Int = index;
+		while(start > 0 && text.charAt(start-1) != ' ') start--;
+		while(end < text.length && text.charAt(end) != ' ') end++;
+		return {start: start, end: end};
 	}
 
 	public function updateCaret()

@@ -1732,12 +1732,62 @@ class LuaState extends MusicBeatState
 			}
 
 			call('onUpdate', [elapsed]);
-			for(script in luaArray)
-				script.call('onUpdate', [elapsed]);
+				for(script in luaArray)
+					script.call('onUpdate', [elapsed]);
+			}
 		}
-	}
 
-	override function destroy()
+		var lastStepHit:Int = -1;
+		override function stepHit()
+		{
+			super.stepHit();
+
+			if(curStep == lastStepHit)
+				return;
+
+			lastStepHit = curStep;
+			set('curStep', curStep);
+			call('onStepHit', []);
+			for(script in luaArray)
+			{
+				script.set('curStep', curStep);
+				script.call('onStepHit', []);
+			}
+			#if HSCRIPT_ALLOWED
+			if(hscript != null && hscript.exists('onStepHit'))
+			{
+				hscript.set('curStep', curStep);
+				hscript.call('onStepHit', []);
+			}
+			#end
+		}
+
+		var lastBeatHit:Int = -1;
+		override function beatHit()
+		{
+			super.beatHit();
+
+			if(curBeat == lastBeatHit)
+				return;
+
+			lastBeatHit = curBeat;
+			set('curBeat', curBeat);
+			call('onBeatHit', []);
+			for(script in luaArray)
+			{
+				script.set('curBeat', curBeat);
+				script.call('onBeatHit', []);
+			}
+			#if HSCRIPT_ALLOWED
+			if(hscript != null && hscript.exists('onBeatHit'))
+			{
+				hscript.set('curBeat', curBeat);
+				hscript.call('onBeatHit', []);
+			}
+			#end
+		}
+
+		override function destroy()
 	{
 		if(lua != null) {
 			call('onDestroy', []);
